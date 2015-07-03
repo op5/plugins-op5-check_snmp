@@ -5,6 +5,7 @@
 #include <errno.h>
 #include <string.h>
 #include "common.h"
+#include "utils_base.h"
 #include "utils_snmp.h"
 
 #define ARRAY_SIZE(x) (sizeof(x) / sizeof(x[0]))
