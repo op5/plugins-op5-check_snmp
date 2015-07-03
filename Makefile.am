@@ -32,3 +32,6 @@ src_check_snmp_procs_LDADD=\
 	$(naemon_LIBS)
 src_check_snmp_procs_CFLAGS=\
 	$(naemon_CFLAGS)
+
+check:
+	phpunit $(top_srcdir)/test/
