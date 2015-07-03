@@ -39,6 +39,23 @@ const char *email = "devel@monitoring-plugins.org";
 #define DISKIO_SUBIDX_ReadX 12					/* not used */
 #define DISKIO_SUBIDX_WrittenX 13				/* not used */
 
+enum o_monitortype_t {
+	MONITOR_TYPE__STORAGE = 1,
+	MONITOR_TYPE__IO = 2
+};
+
+enum o_monitor_presentationtype_t {
+	MONITOR_PRESTYPE__STORAGE_LIST,
+	MONITOR_PRESTYPE__STORAGE_PERCENT_USED,
+	MONITOR_PRESTYPE__STORAGE_PERCENT_LEFT,
+	MONITOR_PRESTYPE__STORAGE_MB_USED,
+	MONITOR_PRESTYPE__STORAGE_MB_LEFT,
+	MONITOR_PRESTYPE__IO_LIST,
+	MONITOR_PRESTYPE__IO_1,
+	MONITOR_PRESTYPE__IO_5,
+	MONITOR_PRESTYPE__IO_15
+};
+
 int process_arguments (int, char **);
 int validate_arguments (void);
 void print_help (void);
@@ -46,10 +63,10 @@ void print_usage (void);
 
 mp_snmp_context *ctx;
 char *warn_str = NULL, *crit_str = NULL;
-int o_monitortype = 1;
+enum o_monitortype_t o_monitortype = MONITOR_TYPE__STORAGE;
 int o_perfdata = 0;
 int o_get_index = 0;
-int o_type = 1;
+enum o_monitor_presentationtype_t o_type = MONITOR_PRESTYPE__STORAGE_PERCENT_USED;
 
 struct disk_info {
 	int Index;
@@ -67,6 +84,18 @@ struct disk_info {
 		int La15;
 	} IO;
 };
+
+static void print_output_header(int result) {
+	/* output result state */
+	if (result == STATE_OK)
+			printf("OK: ");
+	if (result == STATE_WARNING)
+			printf("WARNING: ");
+	if (result == STATE_CRITICAL)
+			printf("CRITICAL: ");
+	if (result == STATE_UNKNOWN)
+			printf("UNKNOWN: ");
+}
 
 static int
 disk_index_output(netsnmp_variable_list *v, void *ptr, void *discard)
@@ -200,7 +229,7 @@ struct disk_info *check_disk_ret(mp_snmp_context *ss, int statemask)
 	memset(cd, 0, sizeof(struct disk_info));
 	
 	/* Lists the index and all available disks/io to check */
-	if(o_get_index == 0 && o_monitortype == 1) {
+	if(o_get_index == 0) {
 		printf("### Fetched storage data over NET-SNMP ###\n");
 		printf("Index:\tDescription:\n");
 		mp_snmp_walk(ss, "1.3.6.1.2.1.25.2.3.1.3", NULL, disk_index_output, cd, NULL);
@@ -265,21 +294,17 @@ void print_help (void)
 	printf ("    %s\n", _("IP address to the SNMP server"));
 	printf (" %s\n", "-C, --community=STRING");
 	printf ("	%s\n", _("Community string for SNMP communication"));
-	printf (" %s\n", "-m, --monitordisktype=[1|2|3|4]");
-	printf ("	%s\n", _("1 - Storage (default)"));
-	printf ("	%s\n", _("2 - I/O"));
 	printf (" %s\n", "-i, --indexofdisk=<int>");
 	printf ("	%s\n", _("0 - Storage index list (default)"));
 	printf ("	%s\n", _("<int> - Storage to check"));
-	printf (" %s\n", "-T, --Type=[1-7]");
-	printf ("	%s\n", _("1 - Storage percent used (default)"));
-	printf ("	%s\n", _("2 - Storage percent left"));
-	printf ("	%s\n", _("3 - Storage MegaBytes used"));
-	printf ("	%s\n", _("4 - Storage MegaBytes left"));
-	printf ("	%s\n", _("---"));
-	printf ("	%s\n", _("5 - I/O load average 1 min"));
-	printf ("	%s\n", _("6 - I/O load average 5 min"));
-	printf ("	%s\n", _("7 - I/O load average 15 min"));
+	printf (" %s\n", "-T, --Type=<string>");
+	printf ("	%s\n", _("storage_percent_used - Storage percent used (default)"));
+	printf ("	%s\n", _("storage_percent_left - Storage percent left"));
+	printf ("	%s\n", _("storage_mb_used - Storage MegaBytes used"));
+	printf ("	%s\n", _("storage_mb_left - Storage MegaBytes left"));
+	printf ("	%s\n", _("io_1 - I/O load average 1 min"));
+	printf ("	%s\n", _("io_5 - I/O load average 5 min"));
+	printf ("	%s\n", _("io_15 - I/O load average 15 min"));
 	printf (" %s\n", "-P, --protocol=[1|2c|3]");
 	printf ("    %s\n", _("SNMP protocol version"));
 	printf (" %s\n", "-L, --seclevel=[noAuthNoPriv|authNoPriv|authPriv]");
@@ -314,7 +339,6 @@ int process_arguments (int argc, char **argv)
 		STD_LONG_OPTS,
 		{"usage", no_argument, 0, 'u'},
 		{"perfdata", no_argument, 0, 'f'},
-		{"monitordisktype", required_argument, 0, 'm'},
 		{"indexofdisk", required_argument, 0, 'i'},
 		{"type", required_argument, 0, 'T'},
 		MP_SNMP_LONGOPTS,
@@ -373,37 +397,46 @@ int process_arguments (int argc, char **argv)
 			case 'f':
 				o_perfdata = 1;
 				break;
-			case 'm':
-				o_monitortype = atoi(optarg);
-				break;
 			case 'i':
 				o_get_index = atoi(optarg);
 				break;
 			case 'T':
-				o_type = atoi(optarg);
+				if (0==strcmp(optarg, "storage_list")) {
+					o_monitortype = MONITOR_TYPE__STORAGE;
+					o_type = MONITOR_PRESTYPE__STORAGE_LIST;
+				} else if (0==strcmp(optarg, "storage_percent_used")) {
+					o_monitortype = MONITOR_TYPE__STORAGE;
+					o_type = MONITOR_PRESTYPE__STORAGE_PERCENT_USED;
+				} else if (0==strcmp(optarg, "storage_percent_left")) {
+					o_monitortype = MONITOR_TYPE__STORAGE;
+					o_type = MONITOR_PRESTYPE__STORAGE_PERCENT_LEFT;
+				} else if (0==strcmp(optarg, "storage_mb_used")) {
+					o_monitortype = MONITOR_TYPE__STORAGE;
+					o_type = MONITOR_PRESTYPE__STORAGE_MB_USED;
+				} else if (0==strcmp(optarg, "storage_mb_left")) {
+					o_monitortype = MONITOR_TYPE__STORAGE;
+					o_type = MONITOR_PRESTYPE__STORAGE_MB_LEFT;
+				} else if (0==strcmp(optarg, "io_list")) {
+					o_monitortype = MONITOR_TYPE__IO;
+					o_type = MONITOR_PRESTYPE__IO_LIST;
+				} else if (0==strcmp(optarg, "io_1")) {
+					o_monitortype = MONITOR_TYPE__IO;
+					o_type = MONITOR_PRESTYPE__IO_1;
+				} else if (0==strcmp(optarg, "io_5")) {
+					o_monitortype = MONITOR_TYPE__IO;
+					o_type = MONITOR_PRESTYPE__IO_5;
+				} else if (0==strcmp(optarg, "io_15")) {
+					o_monitortype = MONITOR_TYPE__IO;
+					o_type = MONITOR_PRESTYPE__IO_15;
+				} else {
+					die(STATE_UNKNOWN, _("Wrong parameter for -T.\n"));
+				}
 				break;
 		}
 	}
 	
 	free(optary);
-	return validate_arguments ();
-}
-
-int validate_arguments (void)
-{
-	if (o_monitortype > 2 || o_monitortype == 0) {
-		printf("Invalid input value for -m (Use 1|2).\n");
-		exit(STATE_UNKNOWN);
-	}
-	else if (o_monitortype == 1 && o_type > 4) {
-		printf("Invalid input value for -T (Use 1|2|3|4).\n");
-		exit(STATE_UNKNOWN);
-	}
-	else if (o_monitortype == 2 && (o_type < 5 || o_type > 7)) {
-		printf("Invalid input value for -T (Use 5|6|7).\n");
-		exit(STATE_UNKNOWN);
-	}
-	return OK;
+	return TRUE;
 }
 
 int main(int argc, char **argv)
@@ -427,125 +460,109 @@ int main(int argc, char **argv)
 	set_thresholds(&thresh, warn_str, crit_str);
 
 	/* get, calculate and set result status */
-	if (o_monitortype == 1) {
-		ptr = check_disk_ret(ctx, ~0);	/* get net-snmp disk data */
-		mp_snmp_deinit(program_name);	/* deinit */
-		if (ptr->Descr == NULL) {
-			printf("Invalid input value for -i (Use -i 0).\n");
-			exit(STATE_UNKNOWN);
-		}
-		
-		if (o_type == 1) { 		/* Percent used (default) */
-			percent_used = (double)ptr->Used/(double)ptr->Size*100;
-			result = get_status (percent_used, thresh);
-		}
-		else if (o_type == 2) {	/* Percent left */
-			percent_left = (double)(ptr->Size-ptr->Used)/(double)ptr->Size*100;
-			result = get_status (percent_left, thresh);
-		}
-		else if (o_type == 3) {	/* MegaBytes used */
-			mb_used = (unsigned long long)ptr->Used*ptr->AllocationUnits/MBPREFIX;
-			result = get_status (mb_used, thresh);
-			uom = "MB";
-		}
-		else if (o_type == 4) {	/* MegaBytes left */
-			mb_left = (unsigned long long)(ptr->Size-ptr->Used)*ptr->AllocationUnits/MBPREFIX;
-			result = get_status (mb_left, thresh);
-			uom = "MB";
-		}
-		else
-			die(STATE_UNKNOWN, _("Could not handle -T values.\n"));
-	}
-	else if (o_monitortype == 2) {
-		ptr = check_disk_io_ret(ctx, ~0); 	/* get net-snmp io data */
-		mp_snmp_deinit(program_name);		/* deinit */
-		if (ptr->IO.Descr == NULL) {
-			printf("Invalid input value for -i (Use -i 0).\n");
-			exit(STATE_UNKNOWN);
-		}
-		
-		if (o_type == 5)
-			result = get_status (ptr->IO.La1, thresh);
-		else if (o_type == 6)
-			result = get_status (ptr->IO.La5, thresh);
-		else if (o_type == 7)
-			result = get_status (ptr->IO.La15, thresh);
-		else
-			die(STATE_UNKNOWN, _("Could not handle -T values.\n"));
-	}
-	else
-		die(STATE_UNKNOWN, _("Wrong parameter for -m(Use 1|2).\n"));
-	
-	/* output result state */
-	if (result == STATE_OK)
-			printf("OK: ");
-	if (result == STATE_WARNING)
-			printf("WARNING: ");
-	if (result == STATE_CRITICAL)
-			printf("CRITICAL: ");
-	if (result == STATE_UNKNOWN)
-			printf("UNKNOWN: ");
+	switch (o_monitortype) {
+		case MONITOR_TYPE__STORAGE:
+			ptr = check_disk_ret(ctx, ~0);	/* get net-snmp disk data */
+			mp_snmp_deinit(program_name);	/* deinit */
+			if (ptr->Descr == NULL) {
+				printf("Invalid input value for -i (Use -i 0).\n");
+				exit(STATE_UNKNOWN);
+			}
+			
+			if (o_type == MONITOR_PRESTYPE__STORAGE_PERCENT_USED) { 		/* Percent used (default) */
+				percent_used = (double)ptr->Used/(double)ptr->Size*100;
+				result = get_status (percent_used, thresh);
+			}
+			else if (o_type == MONITOR_PRESTYPE__STORAGE_PERCENT_LEFT) {	/* Percent left */
+				percent_left = (double)(ptr->Size-ptr->Used)/(double)ptr->Size*100;
+				result = get_status (percent_left, thresh);
+			}
+			else if (o_type == MONITOR_PRESTYPE__STORAGE_MB_USED) {	/* MegaBytes used */
+				mb_used = (unsigned long long)ptr->Used*ptr->AllocationUnits/MBPREFIX;
+				result = get_status (mb_used, thresh);
+				uom = "MB";
+			}
+			else if (o_type == MONITOR_PRESTYPE__STORAGE_MB_LEFT) {	/* MegaBytes left */
+				mb_left = (unsigned long long)(ptr->Size-ptr->Used)*ptr->AllocationUnits/MBPREFIX;
+				result = get_status (mb_left, thresh);
+				uom = "MB";
+			}
+			else
+				die(STATE_UNKNOWN, _("Could not handle -T values.\n"));
 
-	/* output result text and values with optional perfdata */
-	if (o_monitortype == 1) {
-		if (o_type == 1) {
-			printf("%d%s of storage used ", percent_used, uom);
-			if (o_perfdata == 1) {
-				printf("|'%s'=%d%s;%s;%s",
-					ptr->Descr, percent_used, uom, warn_str, crit_str);
+			print_output_header(result);
+			
+			if (o_type == MONITOR_PRESTYPE__STORAGE_PERCENT_USED) {
+				printf("%d%s of storage used ", percent_used, uom);
+				if (o_perfdata == 1) {
+					printf("|'%s'=%d%s;%s;%s",
+						ptr->Descr, percent_used, uom, warn_str, crit_str);
+				}
 			}
-		}
-		else if (o_type == 2) {
-			printf("%d%s of storage left ", percent_left, uom);
-			if (o_perfdata == 1) {
-				printf("|'%s'=%d%s;%s;%s",
-					ptr->Descr, percent_left, uom, warn_str, crit_str);
+			else if (o_type == MONITOR_PRESTYPE__STORAGE_PERCENT_LEFT) {
+				printf("%d%s of storage left ", percent_left, uom);
+				if (o_perfdata == 1) {
+					printf("|'%s'=%d%s;%s;%s",
+						ptr->Descr, percent_left, uom, warn_str, crit_str);
+				}
 			}
-		}
-		else if (o_type == 3) {
-			printf("%lld%s of storage used ", mb_used, uom);
-			if (o_perfdata == 1) {
-				printf("|'%s'=%lld%s;%s;%s",
-					ptr->Descr, mb_used, uom, warn_str, crit_str);
+			else if (o_type == MONITOR_PRESTYPE__STORAGE_MB_USED) {
+				printf("%lld%s of storage used ", mb_used, uom);
+				if (o_perfdata == 1) {
+					printf("|'%s'=%lld%s;%s;%s",
+						ptr->Descr, mb_used, uom, warn_str, crit_str);
+				}
 			}
-		}
-		else if (o_type == 4) {
-			printf("%lld%s of storage left ", mb_left, uom);
-			if (o_perfdata == 1) {
-				printf("|'%s'=%lld%s;%s;%s",
-					ptr->Descr, mb_left, uom, warn_str, crit_str);
+			else if (o_type == MONITOR_PRESTYPE__STORAGE_MB_LEFT) {
+				printf("%lld%s of storage left ", mb_left, uom);
+				if (o_perfdata == 1) {
+					printf("|'%s'=%lld%s;%s;%s",
+						ptr->Descr, mb_left, uom, warn_str, crit_str);
+				}
 			}
-		}
-		else
-			die(STATE_UNKNOWN, _("Wrong parameter for -T(Use 1|2|3|4).\n"));
+			break;
+		case MONITOR_TYPE__IO:
+			ptr = check_disk_io_ret(ctx, ~0); 	/* get net-snmp io data */
+			mp_snmp_deinit(program_name);		/* deinit */
+			if (ptr->IO.Descr == NULL) {
+				printf("Invalid input value for -i (Use -i 0).\n");
+				exit(STATE_UNKNOWN);
+			}
+			
+			if (o_type == MONITOR_PRESTYPE__IO_1)
+				result = get_status (ptr->IO.La1, thresh);
+			else if (o_type == MONITOR_PRESTYPE__IO_5)
+				result = get_status (ptr->IO.La5, thresh);
+			else if (o_type == MONITOR_PRESTYPE__IO_15)
+				result = get_status (ptr->IO.La15, thresh);
+			else
+				die(STATE_UNKNOWN, _("Could not handle -T values.\n"));
+
+			print_output_header(result);
+			
+			if (o_type == MONITOR_PRESTYPE__IO_1) {
+				printf("%d%s IO Load-1 ", ptr->IO.La1, uom);
+				if (o_perfdata == 1) {
+					printf("|'%s'=%d%s;%s;%s", ptr->IO.Descr, ptr->IO.La1,
+							uom, warn_str, crit_str);
+				}
+			}
+			else if (o_type == MONITOR_PRESTYPE__IO_5) {
+				printf("%d%s IO Load-5 ", ptr->IO.La5, uom);
+				if (o_perfdata == 1) {
+					printf("|'%s'=%d%s;%s;%s", ptr->IO.Descr, ptr->IO.La5,
+							uom, warn_str, crit_str);
+				}
+			}
+			else if (o_type == MONITOR_PRESTYPE__IO_15) {
+				printf("%d%s IO Load-15 ", ptr->IO.La15, uom);
+				if (o_perfdata == 1) {
+					printf("|'%s'=%d%s;%s;%s", ptr->IO.Descr, ptr->IO.La15,
+							uom, warn_str, crit_str);
+				}
+			}
+			break;
 	}
-	else if (o_monitortype == 2) {
-		if (o_type == 5) {
-			printf("%d%s IO Load-1 ", ptr->IO.La1, uom);
-			if (o_perfdata == 1) {
-				printf("|'%s'=%d%s;%s;%s", ptr->IO.Descr, ptr->IO.La1,
-						uom, warn_str, crit_str);
-			}
-		}
-		else if (o_type == 6) {
-			printf("%d%s IO Load-5 ", ptr->IO.La5, uom);
-			if (o_perfdata == 1) {
-				printf("|'%s'=%d%s;%s;%s", ptr->IO.Descr, ptr->IO.La5,
-						uom, warn_str, crit_str);
-			}
-		}
-		else if (o_type == 7) {
-			printf("%d%s IO Load-15 ", ptr->IO.La15, uom);
-			if (o_perfdata == 1) {
-				printf("|'%s'=%d%s;%s;%s", ptr->IO.Descr, ptr->IO.La15,
-						uom, warn_str, crit_str);
-			}
-		}
-		else 
-			die(STATE_UNKNOWN, _("Wrong parameter for -T(Use 5|6|7).\n"));
-	}
-	else
-		die(STATE_UNKNOWN, _("Wrong parameter for -m(Use 1|2).\n"));
 
 	printf("\n");
 	
