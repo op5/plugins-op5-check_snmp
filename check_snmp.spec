@@ -12,10 +12,6 @@ BuildArch: i386 x86_64
 Name: monitor-plugin-check_snmp_plugins
 Summary: Nagios compatible plugins to check linux systems over SNMP
 
-%package -n monitor-plugin-check_snmp_disk
-Summary: Nagios compatible plugins to check disks over SNMP
-
-Requires: net-snmp-libs
 BuildRequires: autoconf
 BuildRequires: automake
 BuildRequires: check-devel
@@ -32,7 +28,25 @@ BuildRequires: php-process
 %description
 %{summary}
 
+%package -n monitor-plugin-check_snmp_disk
+Summary: Nagios compatible plugins to check disks over SNMP
+Requires: net-snmp-libs
+
 %description -n monitor-plugin-check_snmp_disk
+%{summary}
+
+%package -n monitor-plugin-check_snmp_cpu
+Summary: Nagios compatible plugins to check cpu over SNMP
+Requires: net-snmp-libs
+
+%description -n monitor-plugin-check_snmp_cpu
+%{summary}
+
+%package -n monitor-plugin-check_snmp_memory
+Summary: Nagios compatible plugins to check memory over SNMP
+Requires: net-snmp-libs
+
+%description -n monitor-plugin-check_snmp_memory
 %{summary}
 
 %prep
@@ -61,6 +75,16 @@ rm -rf %buildroot
 %defattr(-,root,root,-)
 %attr(755,root,root) %{prefix}/check_snmp_disk
 #%attr(644,root,root) %{prefix}/metadata/check_snmp_disk.metadata
+
+%files -n monitor-plugin-check_snmp_cpu
+%defattr(-,root,root,-)
+%attr(755,root,root) %{prefix}/check_snmp_cpu
+#%attr(644,root,root) %{prefix}/metadata/check_snmp_cpu.metadata
+
+%files -n monitor-plugin-check_snmp_memory
+%defattr(-,root,root,-)
+%attr(755,root,root) %{prefix}/check_snmp_memory
+#%attr(644,root,root) %{prefix}/metadata/check_snmp_memory.metadata
 
 %changelog
 * Fri Jul 03 2015 Robin Hagman <robin.hagman@op5.com> 0.0.1

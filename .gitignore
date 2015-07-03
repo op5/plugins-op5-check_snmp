@@ -19,5 +19,7 @@ configure
 depcomp
 install-sh
 missing
+src/check_snmp_cpu
 src/check_snmp_disk
+src/check_snmp_memory
 stamp-h1
