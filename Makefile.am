@@ -1,7 +1,8 @@
 libexec_PROGRAMS=\
 	src/check_snmp_disk \
 	src/check_snmp_cpu \
-	src/check_snmp_memory
+	src/check_snmp_memory \
+	src/check_snmp_procs
 
 AM_CPPFLAGS = -DNP_STATE_DIR_PREFIX=\"$(localstatedir)\"
 AM_LDFLAGS = $(SNMPLIBS)
@@ -23,3 +24,11 @@ src_check_snmp_cpu_SOURCES=\
 src_check_snmp_memory_SOURCES=\
 	src/check_snmp_memory.c \
 	$(COMMON_SOURCES)
+
+src_check_snmp_procs_SOURCES=\
+	src/check_snmp_procs.c \
+	$(COMMON_SOURCES)
+src_check_snmp_procs_LDADD=\
+	$(naemon_LIBS)
+src_check_snmp_procs_CFLAGS=\
+	$(naemon_CFLAGS)

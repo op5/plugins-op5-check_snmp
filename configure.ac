@@ -11,7 +11,7 @@ AM_PROG_CC_C_O
 AC_PROG_RANLIB
 
 AM_CPPFLAGS=""
-#PKG_CHECK_MODULES([check], [check >= 0.9.0])
+PKG_CHECK_MODULES([naemon], [naemon])
 
 # START SNMP STUFF
 AC_PATH_PROG(NETSNMPCONFIG,net-snmp-config)

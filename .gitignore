@@ -22,4 +22,5 @@ missing
 src/check_snmp_cpu
 src/check_snmp_disk
 src/check_snmp_memory
+src/check_snmp_procs
 stamp-h1

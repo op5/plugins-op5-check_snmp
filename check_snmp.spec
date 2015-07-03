@@ -17,6 +17,8 @@ BuildRequires: automake
 BuildRequires: check-devel
 BuildRequires: valgrind
 BuildRequires: net-snmp-devel
+# op5-naemon-devel is needed by check_snmp_procs
+BuildRequires: op5-naemon-devel
 
 BuildRequires: op5-phpunit
 %if 0%{?suse_version}
@@ -47,6 +49,14 @@ Summary: Nagios compatible plugins to check memory over SNMP
 Requires: net-snmp-libs
 
 %description -n monitor-plugin-check_snmp_memory
+%{summary}
+
+%package -n monitor-plugin-check_snmp_procs
+Summary: Nagios compatible plugins to check procs over SNMP
+Requires: net-snmp-libs
+Requires: op5-naemon
+
+%description -n monitor-plugin-check_snmp_procs
 %{summary}
 
 %prep
@@ -85,6 +95,11 @@ rm -rf %buildroot
 %defattr(-,root,root,-)
 %attr(755,root,root) %{prefix}/check_snmp_memory
 #%attr(644,root,root) %{prefix}/metadata/check_snmp_memory.metadata
+
+%files -n monitor-plugin-check_snmp_procs
+%defattr(-,root,root,-)
+%attr(755,root,root) %{prefix}/check_snmp_procs
+#%attr(644,root,root) %{prefix}/metadata/check_snmp_procs.metadata
 
 %changelog
 * Fri Jul 03 2015 Robin Hagman <robin.hagman@op5.com> 0.0.1

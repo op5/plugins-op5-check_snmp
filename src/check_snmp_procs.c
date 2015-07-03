@@ -11,8 +11,7 @@ const char *email = "devel@monitoring-plugins.org";
 #include "common.h"
 #include "utils.h"
 #include "utils_snmp.h"
-#include "bitmap.h"
-#include "rbtree.h"
+#include <naemon/naemon.h>
 
 #define PROCESS_TABLE "1.3.6.1.2.1.25.4.2.1"
 #define PROCESS_SUBIDX_RunIndex 1
