@@ -100,29 +100,29 @@ EOF;
 			'OK: 84% Ram used'
 		), 0);
 	}
-	public function test_default_warning_and_critical_OK() {
-		$this->assertCommand("-H @endpoint@ -C mycommunity -w 85 -c 95", array(
+	public function test_default_with_perf_data_and_warn_crit_values() {
+		$this->assertCommand("-H @endpoint@ -C mycommunity -f -w 85 -c 95", array(
 		), array(
-			'OK: 84% Ram used'
+			"OK: 84% Ram used |'Ram used'=84%;85;95"
 		), 0);
 	}
 /**
  * Ram used OK, WARNING, CRITICAL
  */
 	public function test_option_used_warning_and_critical_OK() {
-		$this->assertCommand("-H @endpoint@ -C mycommunity -f -m r -w 85 -c 95", array(
+		$this->assertCommand("-H @endpoint@ -C mycommunity -f -T ram_used -w 85 -c 95", array(
 		), array(
 			"OK: 84% Ram used |'Ram used'=84%;85;95"
 		), 0);
 	}
 	public function test_option_used_warning_and_critical_WARNING() {
-		$this->assertCommand("-H @endpoint@ -C mycommunity -f -m r -w 70 -c 95", array(
+		$this->assertCommand("-H @endpoint@ -C mycommunity -f -T ram_used -w 70 -c 95", array(
 		), array(
 			"WARNING: 84% Ram used |'Ram used'=84%;70;95"
 		), 1);
 	}
 	public function test_option_used_warning_and_critical_CRITICAL() {
-		$this->assertCommand("-H @endpoint@ -C mycommunity -f -m r -w 70 -c 80", array(
+		$this->assertCommand("-H @endpoint@ -C mycommunity -f -T ram_used -w 70 -c 80", array(
 		), array(
 			"CRITICAL: 84% Ram used |'Ram used'=84%;70;80"
 		), 2);
@@ -131,19 +131,19 @@ EOF;
  * Ram free OK, WARNING, CRITICAL
  */
 	public function test_option_free_warning_and_critical_OK() {
-		$this->assertCommand("-H @endpoint@ -C mycommunity -f -m f -w 20 -c 30", array(
+		$this->assertCommand("-H @endpoint@ -C mycommunity -f -T ram_free -w 20 -c 30", array(
 		), array(
 			"OK: 15% Ram free |'Ram free'=15%;20;30"
 		), 0);
 	}
 	public function test_option_free_warning_and_critical_WARNING() {
-		$this->assertCommand("-H @endpoint@ -C mycommunity -f -m f -w 10 -c 30", array(
+		$this->assertCommand("-H @endpoint@ -C mycommunity -f -T ram_free -w 10 -c 30", array(
 		), array(
 			"WARNING: 15% Ram free |'Ram free'=15%;10;30"
 		), 1);
 	}
 	public function test_option_free_warning_and_critical_CRITICAL() {
-		$this->assertCommand("-H @endpoint@ -C mycommunity -f -m f -w 10 -c 15", array(
+		$this->assertCommand("-H @endpoint@ -C mycommunity -f -T ram_free -w 10 -c 15", array(
 		), array(
 			"CRITICAL: 15% Ram free |'Ram free'=15%;10;15"
 		), 2);
@@ -152,32 +152,77 @@ EOF;
  * Swap used OK, WARNING, CRITICAL
  */
 	public function test_option_swap_warning_and_critical_OK() {
-		$this->assertCommand("-H @endpoint@ -C mycommunity -f -m s -w 10 -c 20", array(
+		$this->assertCommand("-H @endpoint@ -C mycommunity -f -T swap_used -w 10 -c 20", array(
 		), array(
 			"OK: 5% Swap used |'Swap used'=5%;10;20"
 		), 0);
 	}
 	public function test_option_swap_warning_and_critical_WARNING() {
-		$this->assertCommand("-H @endpoint@ -C mycommunity -f -m s -w 1 -c 20", array(
+		$this->assertCommand("-H @endpoint@ -C mycommunity -f -T swap_used -w 1 -c 20", array(
 		), array(
 			"WARNING: 5% Swap used |'Swap used'=5%;1;20"
 		), 1);
 	}
 	public function test_option_swap_warning_and_critical_CRITICAL() {
-		$this->assertCommand("-H @endpoint@ -C mycommunity -f -m s -w 1 -c 2", array(
+		$this->assertCommand("-H @endpoint@ -C mycommunity -f -T swap_used -w 1 -c 2", array(
 		), array(
 			"CRITICAL: 5% Swap used |'Swap used'=5%;1;2"
 		), 2);
 	}
-	/** This test fails because it needs to be fixed
-	public function test_valid_index_option_with_perfdata() {
-		$this->assertCommand("-H @endpoint@ -C mycommunity -f", array(
+/**
+ * Buffer OK, WARNING, CRITICAL
+ */
+	public function test_buffer_in_kb_warning_and_critical_OK() {
+		$this->assertCommand("-H @endpoint@ -C mycommunity -f -T buffer_in_kb -w 100000 -c 200000", array(
 		), array(
-			"OK: 84% Ram used |'Ram used'=84%;;"
+			"OK: 52856KB Memory Buffer |'Memory Buffer'=52856KB;100000;200000"
 		), 0);
 	}
-	*/
-	
+	public function test_buffer_in_kb_warning_and_critical_WARNING() {
+		$this->assertCommand("-H @endpoint@ -C mycommunity -f -T buffer_in_kb -w 20:30 -c 200000", array(
+		), array(
+			"WARNING: 52856KB Memory Buffer |'Memory Buffer'=52856KB;20:30;200000"
+		), 1);
+	}
+	public function test_buffer_in_kb_warning_and_critical_CRITICAL() {
+		$this->assertCommand("-H @endpoint@ -C mycommunity -f -T buffer_in_kb -w 100000 -c \~:10", array(
+		), array(
+			"CRITICAL: 52856KB Memory Buffer |'Memory Buffer'=52856KB;100000;~:10"
+		), 2);
+	}
+	public function test_buffer_in_mb_warning_and_critical_OK() {
+		$this->assertCommand("-H @endpoint@ -C mycommunity -f -T buffer_in_mb -w 100 -c 200", array(
+		), array(
+			"OK: 51MB Memory Buffer |'Memory Buffer'=51MB;100;200"
+		), 0);
+	}
+	public function test_buffer_in_gb_warning_and_critical_OK() {
+		$this->assertCommand("-H @endpoint@ -C mycommunity -f -T buffer_in_gb -w 10 -c 20", array(
+		), array(
+			"OK: 0GB Memory Buffer |'Memory Buffer'=0GB;10;20"
+		), 0);
+	}
+/**
+ * Cache OK, WARNING, CRITICAL
+ */
+	public function test_cached_warning_and_critical_OK() {
+		$this->assertCommand("-H @endpoint@ -C mycommunity -f -T cached_in_kb -w 300000 -c 400000", array(
+		), array(
+			"OK: 280968KB Memory Cached |'Memory Cached'=280968KB;300000;400000"
+		), 0);
+	}
+	public function test_cached_warning_and_critical_WARNING() {
+		$this->assertCommand("-H @endpoint@ -C mycommunity -f -T cached_in_kb -w @280000:290000 -c 400000", array(
+		), array(
+			"WARNING: 280968KB Memory Cached |'Memory Cached'=280968KB;@280000:290000;400000"
+		), 1);
+	}
+	public function test_cached_warning_and_critical_CRITICAL() {
+		$this->assertCommand("-H @endpoint@ -C mycommunity -f -T cached_in_kb -w 200000 -c @280000:290000", array(
+		), array(
+			"CRITICAL: 280968KB Memory Cached |'Memory Cached'=280968KB;200000;@280000:290000"
+		), 2);
+	}
 /**
  * No arguments, usage and help
  */
@@ -187,7 +232,7 @@ EOF;
 			'check_snmp_memory: Could not parse arguments',
 			'Usage:',
 			'check_snmp_memory -H <ip_address> -C <snmp_community>',
-			'[-w <warn_range>] [-c <crit_range>] [-t <timeout>] [-m [r|s|f]]',
+			'[-w <warn_range>] [-c <crit_range>] [-t <timeout>] [-T <type>]',
 			'([-P snmp version] [-N context] [-L seclevel] [-U secname]',
 			'[-a authproto] [-A authpasswd] [-x privproto] [-X privpasswd])'
 		), 3);
@@ -197,7 +242,7 @@ EOF;
 		), array(
 			'Usage:',
 			'check_snmp_memory -H <ip_address> -C <snmp_community>',
-			'[-w <warn_range>] [-c <crit_range>] [-t <timeout>] [-m [r|s|f]]',
+			'[-w <warn_range>] [-c <crit_range>] [-t <timeout>] [-T <type>]',
 			'([-P snmp version] [-N context] [-L seclevel] [-U secname]',
 			'[-a authproto] [-A authpasswd] [-x privproto] [-X privpasswd])'
 		), 0);
@@ -205,59 +250,6 @@ EOF;
 	public function disabled_test_help() {
 		$this->assertCommand("-h", array(
 		), array(
-			'check_snmp_memory v1.4.16.624.g304f.dirty (monitoring-plugins 2.1.1)',
-			'Copyright (c) 2015 Monitoring Plugins Development Team',
-			'	<devel@monitoring-plugins.org>',
-			'',
-			'Check status of remote machines and obtain system information via SNMP',
-			'',
-			'',
-			'Usage:',
-			'check_snmp_memory -H <ip_address> -C <snmp_community>',
-			'[-w <warn_range>] [-c <crit_range>] [-t <timeout>] [-m [r|s|f]]',
-			'([-P snmp version] [-N context] [-L seclevel] [-U secname]',
-			'[-a authproto] [-A authpasswd] [-x privproto] [-X privpasswd])',
-			'',
-			'Options:',
-			' -h, --help',
-			'    Print detailed help screen',
-			' -V, --version',
-			'    Print version information',
-			' -v, --verbose',
-			'    Show details for command-line debugging (output may be truncated by',
-			'    the monitoring system)',
-			' -t, --timeout=INTEGER',
-			'    Seconds before plugin times out (default: 15)',
-			' -H, --hostname=STRING',
-			'    IP address to the SNMP server',
-			' -C, --community=STRING',
-			'	Community string for SNMP communication',
-			' -m, --memtype=[r|s|f]',
-			'	r - Ram used',
-			'	f - Ram free',
-			'	s - Swap used',
-			' -P, --protocol=[1|2c|3]',
-			'    SNMP protocol version',
-			' -L, --seclevel=[noAuthNoPriv|authNoPriv|authPriv]',
-			'    SNMPv3 securityLevel',
-			' -a, --authproto=[MD5|SHA]',
-			'    SNMPv3 auth proto',
-			' -x, --privproto=[DES|AES]',
-			'    SNMPv3 priv proto (default DES)',
-			' -U, --secname=USERNAME',
-			'    SNMPv3 username',
-			' -A, --authpassword=PASSWORD',
-			'    SNMPv3 authentication password',
-			' -X, --privpasswd=PASSWORD',
-			'    SNMPv3 privacy password',
-			' -w, --warning=RANGE',
-			'    Warning range (format: start:end). Alert if outside this range',
-			' -c, --critical=RANGE',
-			'    Critical range',
-			'',
-			'Send email to help@monitoring-plugins.org if you have questions regarding',
-			'use of this software. To submit patches or suggest improvements, send email',
-			'to devel@monitoring-plugins.org',
 			''
 		), 0);
 	}

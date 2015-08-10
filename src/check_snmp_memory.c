@@ -37,19 +37,25 @@ const char *email = "devel@monitoring-plugins.org";
 #define MEMORY_SUBIDX_MemSwapErrorMsg 101
 #endif
 
-/* From check_procs.c */
+enum o_monitortype_t {
+	MONITOR_TYPE__RAM_USED,
+	MONITOR_TYPE__RAM_FREE,
+	MONITOR_TYPE__SWAP_USED,
+	MONITOR_TYPE__BUFFER_KB,
+	MONITOR_TYPE__BUFFER_MB,
+	MONITOR_TYPE__BUFFER_GB,
+	MONITOR_TYPE__CACHED_KB
+};
+
 int process_arguments (int, char **);
 int validate_arguments (void);
 void print_help (void);
 void print_usage (void);
 
-char *warning_range = NULL;
-char *critical_range = NULL;
-static thresholds *thresh;
 mp_snmp_context *ctx;
-char *warn_str = NULL, *crit_str = NULL;
+char *warn_str = "", *crit_str = "";
+enum o_monitortype_t o_monitortype = MONITOR_TYPE__RAM_USED; /* default */
 int o_perfdata = 0;
-char *o_memtype = "r";
 
 struct mem_info {
 	int Index;
@@ -57,14 +63,23 @@ struct mem_info {
 	int AvailSwap;
 	int TotalReal;
 	int AvailReal;
-	int TotalFree;
-	int MinimumSwap;
-	int Shared;
 	int Buffer;
 	int Cached;
 	int UsedReal; /* calculated from TotalReal-AvailReal */
 	int UsedSwap; /* calculated from TotalSwap-AvailSwap */
 };
+
+static void print_output_header(int result) {
+	/* output result state */
+	if (result == STATE_OK)
+			printf("OK: ");
+	if (result == STATE_WARNING)
+			printf("WARNING: ");
+	if (result == STATE_CRITICAL)
+			printf("CRITICAL: ");
+	if (result == STATE_UNKNOWN)
+			printf("UNKNOWN: ");
+}
 
 static int mem_callback(netsnmp_variable_list *v, void *mc_ptr, void *discard)
 {
@@ -93,6 +108,7 @@ static int mem_callback(netsnmp_variable_list *v, void *mc_ptr, void *discard)
 			mc->Cached=*v->val.integer;
 			break;
 	}
+	return EXIT_SUCCESS;
 }
 
 struct mem_info *check_mem_ret(mp_snmp_context *ss, int statemask)
@@ -105,10 +121,9 @@ struct mem_info *check_mem_ret(mp_snmp_context *ss, int statemask)
 	mi->UsedReal = mi->TotalReal-mi->AvailReal;
 	mi->UsedSwap = mi->TotalSwap-mi->AvailSwap;	
 	
-	mp_debug(3,"Memory: %dkb total, %dkb used, %dkb free, %dkb buffers\nSwap: \t%dkb total, %dkb used, %dkb free, %dkb cached\nExtra: \t%dkb total free, %dkb minimumswap, %dkb Shared\n",
+	mp_debug(3,"Memory: %dkb total, %dkb used, %dkb free, %dkb buffers\nSwap: \t%dkb total, %dkb used, %dkb free, %dkb cached\n",
 				mi->TotalReal, mi->UsedReal, mi->AvailReal, mi->Buffer, 
-				mi->TotalSwap, mi->UsedSwap, mi->AvailSwap, mi->Cached, 
-				mi->TotalFree, mi->MinimumSwap, mi->Shared);
+				mi->TotalSwap, mi->UsedSwap, mi->AvailSwap, mi->Cached);
 
 	return mi;
 }
@@ -117,7 +132,7 @@ void print_usage (void)
 {
 	printf ("%s\n", _("Usage:"));
 	printf ("%s -H <ip_address> -C <snmp_community>\n",progname);
-	printf ("[-w <warn_range>] [-c <crit_range>] [-t <timeout>] [-m [r|s|f]]\n");
+	printf ("[-w <warn_range>] [-c <crit_range>] [-t <timeout>] [-T <type>]\n");
 	printf ("([-P snmp version] [-N context] [-L seclevel] [-U secname]\n");
 	printf ("[-a authproto] [-A authpasswd] [-x privproto] [-X privpasswd])\n");
 }
@@ -125,7 +140,6 @@ void print_usage (void)
 void print_help (void)
 {
 	print_revision (progname, NP_VERSION);
-	printf (COPYRIGHT, copyright, email);
 	printf ("%s\n", _("Check status of remote machines and obtain system information via SNMP"));
 	printf ("\n\n");
 
@@ -135,14 +149,18 @@ void print_help (void)
 	printf (UT_VERBOSE);
 	printf (UT_PLUG_TIMEOUT, DEFAULT_TIME_OUT);
 	/* printf (UT_EXTRA_OPTS); */
+	printf (" %s\n", "-T, --type=STRING");
+	printf ("	%s\n", _("ram_used (default)"));
+	printf ("	%s\n", _("ram_free"));
+	printf ("	%s\n", _("swap_used"));
+	printf ("	%s\n", _("buffer_in_kb"));
+	printf ("	%s\n", _("buffer_in_mb"));
+	printf ("	%s\n", _("buffer_in_gb"));
+	printf ("	%s\n", _("cached_in_kb"));
 	printf (" %s\n", "-H, --hostname=STRING");
 	printf ("    %s\n", _("IP address to the SNMP server"));
 	printf (" %s\n", "-C, --community=STRING");
 	printf ("	%s\n", _("Community string for SNMP communication"));
-	printf (" %s\n", "-m, --memtype=[r|s|f]");
-	printf ("	%s\n", _("r - Ram used"));
-	printf ("	%s\n", _("f - Ram free"));
-	printf ("	%s\n", _("s - Swap used"));
 	printf (" %s\n", "-P, --protocol=[1|2c|3]");
 	printf ("    %s\n", _("SNMP protocol version"));
 	printf (" %s\n", "-L, --seclevel=[noAuthNoPriv|authNoPriv|authPriv]");
@@ -158,8 +176,6 @@ void print_help (void)
 	printf (" %s\n", "-X, --privpasswd=PASSWORD");
 	printf ("    %s\n", _("SNMPv3 privacy password"));
 	printf ( UT_WARN_CRIT_RANGE);
-	
-	printf (UT_SUPPORT);
 }
 
 /* process command-line arguments */
@@ -168,12 +184,17 @@ int process_arguments (int argc, char **argv)
 	int c, option;
 	int i, x;
 	char *optary;
-	
+	mp_snmp_init(program_name, 0);
+	ctx = mp_snmp_create_context();
+	if (!ctx)
+		die(STATE_UNKNOWN, _("Failed to create snmp context\n"));
+	mp_snmp_finalize_auth(ctx);
+
 	static struct option longopts[] = {
 		STD_LONG_OPTS,
 		{"usage", no_argument, 0, 'u'},
 		{"perfdata", no_argument, 0, 'f'},
-		{"memtype", required_argument, 0, 'm'},
+		{"type", required_argument, 0, 'T'},
 		MP_SNMP_LONGOPTS,
 		{NULL, 0, 0, 0},
 	};
@@ -197,162 +218,164 @@ int process_arguments (int argc, char **argv)
 		if (o->has_arg == optional_argument)
 			optary[i++] = ':';
 	}
-	
 	mp_debug(3,"optary: %s\n", optary);
-	
-	mp_snmp_init(program_name, 0);
-	ctx = mp_snmp_create_context();
-	if (!ctx)
-		die(STATE_UNKNOWN, _("Failed to create snmp context\n"));
 		
 	while (1) {
 		c = getopt_long(argc, argv, optary, longopts, &option);
 		if (c < 0 || c == EOF)
-			
 			break;
-
-		if (!mp_snmp_handle_argument(ctx, c, optarg)) {
+		if (!mp_snmp_handle_argument(ctx, c, optarg))
 			continue;
-		}
 
-	switch (c) {
-		case 'w':
-			warn_str = optarg;
-			break;
-		case 'c':
-			crit_str = optarg;
-			break;
-		case 'h':
-			print_help();
-			exit(STATE_OK);
-			break;
-		case 'V':
-			print_revision (progname, NP_VERSION);
-			exit (STATE_OK);
-		case 'v':
-			mp_verbosity++;
-			break;
-		case 'u':
-			print_usage();
-			exit(STATE_OK);
-			break;
-		case 'f':
-			o_perfdata = 1;
-			break;
-		case 'm':
-			o_memtype = optarg;
+		switch (c) {
+			case 'w':
+				warn_str = optarg;
+				break;
+			case 'c':
+				crit_str = optarg;
+				break;
+			case 'h':
+				print_help();
+				exit(STATE_OK);
+				break;
+			case 'V':
+				print_revision (progname, NP_VERSION);
+				exit (STATE_OK);
+			case 'v':
+				mp_verbosity++;
+				break;
+			case 'u':
+				print_usage();
+				exit(STATE_OK);
+				break;
+			case 'f':
+				o_perfdata = 1;
+				break;
+			case 'T':
+				if (0==strcmp(optarg, "ram_used")) {
+					o_monitortype = MONITOR_TYPE__RAM_USED;
+				} else if (0==strcmp(optarg, "ram_free")) {
+					o_monitortype = MONITOR_TYPE__RAM_FREE;
+				} else if (0==strcmp(optarg, "swap_used")) {
+					o_monitortype = MONITOR_TYPE__SWAP_USED;
+				}else if (0==strcmp(optarg, "buffer_in_kb")) {
+					o_monitortype = MONITOR_TYPE__BUFFER_KB;
+				} else if (0==strcmp(optarg, "buffer_in_mb")) {
+					o_monitortype = MONITOR_TYPE__BUFFER_MB;
+				} else if (0==strcmp(optarg, "buffer_in_gb")) {
+					o_monitortype = MONITOR_TYPE__BUFFER_GB;
+				} else if (0==strcmp(optarg, "cached_in_kb")) {
+					o_monitortype = MONITOR_TYPE__CACHED_KB;
+				}
 			break;
 		}
 	}
+	
 	free(optary);
-	return validate_arguments ();
-}
-
-int validate_arguments (void)
-{
-	#if 0
-	if (warn_percent == 0 && crit_percent == 0 && warn_size_bytes == 0
-			&& crit_size_bytes == 0) {
-		return ERROR;
-	}
-	else if (warn_percent < crit_percent) {
-		usage4
-			(_("Warning percentage should be more than critical percentage"));
-	}
-	else if (warn_size_bytes < crit_size_bytes) {
-		usage4
-			(_("Warning free space should be more than critical free space"));
-	}
-	#endif
-	return OK;
+	return TRUE;
 }
 
 int main(int argc, char **argv)
 {
-	char uom = '%'; /* used with perfdata */
-	netsnmp_session session, *ss;
+	const int MBPREFIX = 1024;
+	static thresholds *thresh;
 	struct mem_info *ptr;
-	char *state_str;
+	char *uom = "%"; /* used with perfdata */
 	int result = STATE_UNKNOWN;
-	/* XXX REMOVE WHEN READY */
-	mp_verbosity = 0;
 	
 	/* Parse extra opts if any */
 	argv=np_extra_opts (&argc, argv, progname);
-
 	if (process_arguments (argc, argv) == ERROR)
 		usage4 (_("Could not parse arguments"));
 
-	/* set standard monitoring-plugins thresholds */
+	/**
+	 *  Set standard monitoring-plugins thresholds
+	 */
 	set_thresholds(&thresh, warn_str, crit_str);
-	mp_snmp_finalize_auth(ctx);
-
-	/* Get net-snmp memory data */
-	ptr = check_mem_ret(ctx, ~0);
+	
+	ptr = check_mem_ret(ctx, ~0); /* get net-snmp memory data */
+	mp_snmp_deinit(program_name); /* deinit */
 
 	/* check and output results */
-	switch (*o_memtype) {
-		case 'r':
+	switch (o_monitortype) {
+		case MONITOR_TYPE__RAM_USED:
 			result = get_status ((double)((ptr->TotalReal-ptr->AvailReal)*100/ptr->TotalReal), thresh);
-			break;
-		case 's':
-			result = get_status ((double)((ptr->TotalSwap-ptr->AvailSwap)*100/ptr->TotalSwap), thresh);
-			break;
-		case 'f':
-			result = get_status ((double)ptr->AvailReal*100/ptr->TotalReal, thresh);
-			break;
-		default:
-			usage4 (_("Could not parse arguments for m"));
-			break;
-	}
-	
-	if (result == STATE_OK) {
-			printf("OK: ");
-	}
-	if (result == STATE_WARNING) {
-			printf("WARNING: ");
-	}
-	if (result == STATE_CRITICAL) {
-			printf("CRITICAL: ");
-	}
-	if (result == STATE_UNKNOWN) {
-			printf("UNKNOWN: ");
-	}
-	
-	switch (*o_memtype) {
-		case 'f':
-			printf("%d%% Ram free ", ptr->AvailReal*100/ptr->TotalReal);
-			if (o_perfdata == 1) {
-				printf("|'Ram free'=%d%c;%s;%s",
-					ptr->AvailReal*100/ptr->TotalReal,
-					uom, warn_str, crit_str);
-			}
-			break;
-		case 'r':
+			print_output_header(result);
 			printf("%d%% Ram used ", (ptr->TotalReal-ptr->AvailReal)*100/ptr->TotalReal);
 			if (o_perfdata == 1) {
-				printf("|'Ram used'=%d%c;%s;%s", 
+				printf("|'Ram used'=%d%s;%s;%s", 
 					(ptr->TotalReal-ptr->AvailReal)*100/ptr->TotalReal,
 					uom, warn_str, crit_str);
 			}
 			break;
-		case 's':
+		case MONITOR_TYPE__RAM_FREE:
+			result = get_status ((double)ptr->AvailReal*100/ptr->TotalReal, thresh);
+			print_output_header(result);
+			printf("%d%% Ram free ", ptr->AvailReal*100/ptr->TotalReal);
+			if (o_perfdata == 1) {
+				printf("|'Ram free'=%d%s;%s;%s",
+					ptr->AvailReal*100/ptr->TotalReal,
+					uom, warn_str, crit_str);
+			}
+			break;
+		case MONITOR_TYPE__SWAP_USED:
+			result = get_status ((double)((ptr->TotalSwap-ptr->AvailSwap)*100/ptr->TotalSwap), thresh);
+			print_output_header(result);
 			printf("%d%% Swap used ", (ptr->TotalSwap-ptr->AvailSwap)*100/ptr->TotalSwap);
 			if (o_perfdata == 1) {
-				printf("|'Swap used'=%d%c;%s;%s",
+				printf("|'Swap used'=%d%s;%s;%s",
 					(ptr->TotalSwap-ptr->AvailSwap)*100/ptr->TotalSwap,
 					uom, warn_str, crit_str);
 			}
 			break;
+		case MONITOR_TYPE__BUFFER_KB:
+			result = get_status (ptr->Buffer, thresh);
+			print_output_header(result);
+			uom = "KB";
+			printf("%d%s Memory Buffer ", ptr->Buffer, uom);
+			if (o_perfdata == 1) {
+				printf("|'Memory Buffer'=%d%s;%s;%s", ptr->Buffer,
+					uom, warn_str, crit_str);
+			}
+			break;
+		case MONITOR_TYPE__BUFFER_MB:
+			result = get_status (ptr->Buffer/MBPREFIX, thresh);
+			print_output_header(result);
+			uom = "MB";
+			printf("%d%s Memory Buffer ", ptr->Buffer/MBPREFIX, uom);
+			if (o_perfdata == 1) {
+				printf("|'Memory Buffer'=%d%s;%s;%s", ptr->Buffer/MBPREFIX,
+					uom, warn_str, crit_str);
+			}
+			break;
+		case MONITOR_TYPE__BUFFER_GB:
+			result = get_status (ptr->Buffer/(MBPREFIX*MBPREFIX), thresh);
+			print_output_header(result);
+			uom = "GB";
+			printf("%d%s Memory Buffer ", ptr->Buffer/(MBPREFIX*MBPREFIX), uom);
+			if (o_perfdata == 1) {
+				printf("|'Memory Buffer'=%d%s;%s;%s", ptr->Buffer/(MBPREFIX*MBPREFIX),
+					uom, warn_str, crit_str);
+			}
+			break;
+		case MONITOR_TYPE__CACHED_KB:
+			result = get_status (ptr->Cached, thresh);
+			print_output_header(result);
+			uom = "KB";
+			printf("%d%s Memory Cached ", ptr->Cached, uom);
+			if (o_perfdata == 1) {
+				printf("|'Memory Cached'=%d%s;%s;%s", ptr->Cached,
+					uom, warn_str, crit_str);
+			}
+			break;
 		default:
-			printf("Error memtype\n");
+			usage4 (_("Could not parse arguments for -T"));
 			break;
 	}
 	printf("\n");
 	
 	free(ctx);
 	free(ptr);
-	mp_snmp_deinit(program_name);
 
 	return result;
 }

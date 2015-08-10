@@ -29,19 +29,19 @@ const char *email = "devel@monitoring-plugins.org";
 #define DISKIO_TABLE ".1.3.6.1.4.1.2021.13.15.1.1" /* diskIOTable */
 #define DISKIO_SUBIDX_Index 1
 #define DISKIO_SUBIDX_Device 2
-#define DISKIO_SUBIDX_NRead 3					/* not used */
-#define DISKIO_SUBIDX_NWritten 4				/* not used */
-#define DISKIO_SUBIDX_Reads 5					/* not used */
-#define DISKIO_SUBIDX_Writes 6					/* not used */
+#define DISKIO_SUBIDX_NRead 3		/* not used */
+#define DISKIO_SUBIDX_NWritten 4	/* not used */
+#define DISKIO_SUBIDX_Reads 5		/* not used */
+#define DISKIO_SUBIDX_Writes 6		/* not used */
 #define DISKIO_SUBIDX_LA1 9
 #define DISKIO_SUBIDX_LA5 10
 #define DISKIO_SUBIDX_LA15 11
-#define DISKIO_SUBIDX_ReadX 12					/* not used */
-#define DISKIO_SUBIDX_WrittenX 13				/* not used */
+#define DISKIO_SUBIDX_ReadX 12		/* not used */
+#define DISKIO_SUBIDX_WrittenX 13	/* not used */
 
 enum o_monitortype_t {
-	MONITOR_TYPE__STORAGE = 1,
-	MONITOR_TYPE__IO = 2
+	MONITOR_TYPE__STORAGE,
+	MONITOR_TYPE__IO
 };
 
 enum o_monitor_presentationtype_t {
@@ -49,7 +49,9 @@ enum o_monitor_presentationtype_t {
 	MONITOR_PRESTYPE__STORAGE_PERCENT_USED,
 	MONITOR_PRESTYPE__STORAGE_PERCENT_LEFT,
 	MONITOR_PRESTYPE__STORAGE_MB_USED,
+	MONITOR_PRESTYPE__STORAGE_GB_USED,
 	MONITOR_PRESTYPE__STORAGE_MB_LEFT,
+	MONITOR_PRESTYPE__STORAGE_GB_LEFT,
 	MONITOR_PRESTYPE__IO_LIST,
 	MONITOR_PRESTYPE__IO_1,
 	MONITOR_PRESTYPE__IO_5,
@@ -62,7 +64,7 @@ void print_help (void);
 void print_usage (void);
 
 mp_snmp_context *ctx;
-char *warn_str = NULL, *crit_str = NULL;
+char *warn_str = "", *crit_str = "";
 enum o_monitortype_t o_monitortype = MONITOR_TYPE__STORAGE;
 int o_perfdata = 0;
 int o_get_index = 0;
@@ -97,6 +99,7 @@ static void print_output_header(int result) {
 			printf("UNKNOWN: ");
 }
 
+/* TODO: combine disk_index_output and io_index_output */
 static int
 disk_index_output(netsnmp_variable_list *v, void *ptr, void *discard)
 {
@@ -109,8 +112,9 @@ disk_index_output(netsnmp_variable_list *v, void *ptr, void *discard)
 			mp_debug(3,"Unknown disk_index_output value.\n");
 			break;
 	}
-	return 0;
+	return EXIT_SUCCESS;
 }
+
 static int
 io_index_output(netsnmp_variable_list *v, void *ptr, void *discard)
 {
@@ -123,7 +127,7 @@ io_index_output(netsnmp_variable_list *v, void *ptr, void *discard)
 			mp_debug(3,"Unknown io_index_output value.\n");
 			break;
 	}
-	return 0;
+	return EXIT_SUCCESS;
 }
 
 static int
@@ -165,7 +169,7 @@ disk_callback(netsnmp_variable_list *v, void *dc_ptr, void *discard)
 			mp_debug(3,"Unknown disk_callback value.\n");
 			break;
 	}
-	return 0;
+	return EXIT_SUCCESS;
 }
 static int
 io_callback(netsnmp_variable_list *v, void *dc_ptr, void *discard)
@@ -220,7 +224,7 @@ io_callback(netsnmp_variable_list *v, void *dc_ptr, void *discard)
 			mp_debug(3,"Unknown io_callback value.\n");
 			break;
 	}
-	return 0;
+	return EXIT_SUCCESS;
 }
 
 struct disk_info *check_disk_ret(mp_snmp_context *ss, int statemask)
@@ -268,19 +272,18 @@ struct disk_info *check_disk_io_ret(mp_snmp_context *ss, int statemask)
 	return cdi;
 }
 
-void print_usage (void)
+void print_usage(void)
 {
 	printf ("%s\n", _("Usage:"));
 	printf ("%s -H <ip_address> -C <snmp_community> -i <index of disk>\n",progname);
-	printf ("[-w <warn_range>] [-c <crit_range>] [-t <timeout>] [-m [1|2|3|4]] \n");
+	printf ("[-w <warn_range>] [-c <crit_range>] [-t <timeout>] [-T <type>]\n");
 	printf ("([-P snmp version] [-N context] [-L seclevel] [-U secname]\n");
 	printf ("[-a authproto] [-A authpasswd] [-x privproto] [-X privpasswd])\n");
 }
 
-void print_help (void)
+void print_help(void)
 {
-	print_revision (progname, NP_VERSION);
-	printf (COPYRIGHT, copyright, email);
+	print_revision(progname, NP_VERSION);
 	printf ("%s\n", _("Check status of remote machines and obtain system information via SNMP"));
 	printf ("\n\n");
 
@@ -290,21 +293,23 @@ void print_help (void)
 	printf (UT_VERBOSE);
 	printf (UT_PLUG_TIMEOUT, DEFAULT_TIME_OUT);
 	/* printf (UT_EXTRA_OPTS); */
-	printf (" %s\n", "-H, --hostname=STRING");
-	printf ("    %s\n", _("IP address to the SNMP server"));
-	printf (" %s\n", "-C, --community=STRING");
-	printf ("	%s\n", _("Community string for SNMP communication"));
-	printf (" %s\n", "-i, --indexofdisk=<int>");
-	printf ("	%s\n", _("0 - Storage index list (default)"));
-	printf ("	%s\n", _("<int> - Storage to check"));
 	printf (" %s\n", "-T, --Type=<string>");
 	printf ("	%s\n", _("storage_percent_used - Storage percent used (default)"));
 	printf ("	%s\n", _("storage_percent_left - Storage percent left"));
 	printf ("	%s\n", _("storage_mb_used - Storage MegaBytes used"));
-	printf ("	%s\n", _("storage_mb_left - Storage MegaBytes left"));
+	printf ("	%s\n", _("storage_gb_used - Storage MegaBytes used"));
+	printf ("	%s\n", _("storage_mb_left - Storage GigaBytes left"));
+	printf ("	%s\n", _("storage_gb_left - Storage GigaBytes left"));
 	printf ("	%s\n", _("io_1 - I/O load average 1 min"));
 	printf ("	%s\n", _("io_5 - I/O load average 5 min"));
 	printf ("	%s\n", _("io_15 - I/O load average 15 min"));
+	printf (" %s\n", "-i, --indexofdisk=<int>");
+	printf ("	%s\n", _("0 - Storage index list (default)"));
+	printf ("	%s\n", _("<int> - Storage to check"));
+	printf (" %s\n", "-H, --hostname=STRING");
+	printf ("    %s\n", _("IP address to the SNMP server"));
+	printf (" %s\n", "-C, --community=STRING");
+	printf ("	%s\n", _("Community string for SNMP communication"));
 	printf (" %s\n", "-P, --protocol=[1|2c|3]");
 	printf ("    %s\n", _("SNMP protocol version"));
 	printf (" %s\n", "-L, --seclevel=[noAuthNoPriv|authNoPriv|authPriv]");
@@ -320,12 +325,10 @@ void print_help (void)
 	printf (" %s\n", "-X, --privpasswd=PASSWORD");
 	printf ("    %s\n", _("SNMPv3 privacy password"));
 	printf ( UT_WARN_CRIT_RANGE);
-	
-	printf (UT_SUPPORT);
 }
 
 /* process command-line arguments */
-int process_arguments (int argc, char **argv)
+int process_arguments(int argc, char **argv)
 {
 	int c, option;
 	int i, x;
@@ -416,6 +419,12 @@ int process_arguments (int argc, char **argv)
 				} else if (0==strcmp(optarg, "storage_mb_left")) {
 					o_monitortype = MONITOR_TYPE__STORAGE;
 					o_type = MONITOR_PRESTYPE__STORAGE_MB_LEFT;
+				} else if (0==strcmp(optarg, "storage_gb_used")) {
+					o_monitortype = MONITOR_TYPE__STORAGE;
+					o_type = MONITOR_PRESTYPE__STORAGE_GB_USED;
+				} else if (0==strcmp(optarg, "storage_gb_left")) {
+					o_monitortype = MONITOR_TYPE__STORAGE;
+					o_type = MONITOR_PRESTYPE__STORAGE_GB_LEFT;
 				} else if (0==strcmp(optarg, "io_list")) {
 					o_monitortype = MONITOR_TYPE__IO;
 					o_type = MONITOR_PRESTYPE__IO_LIST;
@@ -441,22 +450,26 @@ int process_arguments (int argc, char **argv)
 
 int main(int argc, char **argv)
 {
-	const int MBPREFIX = 1024*1024;
+	const int BPREFIX = 1024;
+	const int MBPREFIX = BPREFIX*1024;
+	const int GBPREFIX = MBPREFIX*1024;
 	static thresholds *thresh;
 	struct disk_info *ptr;
 	char *uom = "%"; /* used with perfdata */
 	int result = STATE_UNKNOWN;
 	int percent_used, percent_left;
-	unsigned long long mb_used, mb_left;
+	unsigned long long byte_used, byte_left;
 	
 	mp_snmp_init(program_name, 0);
 	
 	/* Parse extra opts if any */
 	argv=np_extra_opts (&argc, argv, progname);
-	if (process_arguments (argc, argv) == ERROR)
+	if (process_arguments(argc, argv) == ERROR)
 		usage4 (_("Could not parse arguments"));
 
-	/* set standard monitoring-plugins thresholds utils_base.c */
+	/**
+	 *  Set standard monitoring-plugins thresholds
+	 */
 	set_thresholds(&thresh, warn_str, crit_str);
 
 	/* get, calculate and set result status */
@@ -469,23 +482,35 @@ int main(int argc, char **argv)
 				exit(STATE_UNKNOWN);
 			}
 			
-			if (o_type == MONITOR_PRESTYPE__STORAGE_PERCENT_USED) { 		/* Percent used (default) */
+			if (o_type == MONITOR_PRESTYPE__STORAGE_PERCENT_USED) { 		/* (default) */
 				percent_used = (double)ptr->Used/(double)ptr->Size*100;
 				result = get_status (percent_used, thresh);
 			}
-			else if (o_type == MONITOR_PRESTYPE__STORAGE_PERCENT_LEFT) {	/* Percent left */
+			else if (o_type == MONITOR_PRESTYPE__STORAGE_PERCENT_LEFT) {
 				percent_left = (double)(ptr->Size-ptr->Used)/(double)ptr->Size*100;
 				result = get_status (percent_left, thresh);
 			}
-			else if (o_type == MONITOR_PRESTYPE__STORAGE_MB_USED) {	/* MegaBytes used */
-				mb_used = (unsigned long long)ptr->Used*ptr->AllocationUnits/MBPREFIX;
-				result = get_status (mb_used, thresh);
+			else if (o_type == MONITOR_PRESTYPE__STORAGE_MB_USED) {
+				byte_used = (unsigned long long)ptr->Used*ptr->AllocationUnits/MBPREFIX;
+				result = get_status (byte_used, thresh);
 				uom = "MB";
 			}
-			else if (o_type == MONITOR_PRESTYPE__STORAGE_MB_LEFT) {	/* MegaBytes left */
-				mb_left = (unsigned long long)(ptr->Size-ptr->Used)*ptr->AllocationUnits/MBPREFIX;
-				result = get_status (mb_left, thresh);
+			else if (o_type == MONITOR_PRESTYPE__STORAGE_MB_LEFT) {
+				byte_left = (unsigned long long)(ptr->Size-ptr->Used)*ptr->AllocationUnits/MBPREFIX;
+				result = get_status (byte_left, thresh);
 				uom = "MB";
+			}
+			else if (o_type == MONITOR_PRESTYPE__STORAGE_GB_USED) {
+				byte_used = (unsigned long long)ptr->Used*ptr->AllocationUnits/MBPREFIX+512;
+				byte_used = byte_used/1024;
+				result = get_status (byte_used, thresh);
+				uom = "GB";
+			}
+			else if (o_type == MONITOR_PRESTYPE__STORAGE_GB_LEFT) {
+				byte_left = (unsigned long long)(ptr->Size-ptr->Used)*ptr->AllocationUnits/MBPREFIX+512;
+				byte_left = byte_left/1024;
+				result = get_status (byte_left, thresh);
+				uom = "GB";
 			}
 			else
 				die(STATE_UNKNOWN, _("Could not handle -T values.\n"));
@@ -506,18 +531,20 @@ int main(int argc, char **argv)
 						ptr->Descr, percent_left, uom, warn_str, crit_str);
 				}
 			}
-			else if (o_type == MONITOR_PRESTYPE__STORAGE_MB_USED) {
-				printf("%lld%s of storage used ", mb_used, uom);
+			else if (o_type == MONITOR_PRESTYPE__STORAGE_MB_USED || 
+						o_type == MONITOR_PRESTYPE__STORAGE_GB_USED) {
+				printf("%lld%s of storage used ", byte_used, uom);
 				if (o_perfdata == 1) {
 					printf("|'%s'=%lld%s;%s;%s",
-						ptr->Descr, mb_used, uom, warn_str, crit_str);
+						ptr->Descr, byte_used, uom, warn_str, crit_str);
 				}
 			}
-			else if (o_type == MONITOR_PRESTYPE__STORAGE_MB_LEFT) {
-				printf("%lld%s of storage left ", mb_left, uom);
+			else if (o_type == MONITOR_PRESTYPE__STORAGE_MB_LEFT ||
+						o_type == MONITOR_PRESTYPE__STORAGE_GB_LEFT) {
+				printf("%lld%s of storage left ", byte_left, uom);
 				if (o_perfdata == 1) {
 					printf("|'%s'=%lld%s;%s;%s",
-						ptr->Descr, mb_left, uom, warn_str, crit_str);
+						ptr->Descr, byte_left, uom, warn_str, crit_str);
 				}
 			}
 			break;
@@ -530,11 +557,11 @@ int main(int argc, char **argv)
 			}
 			
 			if (o_type == MONITOR_PRESTYPE__IO_1)
-				result = get_status (ptr->IO.La1, thresh);
+				result = get_status(ptr->IO.La1, thresh);
 			else if (o_type == MONITOR_PRESTYPE__IO_5)
-				result = get_status (ptr->IO.La5, thresh);
+				result = get_status(ptr->IO.La5, thresh);
 			else if (o_type == MONITOR_PRESTYPE__IO_15)
-				result = get_status (ptr->IO.La15, thresh);
+				result = get_status(ptr->IO.La15, thresh);
 			else
 				die(STATE_UNKNOWN, _("Could not handle -T values.\n"));
 

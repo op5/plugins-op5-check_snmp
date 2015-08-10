@@ -121,22 +121,142 @@ EOF;
 		$this->assertEquals($expectedoutput, $output);
 		$this->assertEquals($expectedreturn, $return);
 	}
+	
 /** 
  * Testing
+ * Load-1
  */
-	
 	public function test_default_without_parameters() {
 		$this->assertCommand("-H @endpoint@ -C mycommunity", array(
 		), array(
 			'OK: 0.02 CPU load-1'
 		), 0);
 	}
+	public function test_default_without_parameters_with_perf_data() {
+		$this->assertCommand("-H @endpoint@ -C mycommunity -f", array(
+		), array(
+			"OK: 0.02 CPU load-1 |'CPU load-1'=0.02;;"
+		), 0);
+	}
+	public function test_load1_OK() {
+		$this->assertCommand("-H @endpoint@ -C mycommunity -T cpu_load_1", array(
+		), array(
+			'OK: 0.02 CPU load-1'
+		), 0);
+	}
+	public function test_load1_OK_with_perf_data() {
+		$this->assertCommand("-H @endpoint@ -C mycommunity -f -T cpu_load_1", array(
+		), array(
+			"OK: 0.02 CPU load-1 |'CPU load-1'=0.02;;"
+		), 0);
+	}
+	public function test_load1_WARNING() {
+		$this->assertCommand("-H @endpoint@ -C mycommunity -T cpu_load_1 -w 0.40 -c 0.90", array(
+			"1.3.6.1.4.1.2021.10.1.5.1" => array(2,50)
+		), array(
+			'WARNING: 0.50 CPU load-1'
+		), 1);
+	}
+	public function test_load1_WARNING_with_perf_data() {
+		$this->assertCommand("-H @endpoint@ -C mycommunity -f -T cpu_load_1 -w 0.40 -c 0.90", array(
+			"1.3.6.1.4.1.2021.10.1.5.1" => array(2,50)
+		), array(
+			"WARNING: 0.50 CPU load-1 |'CPU load-1'=0.50;0.40;0.90"
+		), 1);
+	}
+	public function test_load1_CRITICAL() {
+		$this->assertCommand("-H @endpoint@ -C mycommunity -T cpu_load_1 -w 0.10 -c 0.20", array(
+			"1.3.6.1.4.1.2021.10.1.5.1" => array(2,100)
+		), array(
+			'CRITICAL: 1.00 CPU load-1'
+		), 2);
+	}
+	public function test_load1_CRITICAL_with_perf_data() {
+		$this->assertCommand("-H @endpoint@ -C mycommunity -f -T cpu_load_1 -w 0.10 -c 0.20", array(
+			"1.3.6.1.4.1.2021.10.1.5.1" => array(2,100)
+		), array(
+			"CRITICAL: 1.00 CPU load-1 |'CPU load-1'=1.00;0.10;0.20"
+		), 2);
+	}
+	
+/**
+ * Load-5
+ */
+	public function test_load5_OK() {
+		$this->assertCommand("-H @endpoint@ -C mycommunity -f -T cpu_load_5", array(
+		), array(
+			"OK: 0.03 CPU load-5 |'CPU load-5'=0.03;;"
+		), 0);
+	}
+	public function test_load5_WARNING() {
+		$this->assertCommand("-H @endpoint@ -C mycommunity -f -T cpu_load_5 -w 0.40 -c 0.90", array(
+			"1.3.6.1.4.1.2021.10.1.5.2" => array(2,50)
+		), array(
+			"WARNING: 0.50 CPU load-5 |'CPU load-5'=0.50;0.40;0.90"
+		), 1);
+	}
+	public function test_load5_CRITICAL() {
+		$this->assertCommand("-H @endpoint@ -C mycommunity -f -T cpu_load_5 -w 0.10 -c 0.20", array(
+			"1.3.6.1.4.1.2021.10.1.5.2" => array(2,100)
+		), array(
+			"CRITICAL: 1.00 CPU load-5 |'CPU load-5'=1.00;0.10;0.20"
+		), 2);
+	}
+	
+/**
+ * Load-15
+ */
+	public function test_load15_OK() {
+		$this->assertCommand("-H @endpoint@ -C mycommunity -f -T cpu_load_15", array(
+		), array(
+			"OK: 0.00 CPU load-15 |'CPU load-15'=0.00;;"
+		), 0);
+	}
+	public function test_load15_WARNING() {
+		$this->assertCommand("-H @endpoint@ -C mycommunity -f -T cpu_load_15 -w 0.40 -c 0.90", array(
+			"1.3.6.1.4.1.2021.10.1.5.3" => array(2,50)
+		), array(
+			"WARNING: 0.50 CPU load-15 |'CPU load-15'=0.50;0.40;0.90"
+		), 1);
+	}
+	public function test_load15_CRITICAL() {
+		$this->assertCommand("-H @endpoint@ -C mycommunity -f -T cpu_load_15 -w 0.10 -c 0.20", array(
+			"1.3.6.1.4.1.2021.10.1.5.3" => array(2,100)
+		), array(
+			"CRITICAL: 1.00 CPU load-15 |'CPU load-15'=1.00;0.10;0.20"
+		), 2);
+	}
+/**
+ * CPU I/O wait
+ * TODO: Needs to remove the old tmp-file and create a new, and wait >1 sec
+ * or simulate time difference since the plugin gives errors of there is <
+ * than 1 second between checks. Now the tests just wait for 1 sec.
+ */
+	public function test_iowait_OK() {
+		$this->assertCommand("-H @endpoint@ -C mycommunity -f -T cpu_io_wait", array(
+		), array(
+			"OK: 0.00 CPU I/O wait |'CPU I/O wait'=0.00;;"
+		), 0);
+		sleep(1);
+	}
+	public function test_iowait_WARNING() {
+		$this->assertCommand("-H @endpoint@ -C mycommunity -f -T cpu_io_wait -w 10: -c 20", array(
+		), array(
+			"WARNING: 0.00 CPU I/O wait |'CPU I/O wait'=0.00;10:;20"
+		), 1);
+		sleep(1);
+	}
+	public function test_iowait_CRITICAL() {
+		$this->assertCommand("-H @endpoint@ -C mycommunity -f -T cpu_io_wait -w 10: -c 20:", array(
+		), array(
+			"CRITICAL: 0.00 CPU I/O wait |'CPU I/O wait'=0.00;10:;20:"
+		), 2);
+	}
 	
 /**
  * No arguments, usage and help
  */
- /*
-	public function test_no_arguments() {
+	public function disable_test_no_arguments() {
 		$this->assertCommand("", array(
 		), array(
 			'check_snmp_disk: Could not parse arguments',
@@ -147,7 +267,7 @@ EOF;
 			'[-a authproto] [-A authpasswd] [-x privproto] [-X privpasswd])'
 		), 3);
 	}
-	public function test_usage() {
+	public function disable_test_usage() {
 		$this->assertCommand("-u", array(
 		), array(
 			'Usage:',
@@ -157,75 +277,10 @@ EOF;
 			'[-a authproto] [-A authpasswd] [-x privproto] [-X privpasswd])'
 		), 0);
 	}
-	public function test_help() {
+	public function disable_test_help() {
 		$this->assertCommand("-h", array(
 		), array(
-			'check_snmp_disk v1.4.16.624.g304f.dirty (monitoring-plugins 2.1.1)',
-			'Copyright (c) 2015 Monitoring Plugins Development Team',
-			'	<devel@monitoring-plugins.org>',
-			'',
-			'Check status of remote machines and obtain system information via SNMP',
-			'',
-			'',
-			'Usage:',
-			'check_snmp_disk -H <ip_address> -C <snmp_community> -i <index of disk>',
-			'[-w <warn_range>] [-c <crit_range>] [-t <timeout>] [-m [1|2|3|4]]',
-			'([-P snmp version] [-N context] [-L seclevel] [-U secname]',
-			'[-a authproto] [-A authpasswd] [-x privproto] [-X privpasswd])',
-			'',
-			'Options:',
-			' -h, --help',
-			'    Print detailed help screen',
-			' -V, --version',
-			'    Print version information',
-			' -v, --verbose',
-			'    Show details for command-line debugging (output may be truncated by',
-			'    the monitoring system)',
-			' -t, --timeout=INTEGER',
-			'    Seconds before plugin times out (default: 15)',
-			' -H, --hostname=STRING',
-			'    IP address to the SNMP server',
-			' -C, --community=STRING',
-			'	Community string for SNMP communication',
-			' -m, --monitordisktype=[1|2|3|4]',
-			'	1 - Storage (default)',
-			'	2 - I/O',
-			' -i, --indexofdisk=<int>',
-			'	0 - Storage index list (default)',
-			'	<int> - Storage to check',
-			' -T, --Type=[1-7]',
-			'	1 - Storage percent used (default)',
-			'	2 - Storage percent left',
-			'	3 - Storage MegaBytes used',
-			'	4 - Storage MegaBytes left',
-			'	---',
-			'	5 - I/O load average 1 min',
-			'	6 - I/O load average 5 min',
-			'	7 - I/O load average 15 min',
-			' -P, --protocol=[1|2c|3]',
-			'    SNMP protocol version',
-			' -L, --seclevel=[noAuthNoPriv|authNoPriv|authPriv]',
-			'    SNMPv3 securityLevel',
-			' -a, --authproto=[MD5|SHA]',
-			'    SNMPv3 auth proto',
-			' -x, --privproto=[DES|AES]',
-			'    SNMPv3 priv proto (default DES)',
-			' -U, --secname=USERNAME',
-			'    SNMPv3 username',
-			' -A, --authpassword=PASSWORD',
-			'    SNMPv3 authentication password',
-			' -X, --privpasswd=PASSWORD',
-			'    SNMPv3 privacy password',
-			' -w, --warning=RANGE',
-			'    Warning range (format: start:end). Alert if outside this range',
-			' -c, --critical=RANGE',
-			'    Critical range',
-			'',
-			'Send email to help@monitoring-plugins.org if you have questions regarding',
-			'use of this software. To submit patches or suggest improvements, send email',
-			'to devel@monitoring-plugins.org',
 			''
 		), 0);
 	}
-	*/
 }

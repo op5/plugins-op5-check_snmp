@@ -448,6 +448,20 @@ EOF;
 			'35	/dev/shm'
 		), 0);
 	}
+	public function test_list_storage_index_and_description_with_T_parameter() {
+		$this->assertCommand("-H @endpoint@ -C mycommunity -T storage_list", array(
+		), array(
+			'### Fetched storage data over NET-SNMP ###',
+			'Index:	Description:',
+			'1	Physical memory',
+			'3	Virtual memory',
+			'6	Memory buffers',
+			'7	Cached memory',
+			'10	Swap space',
+			'31	/',
+			'35	/dev/shm'
+		), 0);
+	}
 	public function test_valid_index_option_without_extra_parameters() {
 		$this->assertCommand("-H @endpoint@ -C mycommunity -i 31", array(
 		), array(
@@ -460,14 +474,12 @@ EOF;
 			'OK: 32% of storage used'
 		), 0);
 	}
-	/** This test fails because it needs to be fixed
 	public function test_valid_index_option_with_perfdata() {
 		$this->assertCommand("-H @endpoint@ -C mycommunity -i 31 -f", array(
 		), array(
 			"OK: 32% of storage used |'/'=32%;;"
 		), 0);
 	}
-	*/
 	public function test_invalid_I_option() {
 		$this->assertCommand("-H @endpoint@ -C mycommunity -i 32", array(
 		), array(
@@ -547,23 +559,38 @@ EOF;
 /** 
  * Storage MB left
  */
-	public function test_mb_storage_used_OK1() {
+	public function test_mb_storage_left_OK() {
 		$this->assertCommand("-H @endpoint@ -C mycommunity -f -i 31 -w 5500 -c 6000 -T storage_mb_left", array(
 		), array(
 			"OK: 5434MB of storage left |'/'=5434MB;5500;6000"
 		), 0);
 	}
-	public function test_mb_storage_used_WARNING1() {
+	public function test_mb_storage_left_WARNING() {
 		$this->assertCommand("-H @endpoint@ -C mycommunity -i 31 -w 4000 -c 6000 -T storage_mb_left", array(
 		), array(
 			"WARNING: 5434MB of storage left"
 		), 1);
 	}
-	public function test_mb_storage_used_CRITICAL1() {
+	public function test_mb_storage_left_CRITICAL() {
 		$this->assertCommand("-H @endpoint@ -C mycommunity -i 31 -w 4000 -c 4500 -T storage_mb_left", array(
 		), array(
 			"CRITICAL: 5434MB of storage left"
 		), 2);
+	}
+/** 
+ * Storage GB used/left
+ */
+	public function test_gb_storage_used_OK() {
+		$this->assertCommand("-H @endpoint@ -C mycommunity -f -i 31 -w 3 -c 4 -T storage_gb_used", array(
+		), array(
+			"OK: 3GB of storage used |'/'=3GB;3;4"
+		), 0);
+	}
+	public function test_gb_storage_left_OK() {
+		$this->assertCommand("-H @endpoint@ -C mycommunity -f -i 31 -w 6 -c 7 -T storage_gb_left", array(
+		), array(
+			"OK: 5GB of storage left |'/'=5GB;6;7"
+		), 0);
 	}
 /** 
  * Monitoring-plugins standard warning and critical interval
@@ -591,6 +618,41 @@ EOF;
  */
 	public function test_list_io_index_and_description() {
 		$this->assertCommand("-H @endpoint@ -C mycommunity -T io_1", array(
+		), array(
+			'### Fetched IO data over NET-SNMP ###',
+			'Index:	Description:',
+			'1	ram0',
+			'2	ram1',
+			'3	ram2',
+			'4	ram3',
+			'5	ram4',
+			'6	ram5',
+			'7	ram6',
+			'8	ram7',
+			'9	ram8',
+			'10	ram9',
+			'11	ram10',
+			'12	ram11',
+			'13	ram12',
+			'14	ram13',
+			'15	ram14',
+			'16	ram15',
+			'17	loop0',
+			'18	loop1',
+			'19	loop2',
+			'20	loop3',
+			'21	loop4',
+			'22	loop5',
+			'23	loop6',
+			'24	loop7',
+			'25	sda',
+			'26	sda1',
+			'27	sdb',
+			'28	sdb1'
+		), 0);
+	}
+	public function test_list_io_index_and_description_with_T_parameter() {
+		$this->assertCommand("-H @endpoint@ -C mycommunity -T io_list", array(
 		), array(
 			'### Fetched IO data over NET-SNMP ###',
 			'Index:	Description:',
@@ -682,7 +744,7 @@ EOF;
 			'check_snmp_disk: Could not parse arguments',
 			'Usage:',
 			'check_snmp_disk -H <ip_address> -C <snmp_community> -i <index of disk>',
-			'[-w <warn_range>] [-c <crit_range>] [-t <timeout>] [-m [1|2|3|4]]',
+			'[-w <warn_range>] [-c <crit_range>] [-t <timeout>] [-T <type>]',
 			'([-P snmp version] [-N context] [-L seclevel] [-U secname]',
 			'[-a authproto] [-A authpasswd] [-x privproto] [-X privpasswd])'
 		), 3);
@@ -692,78 +754,14 @@ EOF;
 		), array(
 			'Usage:',
 			'check_snmp_disk -H <ip_address> -C <snmp_community> -i <index of disk>',
-			'[-w <warn_range>] [-c <crit_range>] [-t <timeout>] [-m [1|2|3|4]]',
+			'[-w <warn_range>] [-c <crit_range>] [-t <timeout>] [-T <type>]',
 			'([-P snmp version] [-N context] [-L seclevel] [-U secname]',
 			'[-a authproto] [-A authpasswd] [-x privproto] [-X privpasswd])'
 		), 0);
 	}
-	public function disabled_test_help() {
+	public function disable_test_help() {
 		$this->assertCommand("-h", array(
 		), array(
-			'check_snmp_disk v1.4.16.624.g304f.dirty (monitoring-plugins 2.1.1)',
-			'Copyright (c) 2015 Monitoring Plugins Development Team',
-			'	<devel@monitoring-plugins.org>',
-			'',
-			'Check status of remote machines and obtain system information via SNMP',
-			'',
-			'',
-			'Usage:',
-			'check_snmp_disk -H <ip_address> -C <snmp_community> -i <index of disk>',
-			'[-w <warn_range>] [-c <crit_range>] [-t <timeout>] [-m [1|2|3|4]]',
-			'([-P snmp version] [-N context] [-L seclevel] [-U secname]',
-			'[-a authproto] [-A authpasswd] [-x privproto] [-X privpasswd])',
-			'',
-			'Options:',
-			' -h, --help',
-			'    Print detailed help screen',
-			' -V, --version',
-			'    Print version information',
-			' -v, --verbose',
-			'    Show details for command-line debugging (output may be truncated by',
-			'    the monitoring system)',
-			' -t, --timeout=INTEGER',
-			'    Seconds before plugin times out (default: 15)',
-			' -H, --hostname=STRING',
-			'    IP address to the SNMP server',
-			' -C, --community=STRING',
-			'	Community string for SNMP communication',
-			' -m, --monitordisktype=[1|2|3|4]',
-			'	storage - Storage (default)',
-			'	io - I/O',
-			' -i, --indexofdisk=<int>',
-			'	0 - Storage index list (default)',
-			'	<int> - Storage to check',
-			' -T, --Type=[1-7]',
-			'	1 - Storage percent used (default)',
-			'	2 - Storage percent left',
-			'	3 - Storage MegaBytes used',
-			'	4 - Storage MegaBytes left',
-			'	---',
-			'	5 - I/O load average 1 min',
-			'	6 - I/O load average 5 min',
-			'	7 - I/O load average 15 min',
-			' -P, --protocol=[1|2c|3]',
-			'    SNMP protocol version',
-			' -L, --seclevel=[noAuthNoPriv|authNoPriv|authPriv]',
-			'    SNMPv3 securityLevel',
-			' -a, --authproto=[MD5|SHA]',
-			'    SNMPv3 auth proto',
-			' -x, --privproto=[DES|AES]',
-			'    SNMPv3 priv proto (default DES)',
-			' -U, --secname=USERNAME',
-			'    SNMPv3 username',
-			' -A, --authpassword=PASSWORD',
-			'    SNMPv3 authentication password',
-			' -X, --privpasswd=PASSWORD',
-			'    SNMPv3 privacy password',
-			' -w, --warning=RANGE',
-			'    Warning range (format: start:end). Alert if outside this range',
-			' -c, --critical=RANGE',
-			'    Critical range',
-			'',
-			'Send email to help@monitoring-plugins.org if you have questions regarding',
-			'use of this software. To submit patches or suggest improvements, send email',
-			'to devel@monitoring-plugins.org',
 			''
 		), 0);
 	}
