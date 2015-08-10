@@ -306,24 +306,7 @@ void print_help(void)
 	printf (" %s\n", "-i, --indexofdisk=<int>");
 	printf ("	%s\n", _("0 - Storage index list (default)"));
 	printf ("	%s\n", _("<int> - Storage to check"));
-	printf (" %s\n", "-H, --hostname=STRING");
-	printf ("    %s\n", _("IP address to the SNMP server"));
-	printf (" %s\n", "-C, --community=STRING");
-	printf ("	%s\n", _("Community string for SNMP communication"));
-	printf (" %s\n", "-P, --protocol=[1|2c|3]");
-	printf ("    %s\n", _("SNMP protocol version"));
-	printf (" %s\n", "-L, --seclevel=[noAuthNoPriv|authNoPriv|authPriv]");
-	printf ("    %s\n", _("SNMPv3 securityLevel"));
-	printf (" %s\n", "-a, --authproto=[MD5|SHA]");
-	printf ("    %s\n", _("SNMPv3 auth proto"));
-	printf (" %s\n", "-x, --privproto=[DES|AES]");
-	printf ("    %s\n", _("SNMPv3 priv proto (default DES)"));
-	printf (" %s\n", "-U, --secname=USERNAME");
-	printf ("    %s\n", _("SNMPv3 username"));
-	printf (" %s\n", "-A, --authpassword=PASSWORD");
-	printf ("    %s\n", _("SNMPv3 authentication password"));
-	printf (" %s\n", "-X, --privpasswd=PASSWORD");
-	printf ("    %s\n", _("SNMPv3 privacy password"));
+	mp_snmp_argument_help();
 	printf ( UT_WARN_CRIT_RANGE);
 }
 

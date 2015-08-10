@@ -120,6 +120,30 @@ void mp_snmp_destroy_context(struct mp_snmp_context *c)
 	free(c);
 }
 
+void mp_snmp_argument_help(void)
+{
+	printf(" -H, --hostname=STRING\n");
+	printf("    %s\n", _("IP address to the SNMP server"));
+	printf(" -p, --port=INT\n");
+	printf("    %s\n", _("The port to query on the remote device"));
+	printf(" -C, --community=STRING\n");
+	printf("   %s\n", _("Community string for SNMP communication"));
+	printf(" -P, --protocol=[1|2c|3]\n");
+	printf("    %s\n", _("SNMP protocol version"));
+	printf(" -L, --seclevel=[noAuthNoPriv|authNoPriv|authPriv]\n");
+	printf("    %s\n", _("SNMPv3 securityLevel"));
+	printf(" -a, --authproto=[MD5|SHA]\n");
+	printf("    %s\n", _("SNMPv3 auth proto"));
+	printf(" -x, --privproto=[DES|AES]\n");
+	printf("    %s\n", _("SNMPv3 priv proto (default DES)"));
+	printf(" -U, --secname=USERNAME\n");
+	printf("    %s\n", _("SNMPv3 username"));
+	printf(" -A, --authpassword=PASSWORD\n");
+	printf("    %s\n", _("SNMPv3 authentication password"));
+	printf(" -X, --privpasswd=PASSWORD\n");
+	printf("    %s\n", _("SNMPv3 privacy password"));
+}
+
 int mp_snmp_handle_argument(mp_snmp_context *ctx, int option, const char *opt)
 {
 	char *str;

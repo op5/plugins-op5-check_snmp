@@ -51,7 +51,7 @@ typedef struct mp_snmp_context mp_snmp_context;
 /** the third argument to mp_snmp_walk */
 typedef int (*mp_snmp_walker)(netsnmp_variable_list *, void *, void *);
 
-
+void mp_snmp_argument_help(void);
 int mp_snmp_finalize_auth(mp_snmp_context *c);
 mp_snmp_context *mp_snmp_create_context(void);
 void mp_snmp_destroy_context(mp_snmp_context *ctx);
