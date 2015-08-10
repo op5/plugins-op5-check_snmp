@@ -28,6 +28,8 @@
 #define MP_SNMP_ENABLE_LOGS (1 << 2)
 
 #define MP_SNMP_LONGOPTS \
+	{"hostname", required_argument, 0, 'H'}, \
+	{"port", required_argument, 0, 'p'}, \
 	{"community", required_argument, 0, 'C'}, \
 	{"version", required_argument, 0, 'v'},   \
 	{"retries", required_argument, 0, 'r'},   \

@@ -128,6 +128,9 @@ int mp_snmp_handle_argument(mp_snmp_context *ctx, int option, const char *opt)
 	case 'H':
 		ctx->session.peername = (u_char *)opt;
 		break;
+	case 'p':
+		ctx->session.remote_port = (unsigned short)atoi(opt);
+		break;
 	case 't':
 		ctx->session.timeout = atoi(opt) * 1000000;
 		break;
