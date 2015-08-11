@@ -1,5 +1,8 @@
 #ifndef NP_UTILS_H
 #define NP_UTILS_H
+#include <sys/time.h>
+#include <stdio.h>
+
 /* Header file for Monitoring Plugins utils.c */
 
 /* This file should be included in all plugins */
