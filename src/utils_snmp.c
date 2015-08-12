@@ -20,6 +20,21 @@ struct mp_snmp_context {
 	netsnmp_session session;
 };
 
+static netsnmp_session *mp_snmp_get_session(struct mp_snmp_context *ctx)
+{
+	return &ctx->session;
+}
+
+const char *mp_snmp_get_peername(struct mp_snmp_context *ctx)
+{
+	return ctx->session.peername;
+}
+
+int mp_snmp_get_remote_port(struct mp_snmp_context *ctx)
+{
+	return (int)ctx->session.remote_port;
+}
+
 int mp_snmp_is_valid_var(netsnmp_variable_list *v)
 {
 	if (!v || !v->name || !v->name_length)
