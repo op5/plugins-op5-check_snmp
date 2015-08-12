@@ -14,7 +14,7 @@ char *b64_encodef(const char *fmt, ...)
 	if (!fmt)
 		return NULL;
 
-	va_start(fmt, ap);
+	va_start(ap, fmt);
 	len = xvasprintf(&str, fmt, ap);
 	va_end(ap);
 	if (len < 0 || str == NULL)
