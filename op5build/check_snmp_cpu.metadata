@@ -1,0 +1,30 @@
+[commands]
+check_snmp_cpu_load1=$USER1$/check_snmp_cpu -H $HOSTADDRESS$ -C '$ARG1$' -T cpu_load_1 -w $ARG2$ -c $ARG3$
+check_snmp_cpu_load5=$USER1$/check_snmp_cpu -H $HOSTADDRESS$ -C '$ARG1$' -T cpu_load_5 -w $ARG2$ -c $ARG3$
+check_snmp_cpu_load15=$USER1$/check_snmp_cpu -H $HOSTADDRESS$ -C '$ARG1$' -T cpu_load_15 -w $ARG2$ -c $ARG3$
+check_snmp_cpu_iowait=$USER1$/check_snmp_cpu -H $HOSTADDRESS$ -C '$ARG1$' -T cpu_io_wait -w $ARG2$ -c $ARG3$
+check_snmp_cpu_custom=$USER1$/check_snmp_cpu '$ARG1'
+
+[name]
+check_snmp_cpu
+
+[info]
+Checks CPU load average or IO wait over SNMP.
+
+[why]
+This can be usefull to monitor cpu load average or io wait on hosts where you are not able to install any agents.
+
+[how]
+By SNMP.
+
+[platforms]
+Unix/Linux
+
+[categories]
+SNMP, CPU 
+
+[support]
+4
+
+[tags]
+unix, linux, snmp, net-snmp, cpu, load, iowait

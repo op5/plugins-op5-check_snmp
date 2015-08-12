@@ -2,6 +2,7 @@
  * Check system memory over snmp
  * Add a big description
  */
+ /* TODO: do not use index but the name of the storage */
 const char *progname = "check_snmp_disk";
 const char *program_name = "check_snmp_disk"; /* for coreutils libs */
 const char *copyright = "2015";
@@ -66,7 +67,7 @@ void print_usage (void);
 mp_snmp_context *ctx;
 char *warn_str = "", *crit_str = "";
 enum o_monitortype_t o_monitortype = MONITOR_TYPE__STORAGE;
-int o_perfdata = 0;
+int o_perfdata = 1; /* perfdata on per default */
 int o_get_index = 0;
 enum o_monitor_presentationtype_t o_type = MONITOR_PRESTYPE__STORAGE_PERCENT_USED;
 
@@ -381,7 +382,7 @@ int process_arguments(int argc, char **argv)
 				exit(STATE_OK);
 				break;
 			case 'f':
-				o_perfdata = 1;
+				o_perfdata = 0;
 				break;
 			case 'i':
 				o_get_index = atoi(optarg);

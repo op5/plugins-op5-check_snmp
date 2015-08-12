@@ -9,6 +9,7 @@ const char *email = "devel@monitoring-plugins.org";
  
 #include "common.h"
 #include "utils.h"
+#include "utils_base.h"
 #include "utils_snmp.h"
 #include <stdio.h>					/* to calculate iowait */
 #include <time.h>					/* to calculate iowait */
@@ -32,6 +33,7 @@ enum o_monitortype_t {
 	MONITOR_TYPE__LOAD1,
 	MONITOR_TYPE__LOAD5,
 	MONITOR_TYPE__LOAD15,
+	MONITOR_TYPE__LEGACY_LOAD,
 	MONITOR_TYPE__IOWAIT
 };
 
@@ -43,7 +45,7 @@ void print_usage (void);
 mp_snmp_context *ctx;
 char *warn_str = "", *crit_str = "";
 enum o_monitortype_t o_monitortype = MONITOR_TYPE__LOAD1;
-int o_perfdata = 0;
+int o_perfdata = 1; /* perfdata on per default */
 
 struct cpu_info {
 	float Load1;
@@ -53,7 +55,8 @@ struct cpu_info {
 	int NumberOfCpus;
 };
 
-static void print_output_header(int result) {
+static void print_output_header(int result)
+{
 	/* output result state */
 	if (result == STATE_OK)
 			printf("OK: ");
@@ -245,7 +248,7 @@ int process_arguments (int argc, char **argv)
 				exit(STATE_OK);
 				break;
 			case 'f':
-				o_perfdata = 1;
+				o_perfdata = 0;
 				break;
 			case 'T':
 				if (0==strcmp(optarg, "cpu_load_1")) {
@@ -254,6 +257,8 @@ int process_arguments (int argc, char **argv)
 					o_monitortype = MONITOR_TYPE__LOAD5;
 				} else if (0==strcmp(optarg, "cpu_load_15")) {
 					o_monitortype = MONITOR_TYPE__LOAD15;
+				} else if (0==strcmp(optarg, "cpu_load_legacy")) {
+					o_monitortype = MONITOR_TYPE__LEGACY_LOAD;
 				} else if (0==strcmp(optarg, "cpu_io_wait")) {
 					o_monitortype = MONITOR_TYPE__IOWAIT;
 				} else {
@@ -271,20 +276,83 @@ int main(int argc, char **argv)
 	static thresholds *thresh;
 	struct cpu_info *ptr;
 	int result = STATE_UNKNOWN;
+	int legacy_i, legacy_temp_result = STATE_UNKNOWN;
+	char *legacy_warn1, *legacy_warn5, *legacy_warn15;
+	char *legacy_crit1, *legacy_crit5, *legacy_crit15;
+	char *legacy_token;
 	
 	mp_snmp_init(program_name, 0);
 	
 	/* Parse extra opts if any */
-	argv=np_extra_opts (&argc, argv, progname);
-	if (process_arguments (argc, argv) == ERROR)
+	argv=np_extra_opts(&argc, argv, progname);
+	if ( process_arguments(argc, argv) == ERROR )
 		usage4 (_("Could not parse arguments"));
-
-	/* set standard monitoring-plugins thresholds */
-	set_thresholds(&thresh, warn_str, crit_str);
 	
 	ptr = check_cpu_ret(ctx, ~0); /* get net-snmp cpu data */
 	mp_snmp_deinit(program_name); /* deinit */
-	
+
+
+	/** 
+	 * set standard monitoring-plugins thresholds
+	 * and check if we need to run the plugin in
+	 * legacy mode for CPU load 
+	 */
+	if (o_monitortype == MONITOR_TYPE__LEGACY_LOAD)
+	{
+		
+		legacy_token = strtok(warn_str, ",");
+		for (legacy_i = 0; legacy_i < 3; legacy_i++)
+		{
+			if (legacy_i == 0 && legacy_token != NULL)
+				legacy_warn1 = legacy_token;
+			else if (legacy_i == 1 && legacy_token != NULL)
+				legacy_warn5 = legacy_token;
+			else if (legacy_i == 2 && legacy_token != NULL)
+				legacy_warn15 = legacy_token;
+			else
+				die(STATE_UNKNOWN, _("Needs 3 warning arguments, -w STRING,STRING,STRING\n"));
+			legacy_token = strtok(NULL, ",");
+		}
+		legacy_token = strtok(crit_str, ",");
+		for (legacy_i = 0; legacy_i < 3; legacy_i++)
+		{
+			if (legacy_i == 0 && legacy_token != NULL)
+				legacy_crit1 = legacy_token;
+			else if (legacy_i == 1 && legacy_token != NULL)
+				legacy_crit5 = legacy_token;
+			else if (legacy_i == 2 && legacy_token != NULL)
+				legacy_crit15 = legacy_token;
+			else
+				die(STATE_UNKNOWN, _("Needs 3 critical arguments, -c STRING,STRING,STRING\n"));
+			legacy_token = strtok(NULL, ",");
+		}
+		
+		set_thresholds(&thresh, legacy_warn1, legacy_crit1);
+		legacy_temp_result = get_status((float)ptr->Load1, thresh);
+		result = max_state(legacy_temp_result, result);
+		
+		set_thresholds(&thresh, legacy_warn5, legacy_crit5);
+		legacy_temp_result = get_status((float)ptr->Load5, thresh);
+		result = max_state(legacy_temp_result, result);
+		
+		set_thresholds(&thresh, legacy_warn15, legacy_crit15);
+		legacy_temp_result = get_status((float)ptr->Load15, thresh);
+		result = max_state(legacy_temp_result, result);
+		
+		print_output_header(result);
+		
+		printf("%.2f %.2f %.2f CPU load average ", (float)ptr->Load1,(float)ptr->Load5,(float)ptr->Load15);
+			if (o_perfdata == 1) {
+				printf("|'CPU load-1'=%.2f;%s;%s 'CPU load-5'=%.2f;%s;%s 'CPU load-15'=%.2f;%s;%s",
+					ptr->Load1, legacy_warn1, legacy_crit1,
+					ptr->Load5, legacy_warn5, legacy_crit5,
+					ptr->Load15, legacy_warn15, legacy_crit15);
+			}
+	}
+	else
+		set_thresholds(&thresh, warn_str, crit_str);
+
+
 	/** 
 	 * To check iowait we need to store the time and counter value
 	 * and compare it to the previous value stored in a file.
@@ -292,10 +360,12 @@ int main(int argc, char **argv)
 	float iowait = 0;
 	if (o_monitortype == MONITOR_TYPE__IOWAIT) {
 		time_t fftime = 0, timenow = time(0);
-		int ffcpurawwait = 0;	
-		
+		int ffcpurawwait = 0;
 		FILE *dfp; /* data file pointer */
 		/* TODO: datafilename needs to be unique for each check plugin */
+		char *key_name;
+		key_name = np_state_generate_key(argv);
+		printf("unique filename: %s\n", key_name);
 		char datafilename[] = "/tmp/unique_check_plugin_id.data";
 		dfp = fopen(datafilename, "r");
 		if (dfp == NULL) {
@@ -322,22 +392,26 @@ int main(int argc, char **argv)
 	switch (o_monitortype) {
 		case MONITOR_TYPE__LOAD1:
 			result = get_status((float)ptr->Load1, thresh);
+			print_output_header(result);
 			break;
 		case MONITOR_TYPE__LOAD5:
 			result = get_status((float)ptr->Load5, thresh);
+			print_output_header(result);
 			break;
 		case MONITOR_TYPE__LOAD15:
 			result = get_status((float)ptr->Load15, thresh);
+			print_output_header(result);
+			break;
+		case MONITOR_TYPE__LEGACY_LOAD:
 			break;
 		case MONITOR_TYPE__IOWAIT:
 			result = get_status(iowait, thresh);
+			print_output_header(result);
 			break;
 		default:
 			usage4 (_("Could not parse arguments for -T"));
 			break;
 	}
-	
-	print_output_header(result);
 
 	switch (o_monitortype) {
 		case MONITOR_TYPE__LOAD1:
@@ -360,6 +434,8 @@ int main(int argc, char **argv)
 				printf("|'CPU load-15'=%.2f;%s;%s",
 					ptr->Load15, warn_str, crit_str);
 			}
+			break;
+		case MONITOR_TYPE__LEGACY_LOAD:
 			break;
 		case MONITOR_TYPE__IOWAIT:
 			printf("%.2f CPU I/O wait ", iowait);

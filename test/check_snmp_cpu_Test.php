@@ -127,52 +127,52 @@ EOF;
  * Load-1
  */
 	public function test_default_without_parameters() {
-		$this->assertCommand("-H @endpoint@ -C mycommunity", array(
+		$this->assertCommand("-H @endpoint@ -C mycommunity -f", array(
 		), array(
 			'OK: 0.02 CPU load-1'
 		), 0);
 	}
 	public function test_default_without_parameters_with_perf_data() {
-		$this->assertCommand("-H @endpoint@ -C mycommunity -f", array(
+		$this->assertCommand("-H @endpoint@ -C mycommunity", array(
 		), array(
 			"OK: 0.02 CPU load-1 |'CPU load-1'=0.02;;"
 		), 0);
 	}
 	public function test_load1_OK() {
-		$this->assertCommand("-H @endpoint@ -C mycommunity -T cpu_load_1", array(
+		$this->assertCommand("-H @endpoint@ -C mycommunity -f -T cpu_load_1", array(
 		), array(
 			'OK: 0.02 CPU load-1'
 		), 0);
 	}
 	public function test_load1_OK_with_perf_data() {
-		$this->assertCommand("-H @endpoint@ -C mycommunity -f -T cpu_load_1", array(
+		$this->assertCommand("-H @endpoint@ -C mycommunity -T cpu_load_1", array(
 		), array(
 			"OK: 0.02 CPU load-1 |'CPU load-1'=0.02;;"
 		), 0);
 	}
 	public function test_load1_WARNING() {
-		$this->assertCommand("-H @endpoint@ -C mycommunity -T cpu_load_1 -w 0.40 -c 0.90", array(
+		$this->assertCommand("-H @endpoint@ -C mycommunity -f -T cpu_load_1 -w 0.40 -c 0.90", array(
 			"1.3.6.1.4.1.2021.10.1.5.1" => array(2,50)
 		), array(
 			'WARNING: 0.50 CPU load-1'
 		), 1);
 	}
 	public function test_load1_WARNING_with_perf_data() {
-		$this->assertCommand("-H @endpoint@ -C mycommunity -f -T cpu_load_1 -w 0.40 -c 0.90", array(
+		$this->assertCommand("-H @endpoint@ -C mycommunity -T cpu_load_1 -w 0.40 -c 0.90", array(
 			"1.3.6.1.4.1.2021.10.1.5.1" => array(2,50)
 		), array(
 			"WARNING: 0.50 CPU load-1 |'CPU load-1'=0.50;0.40;0.90"
 		), 1);
 	}
 	public function test_load1_CRITICAL() {
-		$this->assertCommand("-H @endpoint@ -C mycommunity -T cpu_load_1 -w 0.10 -c 0.20", array(
+		$this->assertCommand("-H @endpoint@ -C mycommunity -f -T cpu_load_1 -w 0.10 -c 0.20", array(
 			"1.3.6.1.4.1.2021.10.1.5.1" => array(2,100)
 		), array(
 			'CRITICAL: 1.00 CPU load-1'
 		), 2);
 	}
 	public function test_load1_CRITICAL_with_perf_data() {
-		$this->assertCommand("-H @endpoint@ -C mycommunity -f -T cpu_load_1 -w 0.10 -c 0.20", array(
+		$this->assertCommand("-H @endpoint@ -C mycommunity -T cpu_load_1 -w 0.10 -c 0.20", array(
 			"1.3.6.1.4.1.2021.10.1.5.1" => array(2,100)
 		), array(
 			"CRITICAL: 1.00 CPU load-1 |'CPU load-1'=1.00;0.10;0.20"
@@ -183,20 +183,20 @@ EOF;
  * Load-5
  */
 	public function test_load5_OK() {
-		$this->assertCommand("-H @endpoint@ -C mycommunity -f -T cpu_load_5", array(
+		$this->assertCommand("-H @endpoint@ -C mycommunity -T cpu_load_5", array(
 		), array(
 			"OK: 0.03 CPU load-5 |'CPU load-5'=0.03;;"
 		), 0);
 	}
 	public function test_load5_WARNING() {
-		$this->assertCommand("-H @endpoint@ -C mycommunity -f -T cpu_load_5 -w 0.40 -c 0.90", array(
+		$this->assertCommand("-H @endpoint@ -C mycommunity -T cpu_load_5 -w 0.40 -c 0.90", array(
 			"1.3.6.1.4.1.2021.10.1.5.2" => array(2,50)
 		), array(
 			"WARNING: 0.50 CPU load-5 |'CPU load-5'=0.50;0.40;0.90"
 		), 1);
 	}
 	public function test_load5_CRITICAL() {
-		$this->assertCommand("-H @endpoint@ -C mycommunity -f -T cpu_load_5 -w 0.10 -c 0.20", array(
+		$this->assertCommand("-H @endpoint@ -C mycommunity -T cpu_load_5 -w 0.10 -c 0.20", array(
 			"1.3.6.1.4.1.2021.10.1.5.2" => array(2,100)
 		), array(
 			"CRITICAL: 1.00 CPU load-5 |'CPU load-5'=1.00;0.10;0.20"
@@ -207,24 +207,72 @@ EOF;
  * Load-15
  */
 	public function test_load15_OK() {
-		$this->assertCommand("-H @endpoint@ -C mycommunity -f -T cpu_load_15", array(
+		$this->assertCommand("-H @endpoint@ -C mycommunity -T cpu_load_15", array(
 		), array(
 			"OK: 0.00 CPU load-15 |'CPU load-15'=0.00;;"
 		), 0);
 	}
 	public function test_load15_WARNING() {
-		$this->assertCommand("-H @endpoint@ -C mycommunity -f -T cpu_load_15 -w 0.40 -c 0.90", array(
+		$this->assertCommand("-H @endpoint@ -C mycommunity -T cpu_load_15 -w 0.40 -c 0.90", array(
 			"1.3.6.1.4.1.2021.10.1.5.3" => array(2,50)
 		), array(
 			"WARNING: 0.50 CPU load-15 |'CPU load-15'=0.50;0.40;0.90"
 		), 1);
 	}
 	public function test_load15_CRITICAL() {
-		$this->assertCommand("-H @endpoint@ -C mycommunity -f -T cpu_load_15 -w 0.10 -c 0.20", array(
+		$this->assertCommand("-H @endpoint@ -C mycommunity -T cpu_load_15 -w 0.10 -c 0.20", array(
 			"1.3.6.1.4.1.2021.10.1.5.3" => array(2,100)
 		), array(
 			"CRITICAL: 1.00 CPU load-15 |'CPU load-15'=1.00;0.10;0.20"
 		), 2);
+	}
+/**
+ * Load-legacy
+ */
+	public function test_load_legacy_OK() {
+		$this->assertCommand("-H @endpoint@ -C mycommunity -T cpu_load_legacy -w 1.1,1.2,1.3 -c 2.1,2.2,2.3", array(
+			"1.3.6.1.4.1.2021.10.1.5.3" => array(2,4)
+		), array(
+			"OK: 0.02 0.03 0.04 CPU load average |'CPU load-1'=0.02;1.1;2.1 'CPU load-5'=0.03;1.2;2.2 'CPU load-15'=0.04;1.3;2.3"
+		), 0);
+	}
+	public function test_load_legacy_WARNING() {
+		$this->assertCommand("-H @endpoint@ -C mycommunity -T cpu_load_legacy -w 1.1,1.2,1.3 -c 2.1,2.2,2.3", array(
+			"1.3.6.1.4.1.2021.10.1.5.1" => array(2,200)
+		), array(
+			"WARNING: 2.00 0.03 0.00 CPU load average |'CPU load-1'=2.00;1.1;2.1 'CPU load-5'=0.03;1.2;2.2 'CPU load-15'=0.00;1.3;2.3"
+		), 1);
+	}
+	public function test_load_legacy_CRITICAL() {
+		$this->assertCommand("-H @endpoint@ -C mycommunity -T cpu_load_legacy -w 1.1,1.2,1.3 -c 2.1,2.2,2.3", array(
+			"1.3.6.1.4.1.2021.10.1.5.2" => array(2,222)
+		), array(
+			"CRITICAL: 0.02 2.22 0.00 CPU load average |'CPU load-1'=0.02;1.1;2.1 'CPU load-5'=2.22;1.2;2.2 'CPU load-15'=0.00;1.3;2.3"
+		), 2);
+	}
+/**
+ * Load-legacy edge cases
+ */
+	public function test_load_legacy_wrong_amount_of_warning_and_critical_arguments() {
+		$this->assertCommand("-H @endpoint@ -C mycommunity -T cpu_load_legacy -w 1.1,1.2 -c 2.1,2.2", array(
+			"1.3.6.1.4.1.2021.10.1.5.3" => array(2,4)
+		), array(
+			"Needs 3 warning arguments, -w STRING,STRING,STRING"
+		), 3);
+	}
+	public function test_load_legacy_wrong_uneven_amount_of_warning_and_critical_arguments() {
+		$this->assertCommand("-H @endpoint@ -C mycommunity -T cpu_load_legacy -w 1.1,1.2 -c 2.1", array(
+			"1.3.6.1.4.1.2021.10.1.5.3" => array(2,4)
+		), array(
+			"Needs 3 warning arguments, -w STRING,STRING,STRING"
+		), 3);
+	}
+	public function test_load_legacy_wrong_amount_of_critical_arguments() {
+		$this->assertCommand("-H @endpoint@ -C mycommunity -T cpu_load_legacy -w 1.1,1.2,1.3 -c 2.1", array(
+			"1.3.6.1.4.1.2021.10.1.5.3" => array(2,4)
+		), array(
+			"Needs 3 critical arguments, -c STRING,STRING,STRING"
+		), 3);
 	}
 /**
  * CPU I/O wait
@@ -233,21 +281,21 @@ EOF;
  * than 1 second between checks. Now the tests just wait for 1 sec.
  */
 	public function test_iowait_OK() {
-		$this->assertCommand("-H @endpoint@ -C mycommunity -f -T cpu_io_wait", array(
+		$this->assertCommand("-H @endpoint@ -C mycommunity -T cpu_io_wait", array(
 		), array(
 			"OK: 0.00 CPU I/O wait |'CPU I/O wait'=0.00;;"
 		), 0);
 		sleep(1);
 	}
 	public function test_iowait_WARNING() {
-		$this->assertCommand("-H @endpoint@ -C mycommunity -f -T cpu_io_wait -w 10: -c 20", array(
+		$this->assertCommand("-H @endpoint@ -C mycommunity -T cpu_io_wait -w 10: -c 20", array(
 		), array(
 			"WARNING: 0.00 CPU I/O wait |'CPU I/O wait'=0.00;10:;20"
 		), 1);
 		sleep(1);
 	}
 	public function test_iowait_CRITICAL() {
-		$this->assertCommand("-H @endpoint@ -C mycommunity -f -T cpu_io_wait -w 10: -c 20:", array(
+		$this->assertCommand("-H @endpoint@ -C mycommunity -T cpu_io_wait -w 10: -c 20:", array(
 		), array(
 			"CRITICAL: 0.00 CPU I/O wait |'CPU I/O wait'=0.00;10:;20:"
 		), 2);

@@ -97,32 +97,32 @@ EOF;
 	public function test_default() {
 		$this->assertCommand("-H @endpoint@ -C mycommunity", array(
 		), array(
-			'OK: 84% Ram used'
+			"OK: 84% Ram used |'Ram used'=84%;;"
 		), 0);
 	}
-	public function test_default_with_perf_data_and_warn_crit_values() {
+	public function test_default_without_perf_data_and_warn_crit_values() {
 		$this->assertCommand("-H @endpoint@ -C mycommunity -f -w 85 -c 95", array(
 		), array(
-			"OK: 84% Ram used |'Ram used'=84%;85;95"
+			'OK: 84% Ram used'
 		), 0);
 	}
 /**
  * Ram used OK, WARNING, CRITICAL
  */
 	public function test_option_used_warning_and_critical_OK() {
-		$this->assertCommand("-H @endpoint@ -C mycommunity -f -T ram_used -w 85 -c 95", array(
+		$this->assertCommand("-H @endpoint@ -C mycommunity -T ram_used -w 85 -c 95", array(
 		), array(
 			"OK: 84% Ram used |'Ram used'=84%;85;95"
 		), 0);
 	}
 	public function test_option_used_warning_and_critical_WARNING() {
-		$this->assertCommand("-H @endpoint@ -C mycommunity -f -T ram_used -w 70 -c 95", array(
+		$this->assertCommand("-H @endpoint@ -C mycommunity -T ram_used -w 70 -c 95", array(
 		), array(
 			"WARNING: 84% Ram used |'Ram used'=84%;70;95"
 		), 1);
 	}
 	public function test_option_used_warning_and_critical_CRITICAL() {
-		$this->assertCommand("-H @endpoint@ -C mycommunity -f -T ram_used -w 70 -c 80", array(
+		$this->assertCommand("-H @endpoint@ -C mycommunity -T ram_used -w 70 -c 80", array(
 		), array(
 			"CRITICAL: 84% Ram used |'Ram used'=84%;70;80"
 		), 2);
@@ -131,19 +131,19 @@ EOF;
  * Ram free OK, WARNING, CRITICAL
  */
 	public function test_option_free_warning_and_critical_OK() {
-		$this->assertCommand("-H @endpoint@ -C mycommunity -f -T ram_free -w 20 -c 30", array(
+		$this->assertCommand("-H @endpoint@ -C mycommunity -T ram_free -w 20 -c 30", array(
 		), array(
 			"OK: 15% Ram free |'Ram free'=15%;20;30"
 		), 0);
 	}
 	public function test_option_free_warning_and_critical_WARNING() {
-		$this->assertCommand("-H @endpoint@ -C mycommunity -f -T ram_free -w 10 -c 30", array(
+		$this->assertCommand("-H @endpoint@ -C mycommunity -T ram_free -w 10 -c 30", array(
 		), array(
 			"WARNING: 15% Ram free |'Ram free'=15%;10;30"
 		), 1);
 	}
 	public function test_option_free_warning_and_critical_CRITICAL() {
-		$this->assertCommand("-H @endpoint@ -C mycommunity -f -T ram_free -w 10 -c 15", array(
+		$this->assertCommand("-H @endpoint@ -C mycommunity -T ram_free -w 10 -c 15", array(
 		), array(
 			"CRITICAL: 15% Ram free |'Ram free'=15%;10;15"
 		), 2);
@@ -152,19 +152,19 @@ EOF;
  * Swap used OK, WARNING, CRITICAL
  */
 	public function test_option_swap_warning_and_critical_OK() {
-		$this->assertCommand("-H @endpoint@ -C mycommunity -f -T swap_used -w 10 -c 20", array(
+		$this->assertCommand("-H @endpoint@ -C mycommunity -T swap_used -w 10 -c 20", array(
 		), array(
 			"OK: 5% Swap used |'Swap used'=5%;10;20"
 		), 0);
 	}
 	public function test_option_swap_warning_and_critical_WARNING() {
-		$this->assertCommand("-H @endpoint@ -C mycommunity -f -T swap_used -w 1 -c 20", array(
+		$this->assertCommand("-H @endpoint@ -C mycommunity -T swap_used -w 1 -c 20", array(
 		), array(
 			"WARNING: 5% Swap used |'Swap used'=5%;1;20"
 		), 1);
 	}
 	public function test_option_swap_warning_and_critical_CRITICAL() {
-		$this->assertCommand("-H @endpoint@ -C mycommunity -f -T swap_used -w 1 -c 2", array(
+		$this->assertCommand("-H @endpoint@ -C mycommunity -T swap_used -w 1 -c 2", array(
 		), array(
 			"CRITICAL: 5% Swap used |'Swap used'=5%;1;2"
 		), 2);
@@ -173,31 +173,31 @@ EOF;
  * Buffer OK, WARNING, CRITICAL
  */
 	public function test_buffer_in_kb_warning_and_critical_OK() {
-		$this->assertCommand("-H @endpoint@ -C mycommunity -f -T buffer_in_kb -w 100000 -c 200000", array(
+		$this->assertCommand("-H @endpoint@ -C mycommunity -T buffer_in_kb -w 100000 -c 200000", array(
 		), array(
 			"OK: 52856KB Memory Buffer |'Memory Buffer'=52856KB;100000;200000"
 		), 0);
 	}
 	public function test_buffer_in_kb_warning_and_critical_WARNING() {
-		$this->assertCommand("-H @endpoint@ -C mycommunity -f -T buffer_in_kb -w 20:30 -c 200000", array(
+		$this->assertCommand("-H @endpoint@ -C mycommunity -T buffer_in_kb -w 20:30 -c 200000", array(
 		), array(
 			"WARNING: 52856KB Memory Buffer |'Memory Buffer'=52856KB;20:30;200000"
 		), 1);
 	}
 	public function test_buffer_in_kb_warning_and_critical_CRITICAL() {
-		$this->assertCommand("-H @endpoint@ -C mycommunity -f -T buffer_in_kb -w 100000 -c \~:10", array(
+		$this->assertCommand("-H @endpoint@ -C mycommunity -T buffer_in_kb -w 100000 -c \~:10", array(
 		), array(
 			"CRITICAL: 52856KB Memory Buffer |'Memory Buffer'=52856KB;100000;~:10"
 		), 2);
 	}
 	public function test_buffer_in_mb_warning_and_critical_OK() {
-		$this->assertCommand("-H @endpoint@ -C mycommunity -f -T buffer_in_mb -w 100 -c 200", array(
+		$this->assertCommand("-H @endpoint@ -C mycommunity -T buffer_in_mb -w 100 -c 200", array(
 		), array(
 			"OK: 51MB Memory Buffer |'Memory Buffer'=51MB;100;200"
 		), 0);
 	}
 	public function test_buffer_in_gb_warning_and_critical_OK() {
-		$this->assertCommand("-H @endpoint@ -C mycommunity -f -T buffer_in_gb -w 10 -c 20", array(
+		$this->assertCommand("-H @endpoint@ -C mycommunity -T buffer_in_gb -w 10 -c 20", array(
 		), array(
 			"OK: 0GB Memory Buffer |'Memory Buffer'=0GB;10;20"
 		), 0);
@@ -206,19 +206,19 @@ EOF;
  * Cache OK, WARNING, CRITICAL
  */
 	public function test_cached_warning_and_critical_OK() {
-		$this->assertCommand("-H @endpoint@ -C mycommunity -f -T cached_in_kb -w 300000 -c 400000", array(
+		$this->assertCommand("-H @endpoint@ -C mycommunity -T cached_in_kb -w 300000 -c 400000", array(
 		), array(
 			"OK: 280968KB Memory Cached |'Memory Cached'=280968KB;300000;400000"
 		), 0);
 	}
 	public function test_cached_warning_and_critical_WARNING() {
-		$this->assertCommand("-H @endpoint@ -C mycommunity -f -T cached_in_kb -w @280000:290000 -c 400000", array(
+		$this->assertCommand("-H @endpoint@ -C mycommunity -T cached_in_kb -w @280000:290000 -c 400000", array(
 		), array(
 			"WARNING: 280968KB Memory Cached |'Memory Cached'=280968KB;@280000:290000;400000"
 		), 1);
 	}
 	public function test_cached_warning_and_critical_CRITICAL() {
-		$this->assertCommand("-H @endpoint@ -C mycommunity -f -T cached_in_kb -w 200000 -c @280000:290000", array(
+		$this->assertCommand("-H @endpoint@ -C mycommunity -T cached_in_kb -w 200000 -c @280000:290000", array(
 		), array(
 			"CRITICAL: 280968KB Memory Cached |'Memory Cached'=280968KB;200000;@280000:290000"
 		), 2);

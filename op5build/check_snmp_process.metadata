@@ -1,0 +1,29 @@
+[commands] /* TODO */
+check_snmp_process_total_number_of_processes_v2=$USER1$/check_snmp_process -H $HOSTADDRESS$ -C '$ARG1$' -2 -F -n .* -w $ARG2$ -c $ARG3$
+check_snmp_process_total_number_of_processes_v3=$USER1$/check_snmp_process -H $HOSTADDRESS$ -l '$ARG1$' -x '$ARG2$' -F -n .* -w $ARG3$ -c $ARG4$
+check_snmp_process_number_of_processes_v2=$USER1$/check_snmp_process -H $HOSTADDRESS$ -C '$ARG1$' -2 -F -n '$ARG2$' -w $ARG3$ -c $ARG4$
+check_snmp_process_number_of_processes_v3=$USER1$/check_snmp_process -H $HOSTADDRESS$ -l '$ARG1$' -x '$ARG2$' -F -n '$ARG3$' -w $ARG4$ -c $ARG5$
+
+[name]
+check_snmp_process
+
+[info]
+This plugin checks if process are running, the number that are running, memory and cpu used.
+
+[why]
+
+[how]
+The plugin checks, by SNMP, if there is at least one process matching the filter when no warning or critical levels are set.
+The filter is treated as a regular expression by default, but you can deactivate.
+
+[platforms]
+Windows, Unix/Linux, AS400
+
+[categories]
+SNMP
+
+[support]
+5
+
+[tags]
+process, memory, cpu, microsoft windows, unic, linux, as400

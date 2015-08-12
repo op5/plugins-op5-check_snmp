@@ -55,7 +55,7 @@ void print_usage (void);
 mp_snmp_context *ctx;
 char *warn_str = "", *crit_str = "";
 enum o_monitortype_t o_monitortype = MONITOR_TYPE__RAM_USED; /* default */
-int o_perfdata = 0;
+int o_perfdata = 1; /* perfdata on per default */
 
 struct mem_info {
 	int Index;
@@ -249,7 +249,7 @@ int process_arguments (int argc, char **argv)
 				exit(STATE_OK);
 				break;
 			case 'f':
-				o_perfdata = 1;
+				o_perfdata = 0;
 				break;
 			case 'T':
 				if (0==strcmp(optarg, "ram_used")) {

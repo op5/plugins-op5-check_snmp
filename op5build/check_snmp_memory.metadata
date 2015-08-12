@@ -1,0 +1,31 @@
+[commands]
+check_snmp_memory_used=$USER1$/check_snmp_memory -H $HOSTADDRESS$ -C '$ARG1$' -T ram_used -w $ARG2$ -c $ARG3$
+check_snmp_memory_free=$USER1$/check_snmp_memory -H $HOSTADDRESS$ -C '$ARG1$' -T ram_free -w $ARG2$ -c $ARG3$
+check_snmp_memory_swap=$USER1$/check_snmp_memory -H $HOSTADDRESS$ -C '$ARG1$' -T swap_used -w $ARG2$ -c $ARG3$
+check_snmp_memory_buffer=$USER1$/check_snmp_memory -H $HOSTADDRESS$ -C '$ARG1$' -T buffer_in_kb -w $ARG2$ -c $ARG3$
+check_snmp_memory_cached=$USER1$/check_snmp_memory -H $HOSTADDRESS$ -C '$ARG1$' -T cached_in_kb -w $ARG2$ -c $ARG3$
+check_snmp_memory_custom=$USER1$/check_snmp_memory '$ARG1$'
+
+[name]
+check_snmp_memory
+
+[info]
+Checks memory usage on Unix/Linux platforms using SNMP.
+
+[why]
+This can be usefull to monitor memory usage on hosts where you are not able to install any agents.
+
+[how]
+By SNMP.
+
+[platforms]
+Unix/Linux
+
+[categories]
+SNMP, Memory
+
+[support]
+4
+
+[tags]
+unix, linux, snmp, net-snmp, memory, swap, buffer, cached

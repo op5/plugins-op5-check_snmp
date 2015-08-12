@@ -1,0 +1,35 @@
+[commands]
+check_snmp_disk_list_available_disks=$USER1$/check_snmp_disk -H $HOSTADDRESS$ -C '$ARG1$' -T storage_list
+check_snmp_disk_percent_used=$USER1$/check_snmp_disk -H $HOSTADDRESS$ -C '$ARG1$' -T storage_percent_used -i '$ARG2$' -w $ARG3$ -c $ARG4$
+check_snmp_disk_percent_left=$USER1$/check_snmp_disk -H $HOSTADDRESS$ -C '$ARG1$' -T storage_percent_left -i '$ARG2$' -w $ARG3$ -c $ARG4$
+check_snmp_disk_mb_used=$USER1$/check_snmp_disk -H $HOSTADDRESS$ -C '$ARG1$' -T storage_mb_used -i '$ARG2$' -w $ARG3$ -c $ARG4$
+check_snmp_disk_mb_left=$USER1$/check_snmp_disk -H $HOSTADDRESS$ -C '$ARG1$' -T storage_mb_left -i '$ARG2$' -w $ARG3$ -c $ARG4$
+check_snmp_disk_list_available_io=$USER1$/check_snmp_disk -H $HOSTADDRESS$ -C '$ARG1$' -T io_list
+check_snmp_disk_io_1_min_average=$USER1$/check_snmp_disk -H $HOSTADDRESS$ -C '$ARG1$' -T io_1 -i '$ARG2$' -w $ARG3$ -c $ARG4$
+check_snmp_disk_io_5_min_average=$USER1$/check_snmp_disk -H $HOSTADDRESS$ -C '$ARG1$' -T io_5 -i '$ARG2$' -w $ARG3$ -c $ARG4$
+check_snmp_disk_io_15_min_average=$USER1$/check_snmp_disk -H $HOSTADDRESS$ -C '$ARG1$' -T io_15 -i '$ARG2$' -w $ARG3$ -c $ARG4$
+check_snmp_disk_custom=$USER1$/check_snmp_disk '$ARG1$'
+
+[name]
+check_snmp_disk
+
+[info]
+Checks disk information on harddrives using SNMP.
+
+[why]
+This can be usefull to monitor disk usage and IO on hosts where you are not able to install any agents.
+
+[how]
+The plugin collects the monitored data over SNMP.
+
+[platforms]
+Unix/Linux
+
+[categories]
+SNMP, File System
+
+[support]
+4
+
+[tags]
+storage, hardware, snmp
