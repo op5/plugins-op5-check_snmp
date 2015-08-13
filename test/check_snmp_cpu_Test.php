@@ -278,7 +278,7 @@ EOF;
  * CPU I/O wait
  * TODO: Needs to remove the old tmp-file and create a new, and wait >1 sec
  * or simulate time difference since the plugin gives errors of there is <
- * than 1 second between checks. Now the tests just wait for 1 sec.
+ * than 1 second between checks. Now the tests just wait for 2 sec.
  */
 	public function test_iowait_OK() {
 		$this->assertCommand("-H @endpoint@ -C mycommunity -T cpu_io_wait", array(

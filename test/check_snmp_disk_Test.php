@@ -463,31 +463,31 @@ EOF;
 		), 0);
 	}
 	public function test_valid_index_option_without_extra_parameters() {
-		$this->assertCommand("-H @endpoint@ -C mycommunity -f -i 31", array(
+		$this->assertCommand("-H @endpoint@ -C mycommunity -f -i /", array(
 		), array(
 			'OK: 32% of storage used'
 		), 0);
 	}
 	public function test_valid_index_option_with_default_T_parameter() {
-		$this->assertCommand("-H @endpoint@ -C mycommunity -f -i 31 -T storage_percent_used", array(
+		$this->assertCommand("-H @endpoint@ -C mycommunity -f -i / -T storage_percent_used", array(
 		), array(
 			'OK: 32% of storage used'
 		), 0);
 	}
 	public function test_valid_index_option_with_perfdata() {
-		$this->assertCommand("-H @endpoint@ -C mycommunity -i 31", array(
+		$this->assertCommand("-H @endpoint@ -C mycommunity -i /", array(
 		), array(
 			"OK: 32% of storage used |'/'=32%;;"
 		), 0);
 	}
 	public function test_invalid_I_option() {
-		$this->assertCommand("-H @endpoint@ -C mycommunity -i 32", array(
+		$this->assertCommand("-H @endpoint@ -C mycommunity -i invalid", array(
 		), array(
-			"Invalid input value for -i (Use -i 0)."
+			"Invalid input string for -i (Use -T storage_list for a list of valid strings)."
 		), 3);
 	}
 	public function test_invalid_T_option() {
-		$this->assertCommand("-H @endpoint@ -C mycommunity -i 32 -T this_doesnt_exist", array(
+		$this->assertCommand("-H @endpoint@ -C mycommunity -i /dev/shm -T this_doesnt_exist", array(
 		), array(
 			"Wrong parameter for -T."
 		), 3);
@@ -497,19 +497,19 @@ EOF;
  * Storage percent used
  */
 	public function test_percent_storage_used_OK() {
-		$this->assertCommand("-H @endpoint@ -C mycommunity -i 31 -w 50 -c 75", array(
+		$this->assertCommand("-H @endpoint@ -C mycommunity -i / -w 50 -c 75", array(
 		), array(
 			"OK: 32% of storage used |'/'=32%;50;75"
 		), 0);
 	}
 	public function test_percent_storage_used_WARNING() {
-		$this->assertCommand("-H @endpoint@ -C mycommunity -i 31 -w 25 -c 75", array(
+		$this->assertCommand("-H @endpoint@ -C mycommunity -i / -w 25 -c 75", array(
 		), array(
 			"WARNING: 32% of storage used |'/'=32%;25;75"
 		), 1);
 	}
 	public function test_percent_storage_used_CRITICAL() {
-		$this->assertCommand("-H @endpoint@ -C mycommunity -i 31 -w 25 -c 30", array(
+		$this->assertCommand("-H @endpoint@ -C mycommunity -i / -w 25 -c 30", array(
 		), array(
 			"CRITICAL: 32% of storage used |'/'=32%;25;30"
 		), 2);
@@ -518,19 +518,19 @@ EOF;
  * Storage percent left
  */
 	public function test_percent_storage_left_OK() {
-		$this->assertCommand("-H @endpoint@ -C mycommunity -i 31 -w 75 -c 95 -T storage_percent_left", array(
+		$this->assertCommand("-H @endpoint@ -C mycommunity -i / -w 75 -c 95 -T storage_percent_left", array(
 		), array(
 			"OK: 67% of storage left |'/'=67%;75;95"
 		), 0);
 	}
 	public function test_percent_storage_left_WARNING() {
-		$this->assertCommand("-H @endpoint@ -C mycommunity -i 31 -w 25 -c 95 -T storage_percent_left", array(
+		$this->assertCommand("-H @endpoint@ -C mycommunity -i / -w 25 -c 95 -T storage_percent_left", array(
 		), array(
 			"WARNING: 67% of storage left |'/'=67%;25;95"
 		), 1);
 	}
 	public function test_percent_storage_left_CRITICAL() {
-		$this->assertCommand("-H @endpoint@ -C mycommunity -i 31 -w 25 -c 30 -T storage_percent_left", array(
+		$this->assertCommand("-H @endpoint@ -C mycommunity -i / -w 25 -c 30 -T storage_percent_left", array(
 		), array(
 			"CRITICAL: 67% of storage left |'/'=67%;25;30"
 		), 2);
@@ -539,19 +539,19 @@ EOF;
  * Storage MB used
  */
 	public function test_mb_storage_used_OK() {
-		$this->assertCommand("-H @endpoint@ -C mycommunity -i 31 -w 3000 -c 4000 -T storage_mb_used", array(
+		$this->assertCommand("-H @endpoint@ -C mycommunity -i / -w 3000 -c 4000 -T storage_mb_used", array(
 		), array(
 			"OK: 2627MB of storage used |'/'=2627MB;3000;4000"
 		), 0);
 	}
 	public function test_mb_storage_used_WARNING() {
-		$this->assertCommand("-H @endpoint@ -C mycommunity -f -i 31 -w 2500 -c 4000 -T storage_mb_used", array(
+		$this->assertCommand("-H @endpoint@ -C mycommunity -f -i / -w 2500 -c 4000 -T storage_mb_used", array(
 		), array(
 			"WARNING: 2627MB of storage used"
 		), 1);
 	}
 	public function test_mb_storage_used_CRITICAL() {
-		$this->assertCommand("-H @endpoint@ -C mycommunity -f -i 31 -w 2500 -c 2600 -T storage_mb_used", array(
+		$this->assertCommand("-H @endpoint@ -C mycommunity -f -i / -w 2500 -c 2600 -T storage_mb_used", array(
 		), array(
 			"CRITICAL: 2627MB of storage used"
 		), 2);
@@ -560,19 +560,19 @@ EOF;
  * Storage MB left
  */
 	public function test_mb_storage_left_OK() {
-		$this->assertCommand("-H @endpoint@ -C mycommunity -i 31 -w 5500 -c 6000 -T storage_mb_left", array(
+		$this->assertCommand("-H @endpoint@ -C mycommunity -i / -w 5500 -c 6000 -T storage_mb_left", array(
 		), array(
 			"OK: 5434MB of storage left |'/'=5434MB;5500;6000"
 		), 0);
 	}
 	public function test_mb_storage_left_WARNING() {
-		$this->assertCommand("-H @endpoint@ -C mycommunity -f -i 31 -w 4000 -c 6000 -T storage_mb_left", array(
+		$this->assertCommand("-H @endpoint@ -C mycommunity -f -i / -w 4000 -c 6000 -T storage_mb_left", array(
 		), array(
 			"WARNING: 5434MB of storage left"
 		), 1);
 	}
 	public function test_mb_storage_left_CRITICAL() {
-		$this->assertCommand("-H @endpoint@ -C mycommunity -f -i 31 -w 4000 -c 4500 -T storage_mb_left", array(
+		$this->assertCommand("-H @endpoint@ -C mycommunity -f -i / -w 4000 -c 4500 -T storage_mb_left", array(
 		), array(
 			"CRITICAL: 5434MB of storage left"
 		), 2);
@@ -581,13 +581,13 @@ EOF;
  * Storage GB used/left
  */
 	public function test_gb_storage_used_OK() {
-		$this->assertCommand("-H @endpoint@ -C mycommunity -i 31 -w 3 -c 4 -T storage_gb_used", array(
+		$this->assertCommand("-H @endpoint@ -C mycommunity -i / -w 3 -c 4 -T storage_gb_used", array(
 		), array(
 			"OK: 3GB of storage used |'/'=3GB;3;4"
 		), 0);
 	}
 	public function test_gb_storage_left_OK() {
-		$this->assertCommand("-H @endpoint@ -C mycommunity -i 31 -w 6 -c 7 -T storage_gb_left", array(
+		$this->assertCommand("-H @endpoint@ -C mycommunity -i / -w 6 -c 7 -T storage_gb_left", array(
 		), array(
 			"OK: 5GB of storage left |'/'=5GB;6;7"
 		), 0);
@@ -596,19 +596,19 @@ EOF;
  * Monitoring-plugins standard warning and critical interval
  */
 	public function test_monitoring_plugins_standard_warning_critical_OK() {
-		$this->assertCommand("-H @endpoint@ -C mycommunity -i 31 -w 30:50 -c \~:75", array(
+		$this->assertCommand("-H @endpoint@ -C mycommunity -i / -w 30:50 -c \~:75", array(
 		), array(
 			"OK: 32% of storage used |'/'=32%;30:50;~:75"
 		), 0);
 	}
 	public function test_monitoring_plugins_standard_warning_critical_WARNING() {
-		$this->assertCommand("-H @endpoint@ -C mycommunity -i 31 -w 40:45 -c 30:75", array(
+		$this->assertCommand("-H @endpoint@ -C mycommunity -i / -w 40:45 -c 30:75", array(
 		), array(
 			"WARNING: 32% of storage used |'/'=32%;40:45;30:75"
 		), 1);
 	}
 	public function test_monitoring_plugins_standard_warning_critical_CRITICAL() {
-		$this->assertCommand("-H @endpoint@ -C mycommunity -i 31 -w 40:45 -c @30:40", array(
+		$this->assertCommand("-H @endpoint@ -C mycommunity -i / -w 40:45 -c @30:40", array(
 		), array(
 			"CRITICAL: 32% of storage used |'/'=32%;40:45;@30:40"
 		), 2);
@@ -687,49 +687,49 @@ EOF;
 		), 0);
 	}
 	public function test_io_invalid_I_option() {
-		$this->assertCommand("-H @endpoint@ -C mycommunity -i 29 -T io_1", array(
+		$this->assertCommand("-H @endpoint@ -C mycommunity -i invalid -T io_1", array(
 		), array(
-			"Invalid input value for -i (Use -i 0)."
+			"Invalid input string for -i (Use -T io_list for a list of valid strings)."
 		), 3);
 	}
 	
 	public function test_io_load_1_option() {
-		$this->assertCommand("-H @endpoint@ -C mycommunity -i 25 -T io_1 -w 60 -c 70", array(
+		$this->assertCommand("-H @endpoint@ -C mycommunity -i sda -T io_1 -w 60 -c 70", array(
 			"1.3.6.1.4.1.2021.13.15.1.1.9.25" => array(2,50)
 		), array(
 			"OK: 50% IO Load-1 |'sda'=50%;60;70"
 		), 0);
 	}
 	public function test_io_load_5_option() {
-		$this->assertCommand("-H @endpoint@ -C mycommunity -f -i 25 -T io_5", array(
+		$this->assertCommand("-H @endpoint@ -C mycommunity -f -i sda -T io_5", array(
 			"1.3.6.1.4.1.2021.13.15.1.1.10.25" => array(2,100)
 		), array(
 			'OK: 100% IO Load-5'
 		), 0);
 	}
 	public function test_io_load_15_option() {
-		$this->assertCommand("-H @endpoint@ -C mycommunity -f -i 25 -T io_15", array(
+		$this->assertCommand("-H @endpoint@ -C mycommunity -f -i sda -T io_15", array(
 			"1.3.6.1.4.1.2021.13.15.1.1.11.25" => array(2,1)
 		), array(
 			'OK: 1% IO Load-15'
 		), 0);
 	}
 	public function test_io_load_5_OK() {
-		$this->assertCommand("-H @endpoint@ -C mycommunity -i 25 -T io_5 -w 60 -c 80", array(
+		$this->assertCommand("-H @endpoint@ -C mycommunity -i sda -T io_5 -w 60 -c 80", array(
 			"1.3.6.1.4.1.2021.13.15.1.1.10.25" => array(2,50)
 		), array(
 			"OK: 50% IO Load-5 |'sda'=50%;60;80"
 		), 0);
 	}
 	public function test_io_load_5_WARNING() {
-		$this->assertCommand("-H @endpoint@ -C mycommunity -i 25 -T io_5 -w 60 -c 80", array(
+		$this->assertCommand("-H @endpoint@ -C mycommunity -i sda -T io_5 -w 60 -c 80", array(
 			"1.3.6.1.4.1.2021.13.15.1.1.10.25" => array(2,75)
 		), array(
 			"WARNING: 75% IO Load-5 |'sda'=75%;60;80"
 		), 1);
 	}
 	public function test_io_load_5_CRITICAL() {
-		$this->assertCommand("-H @endpoint@ -C mycommunity -i 25 -T io_5 -w 60 -c 80", array(
+		$this->assertCommand("-H @endpoint@ -C mycommunity -i sda -T io_5 -w 60 -c 80", array(
 			"1.3.6.1.4.1.2021.13.15.1.1.10.25" => array(2,100)
 		), array(
 			"CRITICAL: 100% IO Load-5 |'sda'=100%;60;80"
@@ -743,7 +743,7 @@ EOF;
 		), array(
 			'check_snmp_disk: Could not parse arguments',
 			'Usage:',
-			'check_snmp_disk -H <ip_address> -C <snmp_community> -i <index of disk>',
+			'check_snmp_disk -H <ip_address> -C <snmp_community> -i <name of disk>',
 			'[-w <warn_range>] [-c <crit_range>] [-t <timeout>] [-T <type>]',
 			'([-P snmp version] [-N context] [-L seclevel] [-U secname]',
 			'[-a authproto] [-A authpasswd] [-x privproto] [-X privpasswd])'
@@ -753,7 +753,7 @@ EOF;
 		$this->assertCommand("-u", array(
 		), array(
 			'Usage:',
-			'check_snmp_disk -H <ip_address> -C <snmp_community> -i <index of disk>',
+			'check_snmp_disk -H <ip_address> -C <snmp_community> -i <name of disk>',
 			'[-w <warn_range>] [-c <crit_range>] [-t <timeout>] [-T <type>]',
 			'([-P snmp version] [-N context] [-L seclevel] [-U secname]',
 			'[-a authproto] [-A authpasswd] [-x privproto] [-X privpasswd])'

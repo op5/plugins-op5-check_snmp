@@ -143,9 +143,9 @@ EOF;
 		), 1);
 	}
 	public function test_option_free_warning_and_critical_CRITICAL() {
-		$this->assertCommand("-H @endpoint@ -C mycommunity -T ram_free -w 10 -c 15", array(
+		$this->assertCommand("-H @endpoint@ -C mycommunity -T ram_free -w 10 -c 11", array(
 		), array(
-			"CRITICAL: 15% Ram free |'Ram free'=15%;10;15"
+			"CRITICAL: 15% Ram free |'Ram free'=15%;10;11"
 		), 2);
 	}
 /**
@@ -205,23 +205,35 @@ EOF;
 /**
  * Cache OK, WARNING, CRITICAL
  */
-	public function test_cached_warning_and_critical_OK() {
+	public function test_cached_in_kb_warning_and_critical_OK() {
 		$this->assertCommand("-H @endpoint@ -C mycommunity -T cached_in_kb -w 300000 -c 400000", array(
 		), array(
 			"OK: 280968KB Memory Cached |'Memory Cached'=280968KB;300000;400000"
 		), 0);
 	}
-	public function test_cached_warning_and_critical_WARNING() {
+	public function test_cached_in_kb_warning_and_critical_WARNING() {
 		$this->assertCommand("-H @endpoint@ -C mycommunity -T cached_in_kb -w @280000:290000 -c 400000", array(
 		), array(
 			"WARNING: 280968KB Memory Cached |'Memory Cached'=280968KB;@280000:290000;400000"
 		), 1);
 	}
-	public function test_cached_warning_and_critical_CRITICAL() {
+	public function test_cached_in_kb_warning_and_critical_CRITICAL() {
 		$this->assertCommand("-H @endpoint@ -C mycommunity -T cached_in_kb -w 200000 -c @280000:290000", array(
 		), array(
 			"CRITICAL: 280968KB Memory Cached |'Memory Cached'=280968KB;200000;@280000:290000"
 		), 2);
+	}
+	public function test_cached_in_mb_warning_and_critical_WARNING() {
+		$this->assertCommand("-H @endpoint@ -C mycommunity -T cached_in_mb -w @270:280 -c 400", array(
+		), array(
+			"WARNING: 274MB Memory Cached |'Memory Cached'=274MB;@270:280;400"
+		), 1);
+	}
+	public function test_cached_in_gb_warning_and_critical_OK() {
+		$this->assertCommand("-H @endpoint@ -C mycommunity -T cached_in_gb -w 2 -c @28:29", array(
+		), array(
+			"OK: 0GB Memory Cached |'Memory Cached'=0GB;2;@28:29"
+		), 0);
 	}
 /**
  * No arguments, usage and help

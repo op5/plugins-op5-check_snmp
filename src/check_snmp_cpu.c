@@ -11,8 +11,11 @@ const char *email = "devel@monitoring-plugins.org";
 #include "utils.h"
 #include "utils_base.h"
 #include "utils_snmp.h"
+#include "utils_db.h"
 #include <stdio.h>					/* to calculate iowait */
 #include <time.h>					/* to calculate iowait */
+#include "b64.h"
+#include "errno.h"
 
 #define DEFAULT_COMMUNITY "public" 	/* only used for help text */
 #define DEFAULT_PORT "161"			/* only used for help text */
@@ -48,25 +51,13 @@ enum o_monitortype_t o_monitortype = MONITOR_TYPE__LOAD1;
 int o_perfdata = 1; /* perfdata on per default */
 
 struct cpu_info {
+	time_t timeval;
 	float Load1;
 	float Load5;
 	float Load15;
 	int CpuRawWait;
 	int NumberOfCpus;
 };
-
-static void print_output_header(int result)
-{
-	/* output result state */
-	if (result == STATE_OK)
-			printf("OK: ");
-	if (result == STATE_WARNING)
-			printf("WARNING: ");
-	if (result == STATE_CRITICAL)
-			printf("CRITICAL: ");
-	if (result == STATE_UNKNOWN)
-			printf("UNKNOWN: ");
-}
 
 static int cpu_callback(netsnmp_variable_list *v, void *cc_ptr, void *discard)
 {
@@ -151,29 +142,13 @@ void print_help (void)
 	printf (UT_VERBOSE);
 	printf (UT_PLUG_TIMEOUT, DEFAULT_TIME_OUT);
 	/* printf (UT_EXTRA_OPTS); */
-	printf (" %s\n", "-H, --hostname=STRING");
-	printf ("    %s\n", _("IP address to the SNMP server"));
-	printf (" %s\n", "-C, --community=STRING");
-	printf ("	%s\n", _("Community string for SNMP communication"));
 	printf (" %s\n", "-T, --type=STRING");
 	printf ("	%s\n", _("cpu_load_1"));
 	printf ("	%s\n", _("cpu_load_5"));
 	printf ("	%s\n", _("cpu_load_15"));
+	printf ("	%s\n", _("cpu_load_legacy"));
 	printf ("	%s\n", _("cpu_io_wait"));
-	printf (" %s\n", "-P, --protocol=[1|2c|3]");
-	printf ("    %s\n", _("SNMP protocol version"));
-	printf (" %s\n", "-L, --seclevel=[noAuthNoPriv|authNoPriv|authPriv]");
-	printf ("    %s\n", _("SNMPv3 securityLevel"));
-	printf (" %s\n", "-a, --authproto=[MD5|SHA]");
-	printf ("    %s\n", _("SNMPv3 auth proto"));
-	printf (" %s\n", "-x, --privproto=[DES|AES]");
-	printf ("    %s\n", _("SNMPv3 priv proto (default DES)"));
-	printf (" %s\n", "-U, --secname=USERNAME");
-	printf ("    %s\n", _("SNMPv3 username"));
-	printf (" %s\n", "-A, --authpassword=PASSWORD");
-	printf ("    %s\n", _("SNMPv3 authentication password"));
-	printf (" %s\n", "-X, --privpasswd=PASSWORD");
-	printf ("    %s\n", _("SNMPv3 privacy password"));
+	mp_snmp_argument_help();
 	printf ( UT_WARN_CRIT_RANGE);
 }
 
@@ -277,9 +252,9 @@ int main(int argc, char **argv)
 	struct cpu_info *ptr;
 	int result = STATE_UNKNOWN;
 	int legacy_i, legacy_temp_result = STATE_UNKNOWN;
-	char *legacy_warn1, *legacy_warn5, *legacy_warn15;
-	char *legacy_crit1, *legacy_crit5, *legacy_crit15;
-	char *legacy_token;
+	char *legacy_warn1 = "", *legacy_warn5 = "", *legacy_warn15 = "";
+	char *legacy_crit1 = "", *legacy_crit5 = "", *legacy_crit15 = "";
+	char *legacy_token = "";
 	
 	mp_snmp_init(program_name, 0);
 	
@@ -291,15 +266,16 @@ int main(int argc, char **argv)
 	ptr = check_cpu_ret(ctx, ~0); /* get net-snmp cpu data */
 	mp_snmp_deinit(program_name); /* deinit */
 
-
 	/** 
 	 * set standard monitoring-plugins thresholds
 	 * and check if we need to run the plugin in
 	 * legacy mode for CPU load 
-	 */
+	 */ 
+	if (o_monitortype != MONITOR_TYPE__LEGACY_LOAD)
+		set_thresholds(&thresh, warn_str, crit_str);
+	
 	if (o_monitortype == MONITOR_TYPE__LEGACY_LOAD)
 	{
-		
 		legacy_token = strtok(warn_str, ",");
 		for (legacy_i = 0; legacy_i < 3; legacy_i++)
 		{
@@ -339,9 +315,7 @@ int main(int argc, char **argv)
 		legacy_temp_result = get_status((float)ptr->Load15, thresh);
 		result = max_state(legacy_temp_result, result);
 		
-		print_output_header(result);
-		
-		printf("%.2f %.2f %.2f CPU load average ", (float)ptr->Load1,(float)ptr->Load5,(float)ptr->Load15);
+		printf("%s: %.2f %.2f %.2f CPU load average ", state_text(result), (float)ptr->Load1,(float)ptr->Load5,(float)ptr->Load15);
 			if (o_perfdata == 1) {
 				printf("|'CPU load-1'=%.2f;%s;%s 'CPU load-5'=%.2f;%s;%s 'CPU load-15'=%.2f;%s;%s",
 					ptr->Load1, legacy_warn1, legacy_crit1,
@@ -349,8 +323,6 @@ int main(int argc, char **argv)
 					ptr->Load15, legacy_warn15, legacy_crit15);
 			}
 	}
-	else
-		set_thresholds(&thresh, warn_str, crit_str);
 
 
 	/** 
@@ -359,14 +331,42 @@ int main(int argc, char **argv)
 	 */
 	float iowait = 0;
 	if (o_monitortype == MONITOR_TYPE__IOWAIT) {
+#if 0	
+		/* TODO: use mp_save() and mp_load() */
+		time_t fftime = 0, timenow = time(0);
+		int ffcpurawwait = 0;
+		const char *key_name;
+		key_name = b64_encodef(mp_snmp_get_peername(ctx), mp_snmp_get_remote_port(ctx));
+		char *datafilename = (char *)key_name;
+
+		if (mp_load(length(*ptr), "/tmp/", *datafilename) == NULL) {
+			printf("Initializing temporary storage file %s\n", datafilename);
+		}
+		else {
+			if (fscanf(dfp, "%d %ld", &ffcpurawwait, &fftime) == 2) {
+				// printf("The values from the file are %d ticks and %ld s unixtime\n", ffcpurawwait, fftime);
+				if ((timenow-fftime) == 0)
+					die(STATE_UNKNOWN, _("The time interval needs to be at least one second.\n"));
+				//printf("Calculated values: %d ticks div with %ld sec times %d processor\n",ptr->CpuRawWait-ffcpurawwait, (timenow-fftime), ptr->NumberOfCpus);
+				iowait = (ptr->CpuRawWait-ffcpurawwait)/((timenow-fftime)*ptr->NumberOfCpus);
+				mp_debug(3,"iowait: %.2f\n", iowait);
+			}
+		}
+
+		mp_save(ptr, sizeof(*ptr), "/tmp/%s", datafilename);
+		printf("%s\n", datafilename);
+		struct cpu_info *ci;
+		size_t len;
+		ci = mp_load(&len, "/tmp/%s", datafilename);
+		printf("got: %s\n", (char *)ci->timeval);
+#endif
+#if 1
 		time_t fftime = 0, timenow = time(0);
 		int ffcpurawwait = 0;
 		FILE *dfp; /* data file pointer */
-		/* TODO: datafilename needs to be unique for each check plugin */
-		char *key_name;
-		key_name = np_state_generate_key(argv);
-		printf("unique filename: %s\n", key_name);
-		char datafilename[] = "/tmp/unique_check_plugin_id.data";
+		const char *key_name;
+		key_name = b64_encodef(mp_snmp_get_peername(ctx), mp_snmp_get_remote_port(ctx), o_monitortype);
+		char *datafilename = (char *)key_name;
 		dfp = fopen(datafilename, "r");
 		if (dfp == NULL) {
 			printf("Initializing temporary storage file %s\n", datafilename);
@@ -386,50 +386,29 @@ int main(int argc, char **argv)
 			die(STATE_UNKNOWN, _("Could not open the initialized file %s\n"), datafilename);
 		else
 			fprintf(dfp, "%d %ld", ptr->CpuRawWait, timenow);
+#endif
 	}
 
 	/* check and output results */
 	switch (o_monitortype) {
 		case MONITOR_TYPE__LOAD1:
 			result = get_status((float)ptr->Load1, thresh);
-			print_output_header(result);
-			break;
-		case MONITOR_TYPE__LOAD5:
-			result = get_status((float)ptr->Load5, thresh);
-			print_output_header(result);
-			break;
-		case MONITOR_TYPE__LOAD15:
-			result = get_status((float)ptr->Load15, thresh);
-			print_output_header(result);
-			break;
-		case MONITOR_TYPE__LEGACY_LOAD:
-			break;
-		case MONITOR_TYPE__IOWAIT:
-			result = get_status(iowait, thresh);
-			print_output_header(result);
-			break;
-		default:
-			usage4 (_("Could not parse arguments for -T"));
-			break;
-	}
-
-	switch (o_monitortype) {
-		case MONITOR_TYPE__LOAD1:
-			printf("%.2f CPU load-1 ", (float)ptr->Load1);
+			printf("%s: %.2f CPU load-1 ", state_text(result), ptr->Load1);
 			if (o_perfdata == 1) {
-				printf("|'CPU load-1'=%.2f;%s;%s",
-					ptr->Load1, warn_str, crit_str);
+				printf("|'CPU load-1'=%.2f;%s;%s", ptr->Load1, warn_str, crit_str);
 			}
 			break;
 		case MONITOR_TYPE__LOAD5:
-			printf("%.2f CPU load-5 ", (float)ptr->Load5);
+			result = get_status((float)ptr->Load5, thresh);
+			printf("%s: %.2f CPU load-5 ", state_text(result), (float)ptr->Load5);
 			if (o_perfdata == 1) {
 				printf("|'CPU load-5'=%.2f;%s;%s",
 					ptr->Load5, warn_str, crit_str);
 			}
 			break;
 		case MONITOR_TYPE__LOAD15:
-			printf("%.2f CPU load-15 ", (float)ptr->Load15);
+			result = get_status((float)ptr->Load15, thresh);
+			printf("%s: %.2f CPU load-15 ", state_text(result), (float)ptr->Load15);
 			if (o_perfdata == 1) {
 				printf("|'CPU load-15'=%.2f;%s;%s",
 					ptr->Load15, warn_str, crit_str);
@@ -438,17 +417,17 @@ int main(int argc, char **argv)
 		case MONITOR_TYPE__LEGACY_LOAD:
 			break;
 		case MONITOR_TYPE__IOWAIT:
-			printf("%.2f CPU I/O wait ", iowait);
+			result = get_status(iowait, thresh);
+			printf("%s: %.2f CPU I/O wait ", state_text(result), iowait);
 			if (o_perfdata == 1) {
 				printf("|'CPU I/O wait'=%.2f;%s;%s",
 					iowait, warn_str, crit_str);
 			}
 			break;
 		default:
-			die(STATE_UNKNOWN, _("Could not print the right output.\n"));
+			usage4 (_("Could not parse arguments for -T"));
 			break;
 	}
-	
 	printf("\n");
 	
 	free(ctx);

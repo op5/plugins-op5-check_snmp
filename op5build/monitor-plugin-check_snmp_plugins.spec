@@ -31,6 +31,7 @@ BuildRequires: php-process
 %{summary}
 
 %package -n monitor-plugin-check_snmp_disk
+Group: Applications/System
 Summary: Nagios compatible plugins to check disks over SNMP
 Requires: net-snmp-libs
 
@@ -38,6 +39,7 @@ Requires: net-snmp-libs
 %{summary}
 
 %package -n monitor-plugin-check_snmp_cpu
+Group: Applications/System
 Summary: Nagios compatible plugins to check cpu over SNMP
 Requires: net-snmp-libs
 
@@ -45,6 +47,7 @@ Requires: net-snmp-libs
 %{summary}
 
 %package -n monitor-plugin-check_snmp_memory
+Group: Applications/System
 Summary: Nagios compatible plugins to check memory over SNMP
 Requires: net-snmp-libs
 
@@ -52,6 +55,7 @@ Requires: net-snmp-libs
 %{summary}
 
 %package -n monitor-plugin-check_snmp_procs
+Group: Applications/System
 Summary: Nagios compatible plugins to check procs over SNMP
 Requires: net-snmp-libs
 Requires: op5-naemon
@@ -61,6 +65,9 @@ Requires: op5-naemon
 
 %prep
 %setup -q
+
+%post
+pip install snmpsim
 
 %build
 echo %{version} > .version_number

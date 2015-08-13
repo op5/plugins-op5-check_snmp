@@ -11,8 +11,6 @@ const char *email = "devel@monitoring-plugins.org";
 #include "utils.h"
 #include "utils_snmp.h"
 
-#define DEFAULT_COMMUNITY "public" 	/* only for help text atm */
-#define DEFAULT_PORT "161"			/* only for help text atm */
 #define DEFAULT_TIME_OUT 15			/* only for help text atm */
 
 /* UCD-SNMP-MIB for memory checks on linux systems */
@@ -44,7 +42,9 @@ enum o_monitortype_t {
 	MONITOR_TYPE__BUFFER_KB,
 	MONITOR_TYPE__BUFFER_MB,
 	MONITOR_TYPE__BUFFER_GB,
-	MONITOR_TYPE__CACHED_KB
+	MONITOR_TYPE__CACHED_KB,
+	MONITOR_TYPE__CACHED_MB,
+	MONITOR_TYPE__CACHED_GB
 };
 
 int process_arguments (int, char **);
@@ -68,18 +68,20 @@ struct mem_info {
 	int UsedReal; /* calculated from TotalReal-AvailReal */
 	int UsedSwap; /* calculated from TotalSwap-AvailSwap */
 };
-
-static void print_output_header(int result) {
-	/* output result state */
-	if (result == STATE_OK)
-			printf("OK: ");
-	if (result == STATE_WARNING)
-			printf("WARNING: ");
-	if (result == STATE_CRITICAL)
-			printf("CRITICAL: ");
-	if (result == STATE_UNKNOWN)
-			printf("UNKNOWN: ");
-}
+/**
+ * Calculated memory info values used for checking and printing output
+ * with and without perfdata
+ */
+struct cmi {
+	int ram_used;
+	int ram_free;
+	int swap_used;
+	int buffer_mb;
+	int buffer_gb;
+	int cached_mb;
+	int cached_gb;
+	
+};
 
 static int mem_callback(netsnmp_variable_list *v, void *mc_ptr, void *discard)
 {
@@ -157,24 +159,9 @@ void print_help (void)
 	printf ("	%s\n", _("buffer_in_mb"));
 	printf ("	%s\n", _("buffer_in_gb"));
 	printf ("	%s\n", _("cached_in_kb"));
-	printf (" %s\n", "-H, --hostname=STRING");
-	printf ("    %s\n", _("IP address to the SNMP server"));
-	printf (" %s\n", "-C, --community=STRING");
-	printf ("	%s\n", _("Community string for SNMP communication"));
-	printf (" %s\n", "-P, --protocol=[1|2c|3]");
-	printf ("    %s\n", _("SNMP protocol version"));
-	printf (" %s\n", "-L, --seclevel=[noAuthNoPriv|authNoPriv|authPriv]");
-	printf ("    %s\n", _("SNMPv3 securityLevel"));
-	printf (" %s\n", "-a, --authproto=[MD5|SHA]");
-	printf ("    %s\n", _("SNMPv3 auth proto"));
-	printf (" %s\n", "-x, --privproto=[DES|AES]");
-	printf ("    %s\n", _("SNMPv3 priv proto (default DES)"));
-	printf (" %s\n", "-U, --secname=USERNAME");
-	printf ("    %s\n", _("SNMPv3 username"));
-	printf (" %s\n", "-A, --authpassword=PASSWORD");
-	printf ("    %s\n", _("SNMPv3 authentication password"));
-	printf (" %s\n", "-X, --privpasswd=PASSWORD");
-	printf ("    %s\n", _("SNMPv3 privacy password"));
+	printf ("	%s\n", _("cached_in_mb"));
+	printf ("	%s\n", _("cached_in_gb"));
+	mp_snmp_argument_help();
 	printf ( UT_WARN_CRIT_RANGE);
 }
 
@@ -266,6 +253,10 @@ int process_arguments (int argc, char **argv)
 					o_monitortype = MONITOR_TYPE__BUFFER_GB;
 				} else if (0==strcmp(optarg, "cached_in_kb")) {
 					o_monitortype = MONITOR_TYPE__CACHED_KB;
+				}else if (0==strcmp(optarg, "cached_in_mb")) {
+					o_monitortype = MONITOR_TYPE__CACHED_MB;
+				}else if (0==strcmp(optarg, "cached_in_gb")) {
+					o_monitortype = MONITOR_TYPE__CACHED_GB;
 				}
 			break;
 		}
@@ -280,6 +271,7 @@ int main(int argc, char **argv)
 	const int MBPREFIX = 1024;
 	static thresholds *thresh;
 	struct mem_info *ptr;
+	struct cmi *cmiptr = (struct cmi *) malloc(sizeof(struct cmi));
 	char *uom = "%"; /* used with perfdata */
 	int result = STATE_UNKNOWN;
 	
@@ -299,73 +291,106 @@ int main(int argc, char **argv)
 	/* check and output results */
 	switch (o_monitortype) {
 		case MONITOR_TYPE__RAM_USED:
-			result = get_status ((double)((ptr->TotalReal-ptr->AvailReal)*100/ptr->TotalReal), thresh);
-			print_output_header(result);
-			printf("%d%% Ram used ", (ptr->TotalReal-ptr->AvailReal)*100/ptr->TotalReal);
+			cmiptr->ram_used = (ptr->TotalReal-ptr->AvailReal)*100/ptr->TotalReal;
+			result = get_status(
+						cmiptr->ram_used, thresh);
+			printf("%s: %d%% Ram used ", state_text(result),
+						cmiptr->ram_used);
 			if (o_perfdata == 1) {
 				printf("|'Ram used'=%d%s;%s;%s", 
-					(ptr->TotalReal-ptr->AvailReal)*100/ptr->TotalReal,
-					uom, warn_str, crit_str);
+						cmiptr->ram_used, uom, warn_str, crit_str);
 			}
 			break;
 		case MONITOR_TYPE__RAM_FREE:
-			result = get_status ((double)ptr->AvailReal*100/ptr->TotalReal, thresh);
-			print_output_header(result);
-			printf("%d%% Ram free ", ptr->AvailReal*100/ptr->TotalReal);
+			cmiptr->ram_free = ptr->AvailReal*100/ptr->TotalReal;
+			result = get_status(
+						cmiptr->ram_free, thresh);
+			printf("%s: %d%% Ram free ", state_text(result),
+						cmiptr->ram_free);
 			if (o_perfdata == 1) {
 				printf("|'Ram free'=%d%s;%s;%s",
-					ptr->AvailReal*100/ptr->TotalReal,
-					uom, warn_str, crit_str);
+						cmiptr->ram_free, uom, warn_str, crit_str);
 			}
 			break;
 		case MONITOR_TYPE__SWAP_USED:
-			result = get_status ((double)((ptr->TotalSwap-ptr->AvailSwap)*100/ptr->TotalSwap), thresh);
-			print_output_header(result);
-			printf("%d%% Swap used ", (ptr->TotalSwap-ptr->AvailSwap)*100/ptr->TotalSwap);
+			cmiptr->swap_used = (ptr->TotalSwap-ptr->AvailSwap)*100/ptr->TotalSwap;
+			result = get_status(
+						cmiptr->swap_used, thresh);
+			printf("%s: %d%% Swap used ", state_text(result),
+						cmiptr->swap_used);
 			if (o_perfdata == 1) {
 				printf("|'Swap used'=%d%s;%s;%s",
-					(ptr->TotalSwap-ptr->AvailSwap)*100/ptr->TotalSwap,
-					uom, warn_str, crit_str);
+						cmiptr->swap_used, uom, warn_str, crit_str);
 			}
 			break;
 		case MONITOR_TYPE__BUFFER_KB:
-			result = get_status (ptr->Buffer, thresh);
-			print_output_header(result);
 			uom = "KB";
-			printf("%d%s Memory Buffer ", ptr->Buffer, uom);
+			result = get_status (
+					ptr->Buffer, thresh);
+			printf("%s: %d%s Memory Buffer ", state_text(result),
+					ptr->Buffer, uom);
 			if (o_perfdata == 1) {
-				printf("|'Memory Buffer'=%d%s;%s;%s", ptr->Buffer,
-					uom, warn_str, crit_str);
+				printf("|'Memory Buffer'=%d%s;%s;%s",
+					ptr->Buffer, uom, warn_str, crit_str);
 			}
 			break;
 		case MONITOR_TYPE__BUFFER_MB:
-			result = get_status (ptr->Buffer/MBPREFIX, thresh);
-			print_output_header(result);
 			uom = "MB";
-			printf("%d%s Memory Buffer ", ptr->Buffer/MBPREFIX, uom);
+			cmiptr->buffer_mb = ptr->Buffer/MBPREFIX;
+			result = get_status (
+					cmiptr->buffer_mb, thresh);
+			printf("%s: %d%s Memory Buffer ", state_text(result),
+					cmiptr->buffer_mb, uom);
 			if (o_perfdata == 1) {
-				printf("|'Memory Buffer'=%d%s;%s;%s", ptr->Buffer/MBPREFIX,
-					uom, warn_str, crit_str);
+				printf("|'Memory Buffer'=%d%s;%s;%s",
+					cmiptr->buffer_mb, uom, warn_str, crit_str);
 			}
 			break;
 		case MONITOR_TYPE__BUFFER_GB:
-			result = get_status (ptr->Buffer/(MBPREFIX*MBPREFIX), thresh);
-			print_output_header(result);
 			uom = "GB";
-			printf("%d%s Memory Buffer ", ptr->Buffer/(MBPREFIX*MBPREFIX), uom);
+			cmiptr->buffer_gb = ptr->Buffer/(MBPREFIX*MBPREFIX);
+			result = get_status (
+					cmiptr->buffer_gb, thresh);
+			printf("%s: %d%s Memory Buffer ", state_text(result),
+					cmiptr->buffer_gb, uom);
 			if (o_perfdata == 1) {
-				printf("|'Memory Buffer'=%d%s;%s;%s", ptr->Buffer/(MBPREFIX*MBPREFIX),
-					uom, warn_str, crit_str);
+				printf("|'Memory Buffer'=%d%s;%s;%s",
+					cmiptr->buffer_gb, uom, warn_str, crit_str);
 			}
 			break;
 		case MONITOR_TYPE__CACHED_KB:
-			result = get_status (ptr->Cached, thresh);
-			print_output_header(result);
 			uom = "KB";
-			printf("%d%s Memory Cached ", ptr->Cached, uom);
+			result = get_status (
+					ptr->Cached, thresh);
+			printf("%s: %d%s Memory Cached ", state_text(result),
+					ptr->Cached, uom);
 			if (o_perfdata == 1) {
-				printf("|'Memory Cached'=%d%s;%s;%s", ptr->Cached,
-					uom, warn_str, crit_str);
+				printf("|'Memory Cached'=%d%s;%s;%s",
+					ptr->Cached, uom, warn_str, crit_str);
+			}
+			break;
+		case MONITOR_TYPE__CACHED_MB:
+			uom = "MB";
+			cmiptr->cached_mb = ptr->Cached/MBPREFIX;
+			result = get_status (
+					cmiptr->cached_mb, thresh);
+			printf("%s: %d%s Memory Cached ", state_text(result),
+					cmiptr->cached_mb, uom);
+			if (o_perfdata == 1) {
+				printf("|'Memory Cached'=%d%s;%s;%s",
+					cmiptr->cached_mb, uom, warn_str, crit_str);
+			}
+			break;
+		case MONITOR_TYPE__CACHED_GB:
+			uom = "GB";
+			cmiptr->cached_gb = ptr->Cached/(MBPREFIX*MBPREFIX);
+			result = get_status(
+					cmiptr->cached_gb, thresh);
+			printf("%s: %d%s Memory Cached ", state_text(result),
+					cmiptr->cached_gb, uom);
+			if (o_perfdata == 1) {
+				printf("|'Memory Cached'=%d%s;%s;%s",
+					cmiptr->cached_gb, uom, warn_str, crit_str);
 			}
 			break;
 		default:
@@ -376,6 +401,7 @@ int main(int argc, char **argv)
 	
 	free(ctx);
 	free(ptr);
+	free(cmiptr);
 
 	return result;
 }

@@ -20,7 +20,7 @@ struct mp_snmp_context {
 	netsnmp_session session;
 };
 
-static netsnmp_session *mp_snmp_get_session(struct mp_snmp_context *ctx)
+const netsnmp_session *mp_snmp_get_session(struct mp_snmp_context *ctx)
 {
 	return &ctx->session;
 }
