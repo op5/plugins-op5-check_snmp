@@ -3,6 +3,8 @@
 #include <unistd.h>
 #include <fcntl.h>
 #include <stdarg.h>
+#include <sys/types.h>
+#include <sys/stat.h>
 #include "utils.h"
 
 int mp_save(void *data, size_t len, const char *path_fmt, ...)
