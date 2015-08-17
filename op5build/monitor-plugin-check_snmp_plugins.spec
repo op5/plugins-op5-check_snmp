@@ -1,5 +1,3 @@
-%define debug_package %{nil}
-
 Version: %{op5version}
 Release: %{op5release}%{?dist}
 URL: https://github.com/c-kr/check_json
@@ -20,20 +18,12 @@ BuildRequires: net-snmp-devel
 # op5-naemon-devel is needed by check_snmp_procs
 BuildRequires: op5-naemon-devel
 
-BuildRequires: op5-phpunit
-%if 0%{?suse_version}
-BuildRequires: php53-posix
-%else
-BuildRequires: php-process
-%endif
-
 %description
 %{summary}
 
 %package -n monitor-plugin-check_snmp_disk
 Group: Applications/System
 Summary: Nagios compatible plugins to check disks over SNMP
-Requires: net-snmp-libs
 
 %description -n monitor-plugin-check_snmp_disk
 %{summary}
@@ -41,7 +31,6 @@ Requires: net-snmp-libs
 %package -n monitor-plugin-check_snmp_cpu
 Group: Applications/System
 Summary: Nagios compatible plugins to check cpu over SNMP
-Requires: net-snmp-libs
 
 %description -n monitor-plugin-check_snmp_cpu
 %{summary}
@@ -49,7 +38,6 @@ Requires: net-snmp-libs
 %package -n monitor-plugin-check_snmp_memory
 Group: Applications/System
 Summary: Nagios compatible plugins to check memory over SNMP
-Requires: net-snmp-libs
 
 %description -n monitor-plugin-check_snmp_memory
 %{summary}
@@ -57,7 +45,6 @@ Requires: net-snmp-libs
 %package -n monitor-plugin-check_snmp_procs
 Group: Applications/System
 Summary: Nagios compatible plugins to check procs over SNMP
-Requires: net-snmp-libs
 Requires: op5-naemon
 
 %description -n monitor-plugin-check_snmp_procs
@@ -66,24 +53,21 @@ Requires: op5-naemon
 %prep
 %setup -q
 
-%post
-pip install snmpsim
-
 %build
 echo %{version} > .version_number
 autoreconf -i
 %configure --libexecdir=%{prefix}
 make V=1
 
-%check
-%__make check
-
 %install
 rm -rf %buildroot
 mkdir -p %buildroot%prefix/
 %make_install
 mkdir -p %buildroot%prefix/metadata
-#cp metadata/check_snmp_disk.metadata %buildroot%prefix/metadata/check_snmp_disk.metadata
+cp op5build/check_snmp_disk.metadata %buildroot%prefix/metadata/check_snmp_disk.metadata
+cp op5build/check_snmp_cpu.metadata %buildroot%prefix/metadata/check_snmp_cpu.metadata
+cp op5build/check_snmp_memory.metadata %buildroot%prefix/metadata/check_snmp_memory.metadata
+cp op5build/check_snmp_procs.metadata %buildroot%prefix/metadata/check_snmp_procs.metadata
 
 %clean
 rm -rf %buildroot
@@ -91,22 +75,22 @@ rm -rf %buildroot
 %files -n monitor-plugin-check_snmp_disk
 %defattr(-,root,root,-)
 %attr(755,root,root) %{prefix}/check_snmp_disk
-#%attr(644,root,root) %{prefix}/metadata/check_snmp_disk.metadata
+%attr(644,root,root) %{prefix}/metadata/check_snmp_disk.metadata
 
 %files -n monitor-plugin-check_snmp_cpu
 %defattr(-,root,root,-)
 %attr(755,root,root) %{prefix}/check_snmp_cpu
-#%attr(644,root,root) %{prefix}/metadata/check_snmp_cpu.metadata
+%attr(644,root,root) %{prefix}/metadata/check_snmp_cpu.metadata
 
 %files -n monitor-plugin-check_snmp_memory
 %defattr(-,root,root,-)
 %attr(755,root,root) %{prefix}/check_snmp_memory
-#%attr(644,root,root) %{prefix}/metadata/check_snmp_memory.metadata
+%attr(644,root,root) %{prefix}/metadata/check_snmp_memory.metadata
 
 %files -n monitor-plugin-check_snmp_procs
 %defattr(-,root,root,-)
 %attr(755,root,root) %{prefix}/check_snmp_procs
-#%attr(644,root,root) %{prefix}/metadata/check_snmp_procs.metadata
+%attr(644,root,root) %{prefix}/metadata/check_snmp_procs.metadata
 
 %changelog
 * Fri Jul 03 2015 Robin Hagman <robin.hagman@op5.com> 0.0.1

@@ -1,0 +1,5 @@
+post:
+ install: ['python-pip', 'python-devel', 'op5-phpunit', 'php-process', 'php53-posix']
+ steps: |
+     pip install snmpsim
+     su - monitor -c 'phpunit /mnt/git/test/'

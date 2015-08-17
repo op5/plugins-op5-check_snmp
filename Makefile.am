@@ -4,7 +4,7 @@ libexec_PROGRAMS=\
 	src/check_snmp_memory \
 	src/check_snmp_procs
 
-AM_CPPFLAGS = -DNP_STATE_DIR_PREFIX=\"$(localstatedir)\"
+AM_CPPFLAGS = -DNP_STATE_DIR_PREFIX=\"$(localstatedir)\" -D_GNU_SOURCE=1
 LIBS = $(SNMPLIBS)
 COMMON_SOURCES = \
 	src/utils_base.c src/utils_base.h \

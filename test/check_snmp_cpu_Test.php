@@ -13,7 +13,7 @@ class Check_Snmp_Cpu_Test extends PHPUnit_Framework_TestCase {
 		@mkdir($this->snmpsimroot_current."data", 0777, true);
 		file_put_contents($this->snmpsimroot_current."data/mycommunity.snmprec", $snmpdata);
 		
-		$command="/usr/bin/snmpsimd.py".
+		$command="snmpsimd.py".
 		" --daemonize".
 		" --pid-file=".$this->snmpsimroot_current . "pidfile".
 		" --agent-udpv4-endpoint=127.0.0.1:21161".
@@ -37,8 +37,8 @@ class Check_Snmp_Cpu_Test extends PHPUnit_Framework_TestCase {
 	}
 	
 	public function run_command($args, &$output, &$return) {
-		$check_command = __DIR__ . "/../src/check_snmp_cpu";
-		return exec($check_command . " " . $args, $output, $return);
+		$check_command = __DIR__ . "/../../../opt/plugins/check_snmp_cpu";
+		return exec("MP_STATE_PATH=/tmp " . $check_command . " " . $args, $output, $return);
 	}
 
 	private function generate_snmpdata($snmpdata_diff) {

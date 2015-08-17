@@ -257,6 +257,7 @@ int main(int argc, char **argv)
 	char *legacy_token = "";
 	
 	mp_snmp_init(program_name, 0);
+	np_init((char *)progname, argc, argv);
 	
 	/* Parse extra opts if any */
 	argv=np_extra_opts(&argc, argv, progname);
@@ -331,19 +332,13 @@ int main(int argc, char **argv)
 	 */
 	float iowait = 0;
 	if (o_monitortype == MONITOR_TYPE__IOWAIT) {
-#if 0	
-		/* TODO: use mp_save() and mp_load() */
 		time_t fftime = 0, timenow = time(0);
 		int ffcpurawwait = 0;
-		const char *key_name;
-		key_name = b64_encodef(mp_snmp_get_peername(ctx), mp_snmp_get_remote_port(ctx));
-		char *datafilename = (char *)key_name;
-
-		if (mp_load(length(*ptr), "/tmp/", *datafilename) == NULL) {
-			printf("Initializing temporary storage file %s\n", datafilename);
-		}
-		else {
-			if (fscanf(dfp, "%d %ld", &ffcpurawwait, &fftime) == 2) {
+		np_enable_state(NULL, 1);
+		state_data *previous_state = np_state_read();
+		
+		if (previous_state != NULL) {
+			if (sscanf(previous_state->data, "%d %ld", &ffcpurawwait, &fftime) == 2) {
 				// printf("The values from the file are %d ticks and %ld s unixtime\n", ffcpurawwait, fftime);
 				if ((timenow-fftime) == 0)
 					die(STATE_UNKNOWN, _("The time interval needs to be at least one second.\n"));
@@ -352,41 +347,10 @@ int main(int argc, char **argv)
 				mp_debug(3,"iowait: %.2f\n", iowait);
 			}
 		}
-
-		mp_save(ptr, sizeof(*ptr), "/tmp/%s", datafilename);
-		printf("%s\n", datafilename);
-		struct cpu_info *ci;
-		size_t len;
-		ci = mp_load(&len, "/tmp/%s", datafilename);
-		printf("got: %s\n", (char *)ci->timeval);
-#endif
-#if 1
-		time_t fftime = 0, timenow = time(0);
-		int ffcpurawwait = 0;
-		FILE *dfp; /* data file pointer */
-		const char *key_name;
-		key_name = b64_encodef(mp_snmp_get_peername(ctx), mp_snmp_get_remote_port(ctx), o_monitortype);
-		char *datafilename = (char *)key_name;
-		dfp = fopen(datafilename, "r");
-		if (dfp == NULL) {
-			printf("Initializing temporary storage file %s\n", datafilename);
-		}
-		else {
-			if (fscanf(dfp, "%d %ld", &ffcpurawwait, &fftime) == 2) {
-				// printf("The values from the file are %d ticks and %ld s unixtime\n", ffcpurawwait, fftime);
-				if ((timenow-fftime) == 0)
-					die(STATE_UNKNOWN, _("The time interval needs to be at least one second.\n"));
-				//printf("Calculated values: %d ticks div with %ld sec times %d processor\n",ptr->CpuRawWait-ffcpurawwait, (timenow-fftime), ptr->NumberOfCpus);
-				iowait = (ptr->CpuRawWait-ffcpurawwait)/((timenow-fftime)*ptr->NumberOfCpus);
-				mp_debug(3,"iowait: %.2f\n", iowait);
-			}
-		}
-		dfp = fopen(datafilename, "w");
-		if (dfp == NULL)
-			die(STATE_UNKNOWN, _("Could not open the initialized file %s\n"), datafilename);
-		else
-			fprintf(dfp, "%d %ld", ptr->CpuRawWait, timenow);
-#endif
+		char *state_string;
+		asprintf(&state_string, "%d %ld", ptr->CpuRawWait, timenow);
+		np_state_write_string(0, state_string);
+		free(state_string);
 	}
 
 	/* check and output results */
