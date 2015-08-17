@@ -2,6 +2,7 @@
 #define NP_UTILS_H
 #include <sys/time.h>
 #include <stdio.h>
+#include <stdarg.h>
 
 /* Header file for Monitoring Plugins utils.c */
 
