@@ -10,8 +10,6 @@ COMMON_SOURCES = \
 	src/utils_base.c src/utils_base.h \
 	src/utils.c src/utils.h \
 	src/sha1.c src/sha1.h \
-	src/b64.c src/b64.h \
-	src/utils_db.c src/utils_db.h \
 	src/utils_snmp.c src/utils_snmp.h \
 	src/common.h
 

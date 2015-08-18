@@ -83,7 +83,6 @@ struct disk_info {
 	} IO;
 };
 
-/* TODO: combine these functions to one. */
 /**
  * Helper functions to let the user use the name of the disk rather than the
  * index and functions to print the available storages to check.
@@ -165,22 +164,22 @@ static int disk_callback(netsnmp_variable_list *v, void *dc_ptr, void *discard)
 			mp_debug(3,"Type: %ld\n",*v->val.integer);
 			break;
 		case HRSTORAGE_SUBIDX_Descr:
-			mp_debug(3,"Description: %s\n",strndup((char*)v->val.string, v->val_len));		
+			mp_debug(3,"Description: %s\n",strndup((char*)v->val.string, v->val_len));
 			if(v->name[11] == get_index)
-				dc->Descr=strndup((char*)v->val.string, v->val_len);			
+				dc->Descr=strndup((char*)v->val.string, v->val_len);
 			break;
 		case HRSTORAGE_SUBIDX_AllocationUnits:
 			mp_debug(3,"AllocationUnits: %ld\n",*v->val.integer);
 			if(v->name[11] == get_index)
-				dc->AllocationUnits=*v->val.integer;			
+				dc->AllocationUnits=*v->val.integer;
 			break;
 		case HRSTORAGE_SUBIDX_Size:
 			mp_debug(3,"Size: %ld\n",*v->val.integer);
 			if(v->name[11] == get_index)
-				dc->Size=*v->val.integer;			
+				dc->Size=*v->val.integer;
 			break;
 		case HRSTORAGE_SUBIDX_Used:
-			mp_debug(3,"Used: %ld\n",*v->val.integer);	
+			mp_debug(3,"Used: %ld\n",*v->val.integer);
 			if(v->name[11] == get_index)
 				dc->Used=*v->val.integer;
 			break;
@@ -204,19 +203,19 @@ static int io_callback(netsnmp_variable_list *v, void *dc_ptr, void *discard)
 		case DISKIO_SUBIDX_Device:
 			mp_debug(3,"Description: %s\n", strndup((char*)v->val.string, v->val_len));
 			if(v->name[12] == get_index)
-				dc->IO.Descr=strndup((char*)v->val.string, v->val_len);			
+				dc->IO.Descr=strndup((char*)v->val.string, v->val_len);
 			break;
 		case DISKIO_SUBIDX_NRead:
-			mp_debug(3,"NRead: %ld\n", *v->val.integer);		
+			mp_debug(3,"NRead: %ld\n", *v->val.integer);
 			break;
 		case DISKIO_SUBIDX_NWritten:
-			mp_debug(3,"NWritten: %ld\n", *v->val.integer);		
+			mp_debug(3,"NWritten: %ld\n", *v->val.integer);
 			break;
 		case DISKIO_SUBIDX_Reads:
-			mp_debug(3,"Reads: %ld\n", *v->val.integer);		
+			mp_debug(3,"Reads: %ld\n", *v->val.integer);
 			break;
 		case DISKIO_SUBIDX_Writes:
-			mp_debug(3,"Writes: %ld\n", *v->val.integer);		
+			mp_debug(3,"Writes: %ld\n", *v->val.integer);
 			break;
 		case DISKIO_SUBIDX_LA1:
 			mp_debug(3,"IO Load-1: %ld\n",*v->val.integer);
@@ -226,18 +225,18 @@ static int io_callback(netsnmp_variable_list *v, void *dc_ptr, void *discard)
 		case DISKIO_SUBIDX_LA5:
 			mp_debug(3,"IO Load-5: %ld\n",*v->val.integer);
 			if(v->name[12] == get_index)
-				dc->IO.La5=*v->val.integer;			
+				dc->IO.La5=*v->val.integer;
 			break;
 		case DISKIO_SUBIDX_LA15:
 			mp_debug(3,"IO Load-15: %ld\n",*v->val.integer);
 			if(v->name[12] == get_index)
-				dc->IO.La15=*v->val.integer;			
+				dc->IO.La15=*v->val.integer;
 			break;
 		case DISKIO_SUBIDX_ReadX:
-			mp_debug(3,"ReadX: %ld\n", *v->val.integer);		
+			mp_debug(3,"ReadX: %ld\n", *v->val.integer);
 			break;
 		case DISKIO_SUBIDX_WrittenX:
-			mp_debug(3,"WrittenX: %ld\n", *v->val.integer);		
+			mp_debug(3,"WrittenX: %ld\n", *v->val.integer);
 			break;
 		default:
 			mp_debug(3,"Unknown io_callback value.\n");
@@ -325,7 +324,6 @@ void print_help(void)
 	printf (UT_HELP_VRSN);
 	printf (UT_VERBOSE);
 	printf (UT_PLUG_TIMEOUT, DEFAULT_TIME_OUT);
-	/* printf (UT_EXTRA_OPTS); */
 	printf (" %s\n", "-T, --type=STRING");
 	printf ("    %s\n", _("storage_list - List available storages to check"));
 	printf ("    %s\n", _("storage_percent_used - Storage percent used (default)"));
@@ -390,7 +388,7 @@ int process_arguments(int argc, char **argv)
 		c = getopt_long(argc, argv, optary, longopts, &option);
 		if (c < 0 || c == EOF)
 			break;
-		if (!mp_snmp_handle_argument(ctx, c, optarg)) 
+		if (!mp_snmp_handle_argument(ctx, c, optarg))
 			continue;
 
 		switch (c) {
@@ -498,7 +496,7 @@ int main(int argc, char **argv)
 				exit(STATE_UNKNOWN);
 			}
 			
-			if (o_type == MONITOR_PRESTYPE__STORAGE_PERCENT_USED) { 		/* (default) */
+			if (o_type == MONITOR_PRESTYPE__STORAGE_PERCENT_USED) {		/* (default) */
 				percent_used = (double)ptr->Used/(double)ptr->Size*100;
 				result = get_status (percent_used, thresh);
 				printf("%s: %d%s of storage used ", state_text(result), percent_used, uom);
@@ -560,7 +558,7 @@ int main(int argc, char **argv)
 				die(STATE_UNKNOWN, _("Could not handle -T option.\n"));
 			break;
 		case MONITOR_TYPE__IO:
-			ptr = check_disk_io_ret(ctx, ~0); 	/* get net-snmp io data */
+			ptr = check_disk_io_ret(ctx, ~0);	/* get net-snmp io data */
 			mp_snmp_deinit(program_name);		/* deinit */
 			if (ptr->IO.Descr == NULL) {
 				printf("Invalid input string for -i (Use -T io_list for a list of valid strings).\n");

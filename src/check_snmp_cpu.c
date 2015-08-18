@@ -6,15 +6,13 @@ const char *progname = "check_snmp_cpu";
 const char *program_name = "check_snmp_cpu"; /* for coreutils libs */
 const char *copyright = "2015";
 const char *email = "devel@monitoring-plugins.org";
- 
+
 #include "common.h"
 #include "utils.h"
 #include "utils_base.h"
 #include "utils_snmp.h"
-#include "utils_db.h"
 #include <stdio.h>					/* to calculate iowait */
 #include <time.h>					/* to calculate iowait */
-#include "b64.h"
 #include "errno.h"
 
 #define DEFAULT_COMMUNITY "public" 	/* only used for help text */
@@ -125,7 +123,7 @@ void print_usage (void)
 {
 	printf ("%s\n", _("Usage:"));
 	printf ("%s -H <ip_address> -C <snmp_community>\n",progname);
-	printf ("[-w <warn_range>] [-c <crit_range>] [-t <timeout>] [-T <type>]]\n");
+	printf ("[-w <warn_range>] [-c <crit_range>] [-t <timeout>] [-T <type>]\n");
 	printf ("([-P snmp version] [-N context] [-L seclevel] [-U secname]\n");
 	printf ("[-a authproto] [-A authpasswd] [-x privproto] [-X privpasswd])\n");
 }
@@ -141,7 +139,6 @@ void print_help (void)
 	printf (UT_HELP_VRSN);
 	printf (UT_VERBOSE);
 	printf (UT_PLUG_TIMEOUT, DEFAULT_TIME_OUT);
-	/* printf (UT_EXTRA_OPTS); */
 	printf (" %s\n", "-T, --type=STRING");
 	printf ("	%s\n", _("cpu_load_1"));
 	printf ("	%s\n", _("cpu_load_5"));
@@ -267,11 +264,11 @@ int main(int argc, char **argv)
 	ptr = check_cpu_ret(ctx, ~0); /* get net-snmp cpu data */
 	mp_snmp_deinit(program_name); /* deinit */
 
-	/** 
+	/**
 	 * set standard monitoring-plugins thresholds
 	 * and check if we need to run the plugin in
-	 * legacy mode for CPU load 
-	 */ 
+	 * legacy mode for CPU load
+	 */
 	if (o_monitortype != MONITOR_TYPE__LEGACY_LOAD)
 		set_thresholds(&thresh, warn_str, crit_str);
 	
@@ -326,7 +323,7 @@ int main(int argc, char **argv)
 	}
 
 
-	/** 
+	/**
 	 * To check iowait we need to store the time and counter value
 	 * and compare it to the previous value stored in a file.
 	 */
@@ -339,10 +336,8 @@ int main(int argc, char **argv)
 		
 		if (previous_state != NULL) {
 			if (sscanf(previous_state->data, "%d %ld", &ffcpurawwait, &fftime) == 2) {
-				// printf("The values from the file are %d ticks and %ld s unixtime\n", ffcpurawwait, fftime);
 				if ((timenow-fftime) == 0)
 					die(STATE_UNKNOWN, _("The time interval needs to be at least one second.\n"));
-				//printf("Calculated values: %d ticks div with %ld sec times %d processor\n",ptr->CpuRawWait-ffcpurawwait, (timenow-fftime), ptr->NumberOfCpus);
 				iowait = (ptr->CpuRawWait-ffcpurawwait)/((timenow-fftime)*ptr->NumberOfCpus);
 				mp_debug(3,"iowait: %.2f\n", iowait);
 			}

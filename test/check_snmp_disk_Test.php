@@ -3,7 +3,7 @@ class Check_Snmp_Disk_Test extends PHPUnit_Framework_TestCase {
 
 	private static $snmpsimroot = "/tmp/check_snmp_disk_test/";
 	private $snmpsimroot_current = false;
-	
+
 	private function start_snmpsim($snmpdata) {
 		if ($this->snmpsimroot_current !== false) {
 			$this->stop_snmpsim();
@@ -18,12 +18,9 @@ class Check_Snmp_Disk_Test extends PHPUnit_Framework_TestCase {
 		" --pid-file=".$this->snmpsimroot_current . "pidfile".
 		" --agent-udpv4-endpoint=127.0.0.1:21161".
 		" --device-dir=".$this->snmpsimroot_current . "data";
-		//echo "running: $command\n";
 		system($command, $returnval);
-		//echo "return: $returnval\n";
-		//echo "pid: ".file_get_contents($this->snmpsimroot_current . "pidfile")."\n";
 	}
-	
+
 	public function stop_snmpsim() {
 		if ($this->snmpsimroot_current === false) {
 			return;
@@ -35,7 +32,7 @@ class Check_Snmp_Disk_Test extends PHPUnit_Framework_TestCase {
 	public function tearDown() {
 		$this->stop_snmpsim();
 	}
-	
+
 	public function run_command($args, &$output, &$return) {
 		$check_command = __DIR__ . "/../../../opt/plugins/check_snmp_disk";
 		return exec($check_command . " " . $args, $output, $return);
@@ -403,7 +400,7 @@ EOF;
 			list($oid, $type, $value) = explode("|", $line, 3);
 			$snmpdata_arr[$oid] = array($type, $value);
 		}
-		
+
 		foreach($snmpdata_diff as $oid => $newval) {
 			if($newval === false)
 				unset($snmpdata_arr[$oid]);
@@ -431,7 +428,7 @@ EOF;
 		$this->assertEquals($expectedoutput, $output);
 		$this->assertEquals($expectedreturn, $return);
 	}
-/** 
+/**
  * Storage testing
  */
 	public function test_list_storage_index_and_description() {
@@ -493,7 +490,7 @@ EOF;
 		), 3);
 	}
 	
-/** 
+/**
  * Storage percent used
  */
 	public function test_percent_storage_used_OK() {
@@ -514,7 +511,7 @@ EOF;
 			"CRITICAL: 32% of storage used |'/'=32%;25;30"
 		), 2);
 	}
-/** 
+/**
  * Storage percent left
  */
 	public function test_percent_storage_left_OK() {
@@ -535,7 +532,7 @@ EOF;
 			"CRITICAL: 67% of storage left |'/'=67%;25;30"
 		), 2);
 	}
-/** 
+/**
  * Storage MB used
  */
 	public function test_mb_storage_used_OK() {
@@ -556,7 +553,7 @@ EOF;
 			"CRITICAL: 2627MB of storage used"
 		), 2);
 	}
-/** 
+/**
  * Storage MB left
  */
 	public function test_mb_storage_left_OK() {
@@ -577,7 +574,7 @@ EOF;
 			"CRITICAL: 5434MB of storage left"
 		), 2);
 	}
-/** 
+/**
  * Storage GB used/left
  */
 	public function test_gb_storage_used_OK() {
@@ -592,7 +589,7 @@ EOF;
 			"OK: 5GB of storage left |'/'=5GB;6;7"
 		), 0);
 	}
-/** 
+/**
  * Monitoring-plugins standard warning and critical interval
  */
 	public function test_monitoring_plugins_standard_warning_critical_OK() {
@@ -613,7 +610,7 @@ EOF;
 			"CRITICAL: 32% of storage used |'/'=32%;40:45;@30:40"
 		), 2);
 	}
-/** 
+/**
  * IO Testing
  */
 	public function test_list_io_index_and_description() {
@@ -692,7 +689,7 @@ EOF;
 			"Invalid input string for -i (Use -T io_list for a list of valid strings)."
 		), 3);
 	}
-	
+
 	public function test_io_load_1_option() {
 		$this->assertCommand("-H @endpoint@ -C mycommunity -i sda -T io_1 -w 60 -c 70", array(
 			"1.3.6.1.4.1.2021.13.15.1.1.9.25" => array(2,50)

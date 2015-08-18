@@ -3,7 +3,7 @@ class Check_Snmp_Memory_Test extends PHPUnit_Framework_TestCase {
 
 	private static $snmpsimroot = "/tmp/check_snmp_memory_test/";
 	private $snmpsimroot_current = false;
-	
+
 	private function start_snmpsim($snmpdata) {
 		if ($this->snmpsimroot_current !== false) {
 			$this->stop_snmpsim();
@@ -12,18 +12,15 @@ class Check_Snmp_Memory_Test extends PHPUnit_Framework_TestCase {
 		@mkdir($this->snmpsimroot_current, 0777, true);
 		@mkdir($this->snmpsimroot_current."data", 0777, true);
 		file_put_contents($this->snmpsimroot_current."data/mycommunity.snmprec", $snmpdata);
-		
+
 		$command="snmpsimd.py".
 		" --daemonize".
 		" --pid-file=".$this->snmpsimroot_current . "pidfile".
 		" --agent-udpv4-endpoint=127.0.0.1:21161".
 		" --device-dir=".$this->snmpsimroot_current . "data";
-		//echo "running: $command\n";
 		system($command, $returnval);
-		//echo "return: $returnval\n";
-		//echo "pid: ".file_get_contents($this->snmpsimroot_current . "pidfile")."\n";
 	}
-	
+
 	public function stop_snmpsim() {
 		if ($this->snmpsimroot_current === false) {
 			return;
@@ -35,7 +32,7 @@ class Check_Snmp_Memory_Test extends PHPUnit_Framework_TestCase {
 	public function tearDown() {
 		$this->stop_snmpsim();
 	}
-	
+
 	public function run_command($args, &$output, &$return) {
 		$check_command = __DIR__ . "/../../../opt/plugins/check_snmp_memory";
 		return exec($check_command . " " . $args, $output, $return);
@@ -63,7 +60,7 @@ EOF;
 			list($oid, $type, $value) = explode("|", $line, 3);
 			$snmpdata_arr[$oid] = array($type, $value);
 		}
-		
+
 		foreach($snmpdata_diff as $oid => $newval) {
 			if($newval === false)
 				unset($snmpdata_arr[$oid]);
@@ -91,7 +88,7 @@ EOF;
 		$this->assertEquals($expectedoutput, $output);
 		$this->assertEquals($expectedreturn, $return);
 	}
-/** 
+/**
  * Memory testing
  */
 	public function test_default() {

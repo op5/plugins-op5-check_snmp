@@ -3,7 +3,7 @@ class Check_Snmp_Procs_Test extends PHPUnit_Framework_TestCase {
 
 	private static $snmpsimroot = "/tmp/check_snmp_procs_test/";
 	private $snmpsimroot_current = false;
-	
+
 	private function start_snmpsim($snmpdata) {
 		if ($this->snmpsimroot_current !== false) {
 			$this->stop_snmpsim();
@@ -12,18 +12,15 @@ class Check_Snmp_Procs_Test extends PHPUnit_Framework_TestCase {
 		@mkdir($this->snmpsimroot_current, 0777, true);
 		@mkdir($this->snmpsimroot_current."data", 0777, true);
 		file_put_contents($this->snmpsimroot_current."data/mycommunity.snmprec", $snmpdata);
-		
+
 		$command="snmpsimd.py".
 		" --daemonize".
 		" --pid-file=".$this->snmpsimroot_current . "pidfile".
 		" --agent-udpv4-endpoint=127.0.0.1:21161".
 		" --device-dir=".$this->snmpsimroot_current . "data";
-		//echo "running: $command\n";
 		system($command, $returnval);
-		//echo "return: $returnval\n";
-		//echo "pid: ".file_get_contents($this->snmpsimroot_current . "pidfile")."\n";
 	}
-	
+
 	public function stop_snmpsim() {
 		if ($this->snmpsimroot_current === false) {
 			return;
@@ -35,7 +32,7 @@ class Check_Snmp_Procs_Test extends PHPUnit_Framework_TestCase {
 	public function tearDown() {
 		$this->stop_snmpsim();
 	}
-	
+
 	public function run_command($args, &$output, &$return) {
 		$check_command = __DIR__ . "/../../../opt/plugins/check_snmp_procs";
 		return exec($check_command . " " . $args, $output, $return);
@@ -1007,7 +1004,7 @@ EOF;
 			list($oid, $type, $value) = explode("|", $line, 3);
 			$snmpdata_arr[$oid] = array($type, $value);
 		}
-		
+
 		foreach($snmpdata_diff as $oid => $newval) {
 			if($newval === false)
 				unset($snmpdata_arr[$oid]);
@@ -1035,7 +1032,7 @@ EOF;
 		$this->assertEquals($expectedoutput, $output);
 		$this->assertEquals($expectedreturn, $return);
 	}
-/** 
+/**
  * Number of processes
  */
 	public function test_total_number_of_processes() {
@@ -1068,7 +1065,7 @@ EOF;
 			"CRITICAL: 106 process(es) |'Processes'=106;100;105"
 		), 2);
 	}
-/** 
+/**
  * Zombie processes
  */
 	public function test_zombie_processes_OK() {
@@ -1093,7 +1090,7 @@ EOF;
 			"CRITICAL: 3 zombie process(es) |'Zombie processes'=3;1;2"
 		), 2);
 	}
-/** 
+/**
  * Process name as argument
  */
 	public function test_process_by_name() {
@@ -1102,7 +1099,7 @@ EOF;
 			"OK: 2 smsd process(es) |'smsd'=2;1:5;20"
 		), 0);
 	}
-/** 
+/**
  * cron uses process_by_name
  */
 	public function test_cron() {
@@ -1111,7 +1108,7 @@ EOF;
 			"OK: 1 crond process(es) |'crond'=1;@5:10;20"
 		), 0);
 	}
-/** 
+/**
  * syslog uses process_by_name
  */
 	public function test_syslog() {
@@ -1121,7 +1118,7 @@ EOF;
 		), 0);
 	}
 	
-/** 
+/**
  * Testing extra, same as basic but with the following format
  */
 	public function test_processes_running_with_memory_and_cpu() {

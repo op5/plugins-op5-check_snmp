@@ -90,7 +90,7 @@ static const char *pstate2str(enum process_state pstate)
 }
 
 /**
- * Helper funtion that counts the total number of different states of the 
+ * Helper funtion that counts the total number of different states of the
  * investigated processes.
  */
 static int pstate_callback(netsnmp_variable_list *v, void *psc_ptr, void *discard)
@@ -117,7 +117,7 @@ static int pstate_callback(netsnmp_variable_list *v, void *psc_ptr, void *discar
 
 /**
  * Returns the total number of different states the investigated processes are
- * in. 
+ * in.
  */
 struct process_state_count *check_proc_ret(mp_snmp_context *ss, int statemask)
 {
@@ -131,89 +131,7 @@ struct process_state_count *check_proc_ret(mp_snmp_context *ss, int statemask)
 
 	return pstate_count;
 }
-#if 0
-static int check_proc_states(mp_snmp_context *ss, int statemask)
-{
-	struct process_state_count pstate_count;
 
-	memset(&pstate_count, 0, sizeof(pstate_count));
-	mp_snmp_walk(ss, PROCESS_TABLE ".7", NULL, pstate_callback, &pstate_count, NULL);
-	mp_debug(3,"Processes: running=%d, runnable=%d, not runnable=%d, invalid=%d\n",
-	      pstate_count.running, pstate_count.runnable, pstate_count.notrunnable, pstate_count.invalid);
-}
-
-static struct proc_info *query_process(mp_snmp_context *ctx, int k)
-{
-	netsnmp_pdu *pdu, *response = NULL;
-	netsnmp_variable_list *v;
-	int mask=0;
-	struct proc_info *p;
-	int error = 0, count = 0;
-
-	pdu = snmp_pdu_create(SNMP_MSG_GET);
-	if (!pdu) {
-		return NULL;
-	}
-
-	MP_SNMP_PDU_MASK_ADD(mask, PROCESS_SUBIDX_RunStatus);
-	MP_SNMP_PDU_MASK_ADD(mask, PROCESS_SUBIDX_RunName);
-	MP_SNMP_PDU_MASK_ADD(mask, PROCESS_SUBIDX_RunParameters);
-	MP_SNMP_PDU_MASK_ADD(mask, PROCESS_SUBIDX_RunPath);
-	mp_snmp_add_keyed_subtree(pdu, PROCESS_TABLE, mask, k);
-	mask = 0;
-	MP_SNMP_PDU_MASK_ADD(mask, PROCPERF_SUBIDX_RunPerfCPU);
-	MP_SNMP_PDU_MASK_ADD(mask, PROCPERF_SUBIDX_RunPerfMem);
-	mp_snmp_add_keyed_subtree(pdu, PROCPERF_TABLE, mask, k);
-	if (mp_snmp_query(ctx, pdu, &response)) {
-		die(STATE_UNKNOWN, _("Failed to fetch variables for process %d\n"), k);
-	}
-	if (!(p = calloc(1, sizeof(*p)))) {
-		snmp_free_pdu(response);
-		snmp_free_pdu(pdu);
-		die(STATE_UNKNOWN, _("Failed to allocate memory"));
-	}
-
-	for (v = response->variables; v; v = v->next_variable, count++) {
-		int is_perf;
-		if (!mp_snmp_is_valid_var(v)) {
-			error++;
-			continue;
-		}
-		if (v->name[7] == 5) {
-			/* procperf table */
-			if (v->name[10] == PROCPERF_SUBIDX_RunPerfCPU) {
-				p->Perf.CPU = 1 + *v->val.integer;
-			} else if (v->name[10] == PROCPERF_SUBIDX_RunPerfMem) {
-				p->Perf.Mem = 1 + *v->val.integer;
-			}
-			continue;
-		}
-		switch (v->name[10]) {
-			case PROCESS_SUBIDX_RunID:
-				p->ID = *v->val.integer;
-				break;
-			case PROCESS_SUBIDX_RunIndex:
-				p->Index = *v->val.integer;
-				break;
-			case PROCESS_SUBIDX_RunName:
-				p->Name = strndup(v->val.string, v->val_len);
-				break;
-			case PROCESS_SUBIDX_RunParameters:
-				p->Parameters = strndup(v->val.string, v->val_len);
-				break;
-			case PROCESS_SUBIDX_RunPath:
-				p->Path = strndup(v->val.string, v->val_len);
-				break;
-			case PROCESS_SUBIDX_RunStatus:
-				p->Status = *v->val.integer;
-				break;
-		}
-	}
-	mp_debug(1, "count: %d\n", count);
-	snmp_free_pdu(response);
-	return p;
-}
-#endif
 static int proc_info_ret(void *p_, void *discard)
 {
 	struct proc_info *p = (struct proc_info *)p_;
@@ -226,33 +144,17 @@ static int proc_info_ret(void *p_, void *discard)
 	mp_debug(3,"  Parameters: %s\n", p->Parameters);
 	mp_debug(3,"  CPU: %d\n", p->Perf.CPU);
 	mp_debug(3,"  Mem: %d\n", p->Perf.Mem);
-	
+
 	if (0 == strcmp(p->Name, name_filter))
 	{
 		counter[0] = counter[0]++;
 		counter[1] = counter[1] + p->Perf.CPU;
 		counter[2] = counter[2] + p->Perf.Mem;
 	}
-	
-	return 0;
-}
-#if 0
-static int print_proc_info(void *p_, void *discard)
-{
-	struct proc_info *p = (struct proc_info *)p_;
-
-	mp_debug(3,"################\n");
-	mp_debug(3,"  Index: %d\n", p->Index);
-	mp_debug(3,"  Name: %s\n", p->Name);
-	mp_debug(3,"  Path: %s\n", p->Path);
-	mp_debug(3,"  Status: %s\n", pstate2str(p->Status));
-	mp_debug(3,"  Parameters: %s\n", p->Parameters);
-	mp_debug(3,"  CPU: %d\n", p->Perf.CPU);
-	mp_debug(3,"  Mem: %d\n", p->Perf.Mem);
 
 	return 0;
 }
-#endif
+
 static int parse_state_filter(const char *str)
 {
 	int filter = 0;
@@ -308,7 +210,6 @@ static int parse_snmp_var(netsnmp_variable_list *v, void *discard1, void *discar
 	}
 
 	p = rbtree_find(all_procs, (struct proc_info *)&pid);
-	//print_variable(v->name, v->name_length, v);
 	mp_debug(3, "Found proc_info with id %d\n", p->Index);
 	mp_debug(3, "v->name[7]: %d; v->name[10]: %d\n", (int)v->name[7], (int)v->name[10]);
 	if (v->name[7] == 5) {
@@ -353,6 +254,7 @@ void print_usage (void)
 	printf ("([-P snmp version] [-N context] [-L seclevel] [-U secname]\n");
 	printf ("[-a authproto] [-A authpasswd] [-x privproto] [-X privpasswd])\n");
 }
+
 void print_help (void)
 {
 	print_revision (progname, NP_VERSION);
@@ -364,29 +266,24 @@ void print_help (void)
 	printf (UT_HELP_VRSN);
 	printf (UT_VERBOSE);
 	printf (UT_PLUG_TIMEOUT, DEFAULT_TIME_OUT);
-	/* printf (UT_EXTRA_OPTS); */
 	printf (" %s\n", "-T, --type=STRING");
 	printf ("	%s\n", _("total_number_of_processes"));
+	printf ("	%s\n", _("total_number_of_zombie_processes"));
+	printf ("	%s\n", _("process_by_name"));
+	printf (" %s\n", "-i, --indexname=STRING");
+	printf ("    %s\n", _("STRING - Name of process to check"));
 	mp_snmp_argument_help();
 	printf ( UT_WARN_CRIT_RANGE);
 }
 
 int main(int argc, char **argv)
 {
-	
-	/* XXX REMOVE WHEN READY */
-	mp_verbosity = 0;
 	static thresholds *thresh;
 	int i, x;
 	int c, option;
 	int process_counter;
 	int result = STATE_UNKNOWN;
 	mp_snmp_context *ctx;
-#if 0
-	int err;
-	netsnmp_session session, *ss;
-	struct proc_info *p;
-#endif
 	struct process_state_count *ptr;
 	char *optary;
 	char *warn_str = "", *crit_str = "";
@@ -400,20 +297,13 @@ int main(int argc, char **argv)
 	char *legacy_token = "";
 
 	argv=np_extra_opts (&argc, argv, progname);
-	
+
 	static struct option longopts[] = {
 		STD_LONG_OPTS,
 		{"usage", no_argument, 0, 'u'},
 		{"perfdata", no_argument, 0, 'f'},
 		{"type", required_argument, 0, 'T'},
-		{"processname", required_argument, 0, 'i'},
-		//{"state", required_argument, 0, 's'},
-		//{"metric", required_argument, 0, 'm'},
-		//{"command", required_argument, 0, 'O'},
-		//{"vsz", required_argument, 0, 'z'},
-		//{"ereg-argument-array", required_argument, 0, CHAR_MAX+1},
-		//{"input-file", required_argument, 0, CHAR_MAX+2},
-		//{"elapsed", required_argument, 0, 'e'},
+		{"indexname", required_argument, 0, 'i'},
 		MP_SNMP_LONGOPTS,
 		{NULL, 0, 0, 0},
 	};
@@ -421,7 +311,6 @@ int main(int argc, char **argv)
 	if (argc < 2)
 		usage4 (_("Could not parse arguments"));
 
-	//optary = calloc(1, 3 + (3 * ARRAY_SIZE(longopts)));
 	optary = calloc(3, ARRAY_SIZE(longopts));
 	i = 0;
 	optary[i++] = '+';
@@ -522,8 +411,6 @@ int main(int argc, char **argv)
 
 	fetch_proc_info(ctx);
 	mp_debug(1,"Traversing %d nodes\n", rbtree_num_nodes(all_procs));
-	//rbtree_traverse(all_procs, print_proc_info, NULL, rbinorder);
-	//rbtree_destroy(all_procs, destroy_proc_info);
 
 	switch (o_monitortype) {
 		case MONITOR_TYPE__NUMBER_OF_PROCESSES:
@@ -584,22 +471,21 @@ int main(int argc, char **argv)
 			set_thresholds(&thresh, legacy_warn1, legacy_crit1);
 			legacy_temp_result = get_status(counter[0], thresh);
 			result = max_state(legacy_temp_result, result);
-			
+
 			set_thresholds(&thresh, legacy_warn5, legacy_crit5);
 			legacy_temp_result = get_status(counter[1], thresh);
 			result = max_state(legacy_temp_result, result);
-			
+
 			set_thresholds(&thresh, legacy_warn15, legacy_crit15);
 			legacy_temp_result = get_status(counter[2], thresh);
 			result = max_state(legacy_temp_result, result);
-			
+
 			printf("%s: %d %s process(es) ", state_text(result), counter[0], name_filter);
 			if (o_perfdata == 1) {
 				printf("|'%s'=%d;%s;%s '%s'=%d;%s;%s '%s'=%d;%s;%s",
 						name_filter, counter[0], legacy_warn1, legacy_crit1,
 						"Memory", counter[1], legacy_warn5, legacy_crit5,
 						"CPU", counter[2], legacy_warn15, legacy_crit15);
-						
 			}
 			break;
 		default:
@@ -608,7 +494,7 @@ int main(int argc, char **argv)
 	}
 	mp_snmp_deinit("check_snmp_procs");
 	printf("\n");
-	
+
 	free(ctx);
 
 	return result;
