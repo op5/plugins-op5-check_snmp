@@ -1,23 +1,30 @@
-[commands] /* TODO */
-check_snmp_process_total_number_of_processes_v2=$USER1$/check_snmp_process -H $HOSTADDRESS$ -C '$ARG1$' -2 -F -n .* -w $ARG2$ -c $ARG3$
-check_snmp_process_total_number_of_processes_v3=$USER1$/check_snmp_process -H $HOSTADDRESS$ -l '$ARG1$' -x '$ARG2$' -F -n .* -w $ARG3$ -c $ARG4$
-check_snmp_process_number_of_processes_v2=$USER1$/check_snmp_process -H $HOSTADDRESS$ -C '$ARG1$' -2 -F -n '$ARG2$' -w $ARG3$ -c $ARG4$
-check_snmp_process_number_of_processes_v3=$USER1$/check_snmp_process -H $HOSTADDRESS$ -l '$ARG1$' -x '$ARG2$' -F -n '$ARG3$' -w $ARG4$ -c $ARG5$
+[commands]
+check_snmp_procs_total_number_of_processes_v2=$USER1$/check_snmp_procs -H $HOSTADDRESS$ -C '$ARG1$' -P 2c -T total_number_of_processes -w $ARG2$ -c $ARG3$
+check_snmp_procs_total_number_of_zombie_processes_v2=$USER1$/check_snmp_procs -H $HOSTADDRESS$ -C '$ARG1$' -P 2c -T total_number_of_zombie_processes -w $ARG2$ -c $ARG3$
+check_snmp_procs_process_by_name_v2=$USER1$/check_snmp_procs -H $HOSTADDRESS$ -C '$ARG1$' -P 2c -T process_by_name -i '$ARG2$' -w $ARG3$ -c $ARG4$
+check_snmp_procs_cron_v2=$USER1$/check_snmp_procs -H $HOSTADDRESS$ -C '$ARG1$' -P 2c -T process_by_name -i crond -w $ARG2$ -c $ARG3$
+check_snmp_procs_syslog_v2=$USER1$/check_snmp_procs -H $HOSTADDRESS$ -C '$ARG1$' -P 2c -T process_by_name -i syslog-ng -w $ARG2$ -c $ARG3$
+check_snmp_procs_total_number_of_processes_v3=$USER1$/check_snmp_procs -H $HOSTADDRESS$ '$ARG1$' -P 3 -T total_number_of_processes -w $ARG2$ -c $ARG3$
+check_snmp_procs_total_number_of_zombie_processes_v3=$USER1$/check_snmp_procs -H $HOSTADDRESS$ '$ARG1$' -P 3 -T total_number_of_zombie_processes -w $ARG2$ -c $ARG3$
+check_snmp_procs_process_by_name_v3=$USER1$/check_snmp_procs -H $HOSTADDRESS$ '$ARG1$' -P 3 -T process_by_name -i '$ARG2$' -w $ARG3$ -c $ARG4$
+check_snmp_procs_cron_v3=$USER1$/check_snmp_procs -H $HOSTADDRESS$ '$ARG1$' -P 3 -T process_by_name -i crond -w $ARG2$ -c $ARG3$
+check_snmp_procs_syslog_v3=$USER1$/check_snmp_procs -H $HOSTADDRESS$ '$ARG1$' -P 3 -T process_by_name -i syslog-ng -w $ARG2$ -c $ARG3$
+check_snmp_procs_custom=$USER1$/check_snmp_procs '$ARG1$'
 
 [name]
-check_snmp_process
+check_snmp_procs
 
 [info]
-This plugin checks if process are running, the number that are running, memory and cpu used.
+This plugin checks if and how many processes are running on the remote system.
 
 [why]
+This plugin can be useful to monitor processes on hosts where you are not able to install any agents.
 
 [how]
-The plugin checks, by SNMP, if there is at least one process matching the filter when no warning or critical levels are set.
-The filter is treated as a regular expression by default, but you can deactivate.
+The plugin collects the monitored data over SNMP.
 
 [platforms]
-Windows, Unix/Linux, AS400
+Unix/Linux
 
 [categories]
 SNMP
@@ -26,4 +33,4 @@ SNMP
 5
 
 [tags]
-process, memory, cpu, microsoft windows, unic, linux, as400
+unix, linux, snmp, net-snmp, process, processes
