@@ -224,48 +224,48 @@ EOF;
 		), 2);
 	}
 /**
- * Load-legacy
+ * Load
  */
-	public function test_load_legacy_OK() {
-		$this->assertCommand("-H @endpoint@ -C mycommunity -T cpu_load_legacy -w 1.1,1.2,1.3 -c 2.1,2.2,2.3", array(
+	public function test_load_OK() {
+		$this->assertCommand("-H @endpoint@ -C mycommunity -T cpu_load -w 1.1,1.2,1.3 -c 2.1,2.2,2.3", array(
 			"1.3.6.1.4.1.2021.10.1.5.3" => array(2,4)
 		), array(
-			"OK: 0.02 0.03 0.04 CPU load average |'CPU load-1'=0.02;1.1;2.1 'CPU load-5'=0.03;1.2;2.2 'CPU load-15'=0.04;1.3;2.3"
+			"OK: 0.02, 0.03, 0.04 CPU load average |'CPU load-1'=0.02;1.1;2.1 'CPU load-5'=0.03;1.2;2.2 'CPU load-15'=0.04;1.3;2.3"
 		), 0);
 	}
-	public function test_load_legacy_WARNING() {
-		$this->assertCommand("-H @endpoint@ -C mycommunity -T cpu_load_legacy -w 1.1,1.2,1.3 -c 2.1,2.2,2.3", array(
+	public function test_load_WARNING() {
+		$this->assertCommand("-H @endpoint@ -C mycommunity -T cpu_load -w 1.1,1.2,1.3 -c 2.1,2.2,2.3", array(
 			"1.3.6.1.4.1.2021.10.1.5.1" => array(2,200)
 		), array(
-			"WARNING: 2.00 0.03 0.00 CPU load average |'CPU load-1'=2.00;1.1;2.1 'CPU load-5'=0.03;1.2;2.2 'CPU load-15'=0.00;1.3;2.3"
+			"WARNING: 2.00, 0.03, 0.00 CPU load average |'CPU load-1'=2.00;1.1;2.1 'CPU load-5'=0.03;1.2;2.2 'CPU load-15'=0.00;1.3;2.3"
 		), 1);
 	}
-	public function test_load_legacy_CRITICAL() {
-		$this->assertCommand("-H @endpoint@ -C mycommunity -T cpu_load_legacy -w 1.1,1.2,1.3 -c 2.1,2.2,2.3", array(
+	public function test_load_CRITICAL() {
+		$this->assertCommand("-H @endpoint@ -C mycommunity -T cpu_load -w 1.1,1.2,1.3 -c 2.1,2.2,2.3", array(
 			"1.3.6.1.4.1.2021.10.1.5.2" => array(2,222)
 		), array(
-			"CRITICAL: 0.02 2.22 0.00 CPU load average |'CPU load-1'=0.02;1.1;2.1 'CPU load-5'=2.22;1.2;2.2 'CPU load-15'=0.00;1.3;2.3"
+			"CRITICAL: 0.02, 2.22, 0.00 CPU load average |'CPU load-1'=0.02;1.1;2.1 'CPU load-5'=2.22;1.2;2.2 'CPU load-15'=0.00;1.3;2.3"
 		), 2);
 	}
 /**
- * Load-legacy edge cases
+ * Load edge cases
  */
-	public function test_load_legacy_wrong_amount_of_warning_and_critical_arguments() {
-		$this->assertCommand("-H @endpoint@ -C mycommunity -T cpu_load_legacy -w 1.1,1.2 -c 2.1,2.2", array(
+	public function test_load_wrong_amount_of_warning_and_critical_arguments() {
+		$this->assertCommand("-H @endpoint@ -C mycommunity -T cpu_load -w 1.1,1.2 -c 2.1,2.2", array(
 			"1.3.6.1.4.1.2021.10.1.5.3" => array(2,4)
 		), array(
 			"Needs 3 warning arguments, -w STRING,STRING,STRING"
 		), 3);
 	}
-	public function test_load_legacy_wrong_uneven_amount_of_warning_and_critical_arguments() {
-		$this->assertCommand("-H @endpoint@ -C mycommunity -T cpu_load_legacy -w 1.1,1.2 -c 2.1", array(
+	public function test_load_wrong_uneven_amount_of_warning_and_critical_arguments() {
+		$this->assertCommand("-H @endpoint@ -C mycommunity -T cpu_load -w 1.1,1.2 -c 2.1", array(
 			"1.3.6.1.4.1.2021.10.1.5.3" => array(2,4)
 		), array(
 			"Needs 3 warning arguments, -w STRING,STRING,STRING"
 		), 3);
 	}
-	public function test_load_legacy_wrong_amount_of_critical_arguments() {
-		$this->assertCommand("-H @endpoint@ -C mycommunity -T cpu_load_legacy -w 1.1,1.2,1.3 -c 2.1", array(
+	public function test_load_wrong_amount_of_critical_arguments() {
+		$this->assertCommand("-H @endpoint@ -C mycommunity -T cpu_load -w 1.1,1.2,1.3 -c 2.1", array(
 			"1.3.6.1.4.1.2021.10.1.5.3" => array(2,4)
 		), array(
 			"Needs 3 critical arguments, -c STRING,STRING,STRING"
@@ -301,23 +301,23 @@ EOF;
 /**
  * No arguments, usage and help
  */
-	public function disable_test_no_arguments() {
+	public function test_no_arguments() {
 		$this->assertCommand("", array(
 		), array(
-			'check_snmp_disk: Could not parse arguments',
+			'check_snmp_cpu: Could not parse arguments',
 			'Usage:',
-			'check_snmp_disk -H <ip_address> -C <snmp_community> -i <index of disk>',
-			'[-w <warn_range>] [-c <crit_range>] [-t <timeout>] [-m [1|2|3|4]]',
+			'check_snmp_cpu -H <ip_address> -C <snmp_community>',
+			'[-w <warn_range>] [-c <crit_range>] [-t <timeout>] [-T <type>]',
 			'([-P snmp version] [-N context] [-L seclevel] [-U secname]',
 			'[-a authproto] [-A authpasswd] [-x privproto] [-X privpasswd])'
 		), 3);
 	}
-	public function disable_test_usage() {
+	public function test_usage() {
 		$this->assertCommand("-u", array(
 		), array(
 			'Usage:',
-			'check_snmp_disk -H <ip_address> -C <snmp_community> -i <index of disk>',
-			'[-w <warn_range>] [-c <crit_range>] [-t <timeout>] [-m [1|2|3|4]]',
+			'check_snmp_cpu -H <ip_address> -C <snmp_community>',
+			'[-w <warn_range>] [-c <crit_range>] [-t <timeout>] [-T <type>]',
 			'([-P snmp version] [-N context] [-L seclevel] [-U secname]',
 			'[-a authproto] [-A authpasswd] [-x privproto] [-X privpasswd])'
 		), 0);

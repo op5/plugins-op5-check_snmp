@@ -34,7 +34,7 @@ enum o_monitortype_t {
 	MONITOR_TYPE__LOAD1,
 	MONITOR_TYPE__LOAD5,
 	MONITOR_TYPE__LOAD15,
-	MONITOR_TYPE__LEGACY_LOAD,
+	MONITOR_TYPE__LOAD,
 	MONITOR_TYPE__IOWAIT
 };
 
@@ -143,7 +143,7 @@ void print_help (void)
 	printf ("	%s\n", _("cpu_load_1"));
 	printf ("	%s\n", _("cpu_load_5"));
 	printf ("	%s\n", _("cpu_load_15"));
-	printf ("	%s\n", _("cpu_load_legacy"));
+	printf ("	%s\n", _("cpu_load"));
 	printf ("	%s\n", _("cpu_io_wait"));
 	mp_snmp_argument_help();
 	printf ( UT_WARN_CRIT_RANGE);
@@ -229,8 +229,8 @@ int process_arguments (int argc, char **argv)
 					o_monitortype = MONITOR_TYPE__LOAD5;
 				} else if (0==strcmp(optarg, "cpu_load_15")) {
 					o_monitortype = MONITOR_TYPE__LOAD15;
-				} else if (0==strcmp(optarg, "cpu_load_legacy")) {
-					o_monitortype = MONITOR_TYPE__LEGACY_LOAD;
+				} else if (0==strcmp(optarg, "cpu_load")) {
+					o_monitortype = MONITOR_TYPE__LOAD;
 				} else if (0==strcmp(optarg, "cpu_io_wait")) {
 					o_monitortype = MONITOR_TYPE__IOWAIT;
 				} else {
@@ -269,10 +269,10 @@ int main(int argc, char **argv)
 	 * and check if we need to run the plugin in
 	 * legacy mode for CPU load
 	 */
-	if (o_monitortype != MONITOR_TYPE__LEGACY_LOAD)
+	if (o_monitortype != MONITOR_TYPE__LOAD)
 		set_thresholds(&thresh, warn_str, crit_str);
 	
-	if (o_monitortype == MONITOR_TYPE__LEGACY_LOAD)
+	if (o_monitortype == MONITOR_TYPE__LOAD)
 	{
 		legacy_token = strtok(warn_str, ",");
 		for (legacy_i = 0; legacy_i < 3; legacy_i++)
@@ -313,7 +313,7 @@ int main(int argc, char **argv)
 		legacy_temp_result = get_status((float)ptr->Load15, thresh);
 		result = max_state(legacy_temp_result, result);
 		
-		printf("%s: %.2f %.2f %.2f CPU load average ", state_text(result), (float)ptr->Load1,(float)ptr->Load5,(float)ptr->Load15);
+		printf("%s: %.2f, %.2f, %.2f CPU load average ", state_text(result), (float)ptr->Load1,(float)ptr->Load5,(float)ptr->Load15);
 			if (o_perfdata == 1) {
 				printf("|'CPU load-1'=%.2f;%s;%s 'CPU load-5'=%.2f;%s;%s 'CPU load-15'=%.2f;%s;%s",
 					ptr->Load1, legacy_warn1, legacy_crit1,
@@ -338,6 +338,8 @@ int main(int argc, char **argv)
 			if (sscanf(previous_state->data, "%d %ld", &ffcpurawwait, &fftime) == 2) {
 				if ((timenow-fftime) == 0)
 					die(STATE_UNKNOWN, _("The time interval needs to be at least one second.\n"));
+				else if (ffcpurawwait > ptr->CpuRawWait)
+					die(STATE_UNKNOWN, _("The iowait counter rolled over.\n"));
 				iowait = (ptr->CpuRawWait-ffcpurawwait)/((timenow-fftime)*ptr->NumberOfCpus);
 				mp_debug(3,"iowait: %.2f\n", iowait);
 			}
@@ -373,7 +375,7 @@ int main(int argc, char **argv)
 					ptr->Load15, warn_str, crit_str);
 			}
 			break;
-		case MONITOR_TYPE__LEGACY_LOAD:
+		case MONITOR_TYPE__LOAD:
 			break;
 		case MONITOR_TYPE__IOWAIT:
 			result = get_status(iowait, thresh);
