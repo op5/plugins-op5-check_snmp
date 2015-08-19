@@ -482,8 +482,8 @@ void np_enable_state(char *keyname, int expected_data_version) {
 	this_state->state_data=NULL;
 
 	/* Calculate filename */
-	ret = asprintf(&temp_filename, "%s/%lu/%s/%s",
-	    _np_state_calculate_location_prefix(), (unsigned long)geteuid(),
+	ret = asprintf(&temp_filename, "%s/%s/%s",
+	    _np_state_calculate_location_prefix(),
 	    this_monitoring_plugin->plugin_name, this_state->name);
 	if (ret < 0)
 		die(STATE_UNKNOWN, _("Cannot allocate memory: %s"),
@@ -649,6 +649,7 @@ void np_state_write_string(time_t data_time, char *data_string) {
 		    strerror(errno));
 
 	if((fd=mkstemp(temp_file))==-1) {
+		printf("filename: %s\n", temp_file);
 		np_free(temp_file);
 		die(STATE_UNKNOWN, _("Cannot create temporary filename"));
 	}

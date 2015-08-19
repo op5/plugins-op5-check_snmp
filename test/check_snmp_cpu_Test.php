@@ -35,7 +35,7 @@ class Check_Snmp_Cpu_Test extends PHPUnit_Framework_TestCase {
 	
 	public function run_command($args, &$output, &$return) {
 		$check_command = __DIR__ . "/../../../opt/plugins/check_snmp_cpu";
-		return exec("MP_STATE_PATH=/tmp " . $check_command . " " . $args, $output, $return);
+		return exec($check_command . " " . $args, $output, $return);
 	}
 
 	private function generate_snmpdata($snmpdata_diff) {
