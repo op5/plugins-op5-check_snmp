@@ -175,7 +175,6 @@ int process_arguments (int argc, char **argv)
 	ctx = mp_snmp_create_context();
 	if (!ctx)
 		die(STATE_UNKNOWN, _("Failed to create snmp context\n"));
-	mp_snmp_finalize_auth(ctx);
 
 	static struct option longopts[] = {
 		STD_LONG_OPTS,
@@ -285,6 +284,7 @@ int main(int argc, char **argv)
 	 */
 	set_thresholds(&thresh, warn_str, crit_str);
 	
+	mp_snmp_finalize_auth(ctx);
 	ptr = check_mem_ret(ctx, ~0); /* get net-snmp memory data */
 	mp_snmp_deinit(program_name); /* deinit */
 
