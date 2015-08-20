@@ -52,9 +52,10 @@ typedef struct mp_snmp_context mp_snmp_context;
 typedef int (*mp_snmp_walker)(netsnmp_variable_list *, void *, void *);
 
 /** accessor functions */
-const netsnmp_session *mp_snmp_get_session(struct mp_snmp_context *ctx);
-const char *mp_snmp_get_peername(struct mp_snmp_context *ctx);
-int mp_snmp_get_remote_port(struct mp_snmp_context *ctx);
+const netsnmp_session *mp_snmp_get_session(mp_snmp_context *ctx);
+int mp_snmp_get_remote_port(mp_snmp_context *ctx);
+const char *mp_snmp_get_peername(mp_snmp_context *ctx);
+const char *mp_snmp_get_errstr(mp_snmp_context *ctx);
 
 /** real functions */
 void mp_snmp_argument_help(void);
