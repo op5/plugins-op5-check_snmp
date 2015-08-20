@@ -184,7 +184,38 @@ int mp_snmp_finalize_auth(mp_snmp_context *c)
 	{
 		c->session.version = SNMP_VERSION_3;
 	}
+	switch (c->session.securityLevel) {
+	case 0: /* not set - determine automagically */
+		if (c->priv_pass && c->auth_pass)
+			c->session.securityLevel = SNMP_SEC_LEVEL_AUTHPRIV;
+		else if (c->auth_pass)
+			c->session.securityLevel = SNMP_SEC_LEVEL_AUTHNOPRIV;
+		else
+			c->session.securityLevel = SNMP_SEC_LEVEL_NOAUTH;
+		break;
+	case SNMP_SEC_LEVEL_NOAUTH:
+		if (c->priv_pass || c->auth_pass)
+			die(STATE_UNKNOWN, "secLevel \"noauth\" makes no sense with passwords supplied\n");
+		break;
+	case SNMP_SEC_LEVEL_AUTHNOPRIV:
+		if (c->priv_pass)
+			die(STATE_UNKNOWN, "secLevel \"authNoPriv\" makes no sense with privacy password set\n");
+		if (!c->auth_pass)
+			die(STATE_UNKNOWN, "secLevel \"authNoPriv\" requires auth password\n");
+		break;
+	case SNMP_SEC_LEVEL_AUTHPRIV:
+		if (!c->priv_pass || !c->auth_pass)
+			die(STATE_UNKNOWN, "secLevel \"authPriv\" requires auth and privacy passwords\n");
+		break;
+	default:
+		die(STATE_UNKNOWN, "Unknown secLevel. Stack smashed or other programmer error?\n");
+	}
 	if (c->auth_pass) {
+		if (!c->session.securityAuthProto) {
+			/* default to sha1 */
+			c->session.securityAuthProto = snmp_duplicate_objid(usmHMACSHA1AuthProtocol, USM_AUTH_PROTO_SHA_LEN);
+			c->session.securityAuthProtoLen = USM_AUTH_PROTO_SHA_LEN;
+		}
 		c->session.securityAuthKeyLen = sizeof(c->session.securityAuthKey);
 		_parse_key(&c->session, c->auth_pass, c->session.securityAuthKey, &c->session.securityAuthKeyLen);
 	}
