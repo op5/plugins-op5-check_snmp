@@ -159,7 +159,6 @@ int process_arguments (int argc, char **argv)
 	ctx = mp_snmp_create_context();
 	if (!ctx)
 		die(STATE_UNKNOWN, _("Failed to create snmp context\n"));
-	mp_snmp_finalize_auth(ctx);
 	
 	static struct option longopts[] = {
 		STD_LONG_OPTS,
@@ -261,6 +260,7 @@ int main(int argc, char **argv)
 	if ( process_arguments(argc, argv) == ERROR )
 		usage4 (_("Could not parse arguments"));
 	
+	mp_snmp_finalize_auth(ctx);
 	ptr = check_cpu_ret(ctx, ~0); /* get net-snmp cpu data */
 	mp_snmp_deinit(program_name); /* deinit */
 
