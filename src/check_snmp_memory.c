@@ -115,7 +115,10 @@ struct mem_info *check_mem_ret(mp_snmp_context *ss, int statemask)
 {
 	struct mem_info *mi = (struct mem_info *) malloc(sizeof(struct mem_info));
 	memset(mi, 0, sizeof(struct mem_info));
-	mp_snmp_walk(ss, MEMORY_TABLE, NULL, mem_callback, mi, NULL);
+	if (0 != mp_snmp_walk(ss, MEMORY_TABLE, NULL, mem_callback, mi, NULL)) {
+		die(STATE_UNKNOWN, "UNKNOWN: SNMP error when querying %s: %s\n",
+		    mp_snmp_get_peername(ctx), mp_snmp_get_errstr(ctx));
+	}
 
 	/* calculate the used values */
 	mi->UsedReal = mi->TotalReal-mi->AvailReal;
