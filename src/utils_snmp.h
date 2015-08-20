@@ -57,6 +57,9 @@ int mp_snmp_get_remote_port(mp_snmp_context *ctx);
 const char *mp_snmp_get_peername(mp_snmp_context *ctx);
 const char *mp_snmp_get_errstr(mp_snmp_context *ctx);
 
+/** debug functions */
+void mp_snmp_debug_print_ctx(FILE *fp, mp_snmp_context *ctx);
+
 /** real functions */
 void mp_snmp_argument_help(void);
 int mp_snmp_finalize_auth(mp_snmp_context *c);

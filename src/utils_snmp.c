@@ -42,6 +42,57 @@ const char *mp_snmp_get_errstr(struct mp_snmp_context *ctx)
 }
 
 
+/** debug stuff **/
+static const char *authproto_name(oid *o)
+{
+	const size_t len = USM_LENGTH_OID_TRANSFORM;
+
+	printf("o: %p; len: %ld\n", o, len);
+	if (!o)
+		return "unknown";
+
+	if (!snmp_oid_compare(o, len, usmHMACMD5AuthProtocol, len))
+		return "MD5";
+	if (!snmp_oid_compare(o, len, usmHMACSHA1AuthProtocol, len))
+		return "SHA1";
+
+	return "unknown";
+}
+static const char *seclevel_name(int lvl)
+{
+	switch (lvl) {
+	case SNMP_SEC_LEVEL_NOAUTH: return "noAuthNoPriv";
+	case SNMP_SEC_LEVEL_AUTHNOPRIV: return "authNoPriv";
+	case SNMP_SEC_LEVEL_AUTHPRIV: return "authPriv";
+	}
+
+	return "unknown";
+}
+
+void mp_snmp_debug_print_ctx(FILE *fp, mp_snmp_context *ctx)
+{
+	if (!ctx)
+		fprintf(fp, "(null)\n");
+	fprintf(fp, "     name: %s\n", ctx->name);
+	fprintf(fp, "auth_pass: %s\n", ctx->auth_pass);
+	fprintf(fp, "priv_pass: %s\n", ctx->priv_pass);
+	fprintf(fp, "    error: %d\n", ctx->error);
+	fprintf(fp, "   errstr: %s\n", ctx->errstr);
+	fprintf(fp, "## session ##\n");
+	fprintf(fp, "     peername: %s\n", ctx->session.peername);
+	fprintf(fp, "  remote_port: %d\n", ctx->session.remote_port);
+	fprintf(fp, "   local_port: %d\n", ctx->session.local_port);
+	fprintf(fp, "    community: %s\n", ctx->session.community);
+	fprintf(fp, "      version: %ld\n", ctx->session.version);
+	fprintf(fp, "community_len: %lu\n", ctx->session.community_len);
+	fprintf(fp, "      timeout: %ld\n", ctx->session.timeout);
+	fprintf(fp, "      retries: %d\n", ctx->session.retries);
+	fprintf(fp, "securityLevel: %s (%d)\n", seclevel_name(ctx->session.securityLevel), ctx->session.securityLevel);
+	fprintf(fp, " securityName: %s\n", ctx->session.securityName);
+	fprintf(fp, "securityAuthProto: %s\n", authproto_name(ctx->session.securityAuthProto));
+	fprintf(fp, "securityPrivProto: %s\n", ctx->session.securityPrivProto == usmDESPrivProtocol ? "DES" : "AES");
+}
+
 /** not exported library helpers **/
 static int mp_snmp_synch_response(mp_snmp_context *ctx, netsnmp_session *ss,
 		netsnmp_pdu *query, netsnmp_pdu **response)
