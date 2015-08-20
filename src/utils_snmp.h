@@ -31,14 +31,14 @@
 	{"hostname", required_argument, 0, 'H'}, \
 	{"port", required_argument, 0, 'p'}, \
 	{"community", required_argument, 0, 'C'}, \
-	{"version", required_argument, 0, 'v'},   \
+	{"protocol", required_argument, 0, 'P'},   \
 	{"retries", required_argument, 0, 'r'},   \
 	{"seclevel", required_argument, 0, 'L'},  \
 	{"secname", required_argument, 0, 'U'},   \
-	{"authprot", required_argument, 0, 'a'},  \
-	{"authpass", required_argument, 0, 'A'},  \
-	{"privprot", required_argument, 0, 'P'},  \
-	{"privpass", required_argument, 0, 'X'}
+	{"authproto", required_argument, 0, 'a'},  \
+	{"authpassword", required_argument, 0, 'A'},  \
+	{"privproto", required_argument, 0, 'x'},  \
+	{"privpasswd", required_argument, 0, 'X'}
 
 
 /** used to add entries to the 'mask' option for mp_snmp_pdu_add_subentries */
