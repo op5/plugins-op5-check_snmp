@@ -41,6 +41,23 @@ const char *mp_snmp_get_errstr(struct mp_snmp_context *ctx)
 	return (const char *)ctx->errstr;
 }
 
+
+/** not exported library helpers **/
+static int mp_snmp_synch_response(mp_snmp_context *ctx, netsnmp_session *ss,
+		netsnmp_pdu *query, netsnmp_pdu **response)
+{
+	int ret = snmp_synch_response(ss, query, response);
+
+	if (ret != STAT_SUCCESS) {
+		snmp_error(ss, &ss->s_errno, &ss->s_snmp_errno, &ctx->errstr);
+		return ret;
+	} else if ((*response)->errstat != SNMP_ERR_NOERROR) {
+		ctx->errstr = strdup(snmp_errstring((*response)->errstat));
+		return -2;
+	}
+	return ret;
+}
+
 int mp_snmp_is_valid_var(netsnmp_variable_list *v)
 {
 	if (!v || !v->name || !v->name_length)
@@ -65,7 +82,7 @@ int mp_snmp_query(mp_snmp_context *ctx, netsnmp_pdu *pdu, netsnmp_pdu **response
 		snmp_sess_perror("snmp_open", &ctx->session);
 		return -1;
 	}
-	ret = snmp_synch_response(ss, pdu, response);
+	ret = mp_snmp_synch_response(ctx, ss, pdu, response);
 	snmp_close(ss);
 
 	return ret;
@@ -99,6 +116,10 @@ static void _parse_key(netsnmp_session *ss, char *pass, u_char *key, size_t *len
 						(u_char *)pass, strlen(pass),
 						key, len) != SNMPERR_SUCCESS)
 		{
+			/*
+			 * generate_Ku is a sad function, so this is the best error
+			 * message we can give the user in case things go wrong
+			 */
 			die(STATE_UNKNOWN, _("Error generating Ku from password '%s'\n"), pass);
 		}
 	}
@@ -257,22 +278,6 @@ char *mp_snmp_value2str(netsnmp_variable_list *v, char *buf, size_t len)
 	return buf;
 }
 
-static int mp_snmp_synch_response(mp_snmp_context *ctx, netsnmp_session *ss,
-		netsnmp_pdu *query, netsnmp_pdu **response)
-{
-	int ret;
-
-	ret = snmp_synch_response(ss, query, response);
-	if (ret != STAT_SUCCESS) {
-		snmp_error(ss, &ss->s_errno, &ss->s_snmp_errno, &ctx->errstr);
-		return -1;
-	} else if ((*response)->errstat != SNMP_ERR_NOERROR) {
-		ctx->errstr = strdup(snmp_errstring((*response)->errstat));
-		return -2;
-	}
-	return 0;
-}
-
 int mp_snmp_walk(mp_snmp_context *ctx, const char *base_oid, const char *end_oid, mp_snmp_walker func, void *arg, void *arg2)
 {
 	netsnmp_session *s;
@@ -329,36 +334,10 @@ int mp_snmp_walk(mp_snmp_context *ctx, const char *base_oid, const char *end_oid
 		snmp_add_null_var(pdu, name, name_length);
 
 		/* do the request */
-		status = snmp_synch_response(s, pdu, &response);
+		status = mp_snmp_synch_response(ctx, s, pdu, &response);
 		if (status != STAT_SUCCESS) {
-			if (status == STAT_TIMEOUT) {
-				die(STATE_UNKNOWN, _("Timeout: No Response from %s\n"), s->peername);
-			}
-			else {
-				/* status == STAT_ERROR */
-				die(STATE_UNKNOWN, _("SNMP error when querying %s\n"), s->peername);
-			}
-			running = 0;
-			exitval = 1;
-			break;
-		}
-
-		if (response->errstat != SNMP_ERR_NOERROR) {
-			/* error in response, print it */
-			fprintf(stderr, "Error in packet.\nReason: %s\n",
-					snmp_errstring(response->errstat));
-			if (response->errindex != 0) {
-				fprintf(stderr, "Failed object: ");
-				for (count = 1, v = response->variables;
-					 v && count != response->errindex;
-					 v = v->next_variable, count++)
-					/*EMPTY*/;
-				if (v)
-					fprint_objid(stderr, v->name, v->name_length);
-				fprintf(stderr, "\n");
-			}
-			exitval = 2;
-			break;
+			/* status == STAT_ERROR */
+			return status;
 		}
 
 		/* check resulting variables */
