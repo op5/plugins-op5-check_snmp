@@ -385,7 +385,6 @@ int process_arguments(int argc, char **argv)
 
 	optary = calloc(3, ARRAY_SIZE(longopts));
 	i = 0;
-	optary[i++] = '+';
 	optary[i++] = '?';
 	for (x = 0; longopts[x].name; x++) {
 		struct option *o = &longopts[x];
