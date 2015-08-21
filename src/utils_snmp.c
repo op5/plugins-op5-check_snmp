@@ -130,7 +130,7 @@ int mp_snmp_query(mp_snmp_context *ctx, netsnmp_pdu *pdu, netsnmp_pdu **response
 	int ret;
 
 	if (!(ss = snmp_open(&ctx->session))) {
-		snmp_sess_perror("snmp_open", &ctx->session);
+		snmp_error(&ctx->session, NULL, NULL, &ctx->errstr);
 		return -1;
 	}
 	ret = mp_snmp_synch_response(ctx, ss, pdu, response);
@@ -373,7 +373,10 @@ int mp_snmp_walk(mp_snmp_context *ctx, const char *base_oid, const char *end_oid
 	int count, running, status = STAT_ERROR, exitval = 0;
 	int result;
 
-	s = snmp_open(&ctx->session);
+	if (!(s = snmp_open(&ctx->session))) {
+		snmp_error(&ctx->session, NULL, NULL, &ctx->errstr);
+		return -1;
+	}
 
 	/*
 	 * get the initial object and subtree
