@@ -179,6 +179,9 @@ static void _parse_key(netsnmp_session *ss, char *pass, u_char *key, size_t *len
 
 int mp_snmp_finalize_auth(mp_snmp_context *c)
 {
+	if (!c->session.peername)
+		die(STATE_UNKNOWN, "No hostname provided\n");
+
 	if (c->auth_pass || c->priv_pass || c->session.securityName
 	    || c->session.securityPrivProtoLen || c->session.securityAuthProtoLen
 	    || c->session.securityLevel)
