@@ -109,10 +109,19 @@ struct cpu_info *check_cpu_ret(mp_snmp_context *ss, int statemask)
 {
 	struct cpu_info *ci = (struct cpu_info *) malloc(sizeof(struct cpu_info));
 	memset(ci, 0, sizeof(struct cpu_info));
-	mp_snmp_walk(ss, LOAD_TABLE, NULL, cpu_callback, ci, NULL);
-	mp_snmp_walk(ss, SYSTEMSTATS_TABLE, NULL, io_callback, ci, NULL);
-	mp_snmp_walk(ss, HRDEVICE_TABLE, NULL, type_callback, ci, NULL);
-	
+	if (0 != mp_snmp_walk(ss, LOAD_TABLE, NULL, cpu_callback, ci, NULL)) {
+		die(STATE_UNKNOWN, "UNKNOWN: SNMP error when querying %s: %s\n",
+		mp_snmp_get_peername(ctx), mp_snmp_get_errstr(ctx));
+	}
+	if (0 != mp_snmp_walk(ss, SYSTEMSTATS_TABLE, NULL, io_callback, ci, NULL)) {
+		die(STATE_UNKNOWN, "UNKNOWN: SNMP error when querying %s: %s\n",
+		mp_snmp_get_peername(ctx), mp_snmp_get_errstr(ctx));
+	}
+	if (0 != mp_snmp_walk(ss, HRDEVICE_TABLE, NULL, type_callback, ci, NULL)) {
+		die(STATE_UNKNOWN, "UNKNOWN: SNMP error when querying %s: %s\n",
+		mp_snmp_get_peername(ctx), mp_snmp_get_errstr(ctx));
+	}
+
 	mp_debug(3,"Load-1: %f, Load-5: %f, Load-15 %f, CpuRawWait %d\n",
 				ci->Load1, ci->Load5, ci->Load15, ci->CpuRawWait);
 

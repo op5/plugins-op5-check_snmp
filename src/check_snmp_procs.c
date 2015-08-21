@@ -123,7 +123,10 @@ struct process_state_count *check_proc_ret(mp_snmp_context *ss, int statemask)
 {
 	struct process_state_count *pstate_count = (struct process_state_count *) malloc(sizeof(struct process_state_count));
 	memset(pstate_count, 0, sizeof(struct process_state_count));
-	mp_snmp_walk(ss, PROCESS_TABLE ".7", NULL, pstate_callback, pstate_count, NULL);
+	if (0 != mp_snmp_walk(ss, PROCESS_TABLE ".7", NULL, pstate_callback, pstate_count, NULL)) {
+		die(STATE_UNKNOWN, "UNKNOWN: SNMP error when querying %s: %s\n",
+			mp_snmp_get_peername(ss), mp_snmp_get_errstr(ss));
+	}
 
 	mp_debug(3,"Processes: running=%d, runnable=%d, not runnable=%d, invalid=%d\n",
 	      pstate_count->running, pstate_count->runnable,
@@ -243,7 +246,10 @@ static int parse_snmp_var(netsnmp_variable_list *v, void *discard1, void *discar
 
 static void fetch_proc_info(mp_snmp_context *ctx)
 {
-	mp_snmp_walk(ctx, ".1.3.6.1.2.1.25.4", ".1.3.6.1.2.1.25.6", parse_snmp_var, NULL, NULL);
+	if (0 != mp_snmp_walk(ctx, ".1.3.6.1.2.1.25.4", ".1.3.6.1.2.1.25.6", parse_snmp_var, NULL, NULL)) {
+		die(STATE_UNKNOWN, "UNKNOWN: SNMP error when querying %s: %s\n",
+			mp_snmp_get_peername(ctx), mp_snmp_get_errstr(ctx));
+	}
 }
 
 void print_usage (void)

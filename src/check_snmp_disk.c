@@ -260,16 +260,25 @@ struct disk_info *check_disk_ret(mp_snmp_context *ss, int statemask)
 	if (get_index == 0 && o_disk == NULL) {
 		printf("### Fetched storage data over NET-SNMP ###\n");
 		printf("Index:\tDescription:\n");
-		mp_snmp_walk(ss, "1.3.6.1.2.1.25.2.3.1.3", NULL, disk_index_and_description_output, cd, NULL);
+		if (0 != mp_snmp_walk(ss, "1.3.6.1.2.1.25.2.3.1.3", NULL, disk_index_and_description_output, cd, NULL)) {
+			die(STATE_UNKNOWN, "UNKNOWN: SNMP error when querying %s: %s\n",
+				mp_snmp_get_peername(ctx), mp_snmp_get_errstr(ctx));
+		}
 		exit(STATE_OK);
 	}
 	else {
 		/* get the index from description */
-		mp_snmp_walk(ss, "1.3.6.1.2.1.25.2.3.1.3", NULL, get_disk_index_from_desc, cd, NULL);
+		if (0 != mp_snmp_walk(ss, "1.3.6.1.2.1.25.2.3.1.3", NULL, get_disk_index_from_desc, cd, NULL)) {
+			die(STATE_UNKNOWN, "UNKNOWN: SNMP error when querying %s: %s\n",
+				mp_snmp_get_peername(ctx), mp_snmp_get_errstr(ctx));
+		}
 		
 		/* get and store the relevant data for the disk */
 		mp_debug(3,"\nFetched data over NET-SNMP:\n");
-		mp_snmp_walk(ss, HRSTORAGE_TABLE, NULL, disk_callback, cd, NULL);
+		if (0 != mp_snmp_walk(ss, HRSTORAGE_TABLE, NULL, disk_callback, cd, NULL)) {
+			die(STATE_UNKNOWN, "UNKNOWN: SNMP error when querying %s: %s\n",
+				mp_snmp_get_peername(ctx), mp_snmp_get_errstr(ctx));
+		}
 		mp_debug(3,"\nStored values:\n");
 		mp_debug(3,"Index: %d, Description: %s, AllocationUnits %d, Size %d, Used %d\n",
 		cd->Index, cd->Descr, cd->AllocationUnits, cd->Size, cd->Used);
@@ -286,16 +295,25 @@ struct disk_info *check_disk_io_ret(mp_snmp_context *ss, int statemask)
 	if (get_index == 0 && o_disk == NULL) {
 		printf("### Fetched IO data over NET-SNMP ###\n");
 		printf("Index:\tDescription:\n");
-		mp_snmp_walk(ss,".1.3.6.1.4.1.2021.13.15.1.1.2" , NULL, io_index_and_description_output, cdi, NULL);
+		if (0 != mp_snmp_walk(ss,".1.3.6.1.4.1.2021.13.15.1.1.2" , NULL, io_index_and_description_output, cdi, NULL)) {
+			die(STATE_UNKNOWN, "UNKNOWN: SNMP error when querying %s: %s\n",
+				mp_snmp_get_peername(ctx), mp_snmp_get_errstr(ctx));
+		}
 		exit(STATE_OK);
 	}
 	else {
 		/* get the index from description */
-		mp_snmp_walk(ss,".1.3.6.1.4.1.2021.13.15.1.1.2" , NULL, get_io_index_from_desc, cdi, NULL);
+		if (0 != mp_snmp_walk(ss,".1.3.6.1.4.1.2021.13.15.1.1.2" , NULL, get_io_index_from_desc, cdi, NULL)) {
+			die(STATE_UNKNOWN, "UNKNOWN: SNMP error when querying %s: %s\n",
+				mp_snmp_get_peername(ctx), mp_snmp_get_errstr(ctx));
+		}
 		
 		/* get and store the relevant data for the disk */
 		mp_debug(3,"\nFetched data over NET-SNMP:\n");
-		mp_snmp_walk(ss, DISKIO_TABLE, NULL, io_callback, cdi, NULL);
+		if (0 != mp_snmp_walk(ss, DISKIO_TABLE, NULL, io_callback, cdi, NULL)) {
+			die(STATE_UNKNOWN, "UNKNOWN: SNMP error when querying %s: %s\n",
+				mp_snmp_get_peername(ctx), mp_snmp_get_errstr(ctx));
+		};
 		mp_debug(3,"\nStored values:\n");
 		mp_debug(3,"Index: %d, Description: %s, La1 %d, La5 %d, La15 %d\n",
 		cdi->IO.Index, cdi->IO.Descr, cdi->IO.La1, cdi->IO.La5, cdi->IO.La15);
