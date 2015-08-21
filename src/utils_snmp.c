@@ -152,6 +152,7 @@ mp_snmp_context *mp_snmp_create_context(void)
 	c->session.timeout = 15 * 100000;
 	c->session.community = (u_char *)"public";
 	c->session.community_len = (size_t)strlen((char *)c->session.community);
+	c->session.remote_port = 161;
 	return c;
 }
 
