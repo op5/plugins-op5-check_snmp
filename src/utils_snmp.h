@@ -56,6 +56,7 @@ const netsnmp_session *mp_snmp_get_session(mp_snmp_context *ctx);
 int mp_snmp_get_remote_port(mp_snmp_context *ctx);
 const char *mp_snmp_get_peername(mp_snmp_context *ctx);
 const char *mp_snmp_get_errstr(mp_snmp_context *ctx);
+const char *mp_snmp_version_name(long int version);
 
 /** debug functions */
 void mp_snmp_debug_print_ctx(FILE *fp, mp_snmp_context *ctx);

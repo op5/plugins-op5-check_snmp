@@ -41,6 +41,15 @@ const char *mp_snmp_get_errstr(struct mp_snmp_context *ctx)
 	return (const char *)ctx->errstr;
 }
 
+const char *mp_snmp_version_name(long int version)
+{
+	switch (version) {
+	case SNMP_VERSION_1: return "1";
+	case SNMP_VERSION_2c: return "2c";
+	case SNMP_VERSION_3: return "3";
+	}
+	return "unknown";
+}
 
 /** debug stuff **/
 static const char *authproto_name(oid *o)
@@ -83,7 +92,7 @@ void mp_snmp_debug_print_ctx(FILE *fp, mp_snmp_context *ctx)
 	fprintf(fp, "  remote_port: %d\n", ctx->session.remote_port);
 	fprintf(fp, "   local_port: %d\n", ctx->session.local_port);
 	fprintf(fp, "    community: %s\n", ctx->session.community);
-	fprintf(fp, "      version: %ld\n", ctx->session.version);
+	fprintf(fp, "      version: %s\n", mp_snmp_version_name(ctx->session.version));
 	fprintf(fp, "community_len: %lu\n", ctx->session.community_len);
 	fprintf(fp, "      timeout: %ld\n", ctx->session.timeout);
 	fprintf(fp, "      retries: %d\n", ctx->session.retries);
