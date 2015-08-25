@@ -247,6 +247,15 @@ int process_arguments (int argc, char **argv)
 		}
 	}
 	free(optary);
+
+	if (optind != argc) {
+		printf("%s: %s: ", state_text(STATE_UNKNOWN), _("Unhandled arguments present"));
+		for (i = optind - 1; i < argc; i++) {
+			printf("%s%s", argv[i], i == argc - 1 ? "\n" : ", ");
+		}
+		exit(STATE_UNKNOWN);
+	}
+
 	return TRUE;
 }
 
@@ -287,7 +296,7 @@ int main(int argc, char **argv)
 	 */
 	if (o_monitortype != MONITOR_TYPE__LOAD)
 		set_thresholds(&thresh, warn_str, crit_str);
-	
+
 	if (o_monitortype == MONITOR_TYPE__LOAD)
 	{
 		legacy_token = strtok(warn_str, ",");

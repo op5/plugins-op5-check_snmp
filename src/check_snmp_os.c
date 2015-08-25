@@ -384,8 +384,16 @@ int process_arguments (int argc, char **argv)
 				break;
 		}
 	}
-	
 	free(optary);
+
+	if (optind != argc) {
+		printf("%s: %s: ", state_text(STATE_UNKNOWN), _("Unhandled arguments present"));
+		for (i = optind - 1; i < argc; i++) {
+			printf("%s%s", argv[i], i == argc - 1 ? "\n" : ", ");
+		}
+		exit(STATE_UNKNOWN);
+	}
+
 	return validate_arguments ();
 }
 
