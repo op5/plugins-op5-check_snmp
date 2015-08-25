@@ -498,10 +498,18 @@ int main(int argc, char **argv)
 		usage4 (_("Could not parse arguments"));
 
 	/**
+	 * Finalize authentication of the snmp context and print possible debug info
+	 * about the mp_snmp_context
+	 */
+	mp_snmp_finalize_auth(ctx);
+	if (mp_verbosity >= 1) {
+		mp_snmp_debug_print_ctx(stdout,ctx);
+	};
+
+	/**
 	 *  Set standard monitoring-plugins thresholds
 	 */
 	set_thresholds(&thresh, warn_str, crit_str);
-	mp_snmp_finalize_auth(ctx);
 
 	/* get, calculate and set result status */
 	switch (o_monitortype) {
