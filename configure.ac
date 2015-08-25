@@ -13,6 +13,20 @@ AC_PROG_RANLIB
 AM_CPPFLAGS=""
 PKG_CHECK_MODULES([naemon], [naemon])
 
+# check for compiler flags. Enabling warnings must come before disabling
+AX_CHECK_COMPILE_FLAG([-Wall], AM_CFLAGS+=" -Wall")
+AX_CHECK_COMPILE_FLAG([-pipe], AM_CFLAGS+=" -pipe")
+AX_CHECK_COMPILE_FLAG([-ggdb3], AM_CFLAGS+=" -ggdb3")
+AX_CHECK_COMPILE_FLAG([-Werror], AM_CFLAGS+=" -Werror")
+AX_CHECK_COMPILE_FLAG([-Wextra], AM_CFLAGS+=" -Wextra")
+AX_CHECK_COMPILE_FLAG([-Wredundant-decls], AM_CFLAGS+=" -Wredundant-decls")
+AX_CHECK_COMPILE_FLAG([-Wtrigraphs], AM_CFLAGS+=" -Wtrigraphs")
+AX_CHECK_COMPILE_FLAG([-Wdeclaration-after-statement], AM_CFLAGS+=" -Wdeclaration-after-statement")
+AX_CHECK_COMPILE_FLAG([-Wshadow], AM_CFLAGS+=" -Wshadow")
+AX_CHECK_COMPILE_FLAG([-Wstrict-prototypes], AM_CFLAGS+=" -Wstrict-prototypes")
+AX_CHECK_COMPILE_FLAG([-Wno-unused-result], AM_CFLAGS+=" -Wno-unused-result")
+
+
 # START SNMP STUFF
 AC_PATH_PROG(NETSNMPCONFIG,net-snmp-config)
 AC_ARG_WITH(net-snmp-config,
