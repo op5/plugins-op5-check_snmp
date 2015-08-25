@@ -197,8 +197,8 @@ int mp_snmp_finalize_auth(mp_snmp_context *c)
 	{
 		if (-1 == c->session.version)
 			c->session.version = SNMP_VERSION_3;
-		else {
-			die(STATE_UNKNOWN, "SNMP version 3 variables makes no sense with SNMP version %ld\n", c->session.version + 1);
+		else if (SNMP_VERSION_3 != c->session.version) {
+			die(STATE_UNKNOWN, "SNMP version 3 variables makes no sense with SNMP version %s\n", mp_snmp_version_name(c->session.version));
 		}
 	}
 
