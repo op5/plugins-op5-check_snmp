@@ -269,7 +269,15 @@ int main(int argc, char **argv)
 	if ( process_arguments(argc, argv) == ERROR )
 		usage4 (_("Could not parse arguments"));
 	
+	/**
+	 * Finalize authentication of the snmp context and print possible debug info
+	 * about the mp_snmp_context
+	 */
 	mp_snmp_finalize_auth(ctx);
+	if (mp_verbosity >= 1) {
+		mp_snmp_debug_print_ctx(stdout,ctx);
+	};
+
 	ptr = check_cpu_ret(ctx, ~0); /* get net-snmp cpu data */
 	mp_snmp_deinit(program_name); /* deinit */
 

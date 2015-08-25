@@ -283,11 +283,18 @@ int main(int argc, char **argv)
 	 *  Set standard monitoring-plugins thresholds
 	 */
 	set_thresholds(&thresh, warn_str, crit_str);
-	
+
+	/**
+	 * Finalize authentication of the snmp context and print possible debug info
+	 * about the mp_snmp_context
+	 */
 	mp_snmp_finalize_auth(ctx);
+	if (mp_verbosity >= 1) {
+		mp_snmp_debug_print_ctx(stdout,ctx);
+	};
+
 	ptr = check_mem_ret(ctx, ~0); /* get net-snmp memory data */
 	mp_snmp_deinit(program_name); /* deinit */
-
 	/* check and output results */
 	switch (o_monitortype) {
 		case MONITOR_TYPE__RAM_USED:

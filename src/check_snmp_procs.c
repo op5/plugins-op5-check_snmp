@@ -139,14 +139,14 @@ static int proc_info_ret(void *p_, void *discard)
 {
 	struct proc_info *p = (struct proc_info *)p_;
 
-	mp_debug(3,"################\n");
-	mp_debug(3,"  Index: %d\n", p->Index);
-	mp_debug(3,"  Name: %s\n", p->Name);
-	mp_debug(3,"  Path: %s\n", p->Path);
-	mp_debug(3,"  Status: %s\n", pstate2str(p->Status));
-	mp_debug(3,"  Parameters: %s\n", p->Parameters);
-	mp_debug(3,"  CPU: %d\n", p->Perf.CPU);
-	mp_debug(3,"  Mem: %d\n", p->Perf.Mem);
+	mp_debug(2,"################\n");
+	mp_debug(2,"  Index: %d\n", p->Index);
+	mp_debug(2,"  Name: %s\n", p->Name);
+	mp_debug(2,"  Path: %s\n", p->Path);
+	mp_debug(2,"  Status: %s\n", pstate2str(p->Status));
+	mp_debug(2,"  Parameters: %s\n", p->Parameters);
+	mp_debug(2,"  CPU: %d\n", p->Perf.CPU);
+	mp_debug(2,"  Mem: %d\n", p->Perf.Mem);
 
 	if (0 == strcmp(p->Name, name_filter))
 	{
@@ -340,7 +340,7 @@ int main(int argc, char **argv)
 	}
 
 	bitmap_destroy(bm);
-	mp_debug(1,"optary: %s\n", optary);
+	mp_debug(2,"optary: %s\n", optary);
 	mp_snmp_init("check_snmp_procs", 0);
 	ctx = mp_snmp_create_context();
 	if (!ctx)
@@ -408,15 +408,23 @@ int main(int argc, char **argv)
 
 	if (o_monitortype != MONITOR_TYPE__NUMBER_OF_PROCESSES_WITH_MEM_AND_CPU)
 		set_thresholds(&thresh, warn_str, crit_str);
-	
+
+	/**
+	 * Finalize authentication of the snmp context and print possible debug info
+	 * about the mp_snmp_context
+	 */
 	mp_snmp_finalize_auth(ctx);
+	if (mp_verbosity >= 1) {
+		mp_snmp_debug_print_ctx(stdout,ctx);
+	};
+
 	state_filter = parse_state_filter(state_str);
 	if (state_filter < 0) {
 		die(STATE_UNKNOWN, _("Invalid state filter string: %s\n"), state_str);
 	}
 
 	fetch_proc_info(ctx);
-	mp_debug(1,"Traversing %d nodes\n", rbtree_num_nodes(all_procs));
+	mp_debug(2,"Traversing %d nodes\n", rbtree_num_nodes(all_procs));
 
 	switch (o_monitortype) {
 		case MONITOR_TYPE__NUMBER_OF_PROCESSES:
