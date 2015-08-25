@@ -148,7 +148,7 @@ mp_snmp_context *mp_snmp_create_context(void)
 
 	snmp_sess_init(&c->session);
 	/* set some defaults */
-	c->session.version = SNMP_VERSION_2c;
+	c->session.version = -1;
 	c->session.timeout = 15 * 100000;
 	c->session.community = (u_char *)"public";
 	c->session.community_len = (size_t)strlen((char *)c->session.community);
@@ -186,8 +186,21 @@ int mp_snmp_finalize_auth(mp_snmp_context *c)
 	    || c->session.securityPrivProtoLen || c->session.securityAuthProtoLen
 	    || c->session.securityLevel)
 	{
-		c->session.version = SNMP_VERSION_3;
+		if (-1 == c->session.version)
+			c->session.version = SNMP_VERSION_3;
+		else {
+			die(STATE_UNKNOWN, "SNMP version 3 variables makes no sense with SNMP version %ld\n", c->session.version + 1);
+		}
 	}
+
+	/* default to snmp v2c if nothing was specified */
+	if (c->session.version == -1)
+		c->session.version = SNMP_VERSION_2c;
+
+	/* the rest is only for snmp v3 */
+	if (SNMP_VERSION_3 != c->session.version)
+		return 0;
+
 	switch (c->session.securityLevel) {
 	case 0: /* not set - determine automagically */
 		if (c->priv_pass && c->auth_pass)
