@@ -347,6 +347,8 @@ int main(int argc, char **argv)
 	if (o_monitortype == MONITOR_TYPE__IOWAIT) {
 		time_t fftime = 0, timenow = time(0);
 		int ffcpurawwait = 0;
+		char *state_string = NULL;
+
 		np_enable_state(NULL, 1);
 		state_data *previous_state = np_state_read();
 		
@@ -360,9 +362,8 @@ int main(int argc, char **argv)
 				mp_debug(3,"iowait: %.2f\n", iowait);
 			}
 		}
-		char *state_string;
-		asprintf(&state_string, "%d %ld", ptr->CpuRawWait, timenow);
-		np_state_write_string(0, state_string);
+		if (asprintf(&state_string, "%d %ld", ptr->CpuRawWait, timenow) >= 3)
+			np_state_write_string(0, state_string);
 		free(state_string);
 	}
 
