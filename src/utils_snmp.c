@@ -279,17 +279,17 @@ void mp_snmp_argument_help(void)
 	printf(" -C, --community=STRING\n");
 	printf("   %s\n", _("Community string for SNMP communication"));
 	printf(" -P, --protocol=[1|2c|3]\n");
-	printf("    %s\n", _("SNMP protocol version"));
+	printf("    %s\n", _("SNMP protocol version (default: 2c)"));
 	printf(" -L, --seclevel=[noAuthNoPriv|authNoPriv|authPriv]\n");
-	printf("    %s\n", _("SNMPv3 securityLevel"));
+	printf("    %s\n", _("SNMPv3 securityLevel (default: depends on -a and -x)"));
 	printf(" -U, --secname=USERNAME\n");
 	printf("    %s\n", _("SNMPv3 username"));
 	printf(" -a, --authproto=[MD5|SHA]\n");
-	printf("    %s\n", _("SNMPv3 auth proto"));
+	printf("    %s\n", _("SNMPv3 auth proto (default: SHA)"));
 	printf(" -A, --authpassword=PASSWORD\n");
 	printf("    %s\n", _("SNMPv3 authentication password"));
 	printf(" -x, --privproto=[DES|AES]\n");
-	printf("    %s\n", _("SNMPv3 priv proto (default DES)"));
+	printf("    %s\n", _("SNMPv3 priv proto (default: DES)"));
 	printf(" -X, --privpasswd=PASSWORD\n");
 	printf("    %s\n", _("SNMPv3 privacy password"));
 }
