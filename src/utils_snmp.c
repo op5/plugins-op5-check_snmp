@@ -248,13 +248,8 @@ int mp_snmp_finalize_auth(mp_snmp_context *c)
 	if (c->priv_pass) {
 		c->session.securityPrivKeyLen = sizeof(c->session.securityPrivKey);
 		if (c->session.securityPrivProto == NULL) {
-#ifndef NETSNMP_DISABLE_DES
-			c->session.securityPrivProto = snmp_duplicate_objid(usmDESPrivProtocol, USM_PRIV_PROTO_DES_LEN);
-			c->session.securityPrivProtoLen = USM_PRIV_PROTO_DES_LEN;
-#else
 			c->session.securityPrivProto = snmp_duplicate_objid(usmAESPrivProtocol, USM_PRIV_PROTO_AES_LEN);
 			c->session.securityPrivProtoLen = USM_PRIV_PROTO_AES_LEN;
-#endif
 		}
 		_parse_key(&c->session, c->priv_pass, c->session.securityPrivKey, &c->session.securityPrivKeyLen);
 	}
