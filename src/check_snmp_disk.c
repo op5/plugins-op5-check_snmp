@@ -472,6 +472,9 @@ int process_arguments(int argc, char **argv)
 					die(STATE_UNKNOWN, _("Wrong parameter for -T.\n"));
 				}
 				break;
+			default:
+				exit(STATE_UNKNOWN);
+				break;
 		}
 	}
 	free(optary);

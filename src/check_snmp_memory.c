@@ -255,8 +255,13 @@ int process_arguments (int argc, char **argv)
 					o_monitortype = MONITOR_TYPE__CACHED_MB;
 				} else if (0==strcmp(optarg, "cached_in_gb")) {
 					o_monitortype = MONITOR_TYPE__CACHED_GB;
+				} else {
+					die(STATE_UNKNOWN, _("Wrong parameter for -T.\n"));
 				}
-			break;
+				break;
+			default:
+				exit(STATE_UNKNOWN);
+				break;
 		}
 	}
 	free(optary);
