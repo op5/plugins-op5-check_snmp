@@ -459,22 +459,22 @@ EOF;
 			'35	/dev/shm'
 		), 0);
 	}
-	public function test_valid_index_option_without_extra_parameters() {
+	public function disable_test_invalid_option() {
 		$this->assertCommand("-H @endpoint@ -C mycommunity -f -i /", array(
 		), array(
-			'OK: 32% of storage used'
-		), 0);
+			''
+		), 3);
 	}
 	public function test_valid_index_option_with_default_T_parameter() {
-		$this->assertCommand("-H @endpoint@ -C mycommunity -f -i / -T storage_percent_used", array(
-		), array(
-			'OK: 32% of storage used'
-		), 0);
-	}
-	public function test_valid_index_option_with_perfdata() {
 		$this->assertCommand("-H @endpoint@ -C mycommunity -i /", array(
 		), array(
-			"OK: 32% of storage used |'/'=32%;;"
+			"OK: Used space on '/': 32.59% (2.57GiB) of total 7.87GiB |Used=2755420160B;0;0;0;8454070272 Free=5698650112B;;;0;8454070272"
+		), 0);
+	}
+	public function test_valid_index_option_with_T_parameter() {
+		$this->assertCommand("-H @endpoint@ -C mycommunity -T storage_used -i /", array(
+		), array(
+			"OK: Used space on '/': 32.59% (2.57GiB) of total 7.87GiB |Used=2755420160B;0;0;0;8454070272 Free=5698650112B;;;0;8454070272"
 		), 0);
 	}
 	public function test_invalid_I_option() {
@@ -489,125 +489,105 @@ EOF;
 			"Wrong parameter for -T."
 		), 3);
 	}
-	
+
 /**
- * Storage percent used
+ * Storage percent used controlled by warning and critical values
  */
 	public function test_percent_storage_used_OK() {
-		$this->assertCommand("-H @endpoint@ -C mycommunity -i / -w 50 -c 75", array(
+		$this->assertCommand("-H @endpoint@ -C mycommunity -i / -w50 -c75", array(
 		), array(
-			"OK: 32% of storage used |'/'=32%;50;75"
+			"OK: Used space on '/': 32.59% (2.57GiB) of total 7.87GiB |Used=2755420160B;4227035136;6340552704;0;8454070272 Free=5698650112B;;;0;8454070272"
 		), 0);
 	}
 	public function test_percent_storage_used_WARNING() {
-		$this->assertCommand("-H @endpoint@ -C mycommunity -i / -w 25 -c 75", array(
+		$this->assertCommand("-H @endpoint@ -C mycommunity -i / -w25% -c75%", array(
 		), array(
-			"WARNING: 32% of storage used |'/'=32%;25;75"
+			"WARNING: Used space on '/': 32.59% (2.57GiB) of total 7.87GiB |Used=2755420160B;2113517568;6340552704;0;8454070272 Free=5698650112B;;;0;8454070272"
 		), 1);
 	}
 	public function test_percent_storage_used_CRITICAL() {
-		$this->assertCommand("-H @endpoint@ -C mycommunity -i / -w 25 -c 30", array(
+		$this->assertCommand("-H @endpoint@ -C mycommunity -i / -w25:26 -c30:31", array(
 		), array(
-			"CRITICAL: 32% of storage used |'/'=32%;25;30"
+			"CRITICAL: Used space on '/': 32.59% (2.57GiB) of total 7.87GiB |Used=2755420160B;2198058270;2620761784;0;8454070272 Free=5698650112B;;;0;8454070272"
 		), 2);
 	}
+
 /**
- * Storage percent left
+ * Storage prefixedbytes used controlled by warning and critical values
  */
-	public function test_percent_storage_left_OK() {
-		$this->assertCommand("-H @endpoint@ -C mycommunity -i / -w 75 -c 95 -T storage_percent_left", array(
+	public function test_mb_prefix_and_gb_prefix_OK() {
+		$this->assertCommand("-H @endpoint@ -C mycommunity -i / -w3000mb -c4.000gb", array(
 		), array(
-			"OK: 67% of storage left |'/'=67%;75;95"
+			"OK: Used space on '/': 32.59% (2.57GiB) of total 7.87GiB |Used=2755420160B;3145728000;4294967296;0;8454070272 Free=5698650112B;;;0;8454070272"
 		), 0);
 	}
-	public function test_percent_storage_left_WARNING() {
-		$this->assertCommand("-H @endpoint@ -C mycommunity -i / -w 25 -c 95 -T storage_percent_left", array(
+	public function test_gb_prefix_with_range_without_prefix_WARNING() {
+		$this->assertCommand("-H @endpoint@ -C mycommunity -i / -w2gb:2.5 -c4000mb", array(
 		), array(
-			"WARNING: 67% of storage left |'/'=67%;25;95"
+			"WARNING: Used space on '/': 32.59% (2.57GiB) of total 7.87GiB |Used=2755420160B;2684354560;4194304000;0;8454070272 Free=5698650112B;;;0;8454070272"
 		), 1);
 	}
-	public function test_percent_storage_left_CRITICAL() {
-		$this->assertCommand("-H @endpoint@ -C mycommunity -i / -w 25 -c 30 -T storage_percent_left", array(
+	public function test_gb_prefix_with_range_with_prefix_CRITICAL() {
+		$this->assertCommand("-H @endpoint@ -C mycommunity -i / -w2gb:2.1gb -c~:2.50gb", array(
 		), array(
-			"CRITICAL: 67% of storage left |'/'=67%;25;30"
+			"CRITICAL: Used space on '/': 32.59% (2.57GiB) of total 7.87GiB |Used=2755420160B;2254857830;2684354560;0;8454070272 Free=5698650112B;;;0;8454070272"
 		), 2);
 	}
-/**
- * Storage MB used
- */
-	public function test_mb_storage_used_OK() {
-		$this->assertCommand("-H @endpoint@ -C mycommunity -i / -w 3000 -c 4000 -T storage_mb_used", array(
+	public function test_gb_prefix_with_range_with_different_prefix_in_the_same_range_CRITICAL() {
+		$this->assertCommand("-H @endpoint@ -C mycommunity -i / -w2gb:2.1tb -c~:2.50gb", array(
 		), array(
-			"OK: 2627MB of storage used |'/'=2627MB;3000;4000"
-		), 0);
-	}
-	public function test_mb_storage_used_WARNING() {
-		$this->assertCommand("-H @endpoint@ -C mycommunity -f -i / -w 2500 -c 4000 -T storage_mb_used", array(
-		), array(
-			"WARNING: 2627MB of storage used"
-		), 1);
-	}
-	public function test_mb_storage_used_CRITICAL() {
-		$this->assertCommand("-H @endpoint@ -C mycommunity -f -i / -w 2500 -c 2600 -T storage_mb_used", array(
-		), array(
-			"CRITICAL: 2627MB of storage used"
+			"CRITICAL: Used space on '/': 32.59% (2.57GiB) of total 7.87GiB |Used=2755420160B;2254857830;2684354560;0;8454070272 Free=5698650112B;;;0;8454070272"
 		), 2);
 	}
-/**
- * Storage MB left
- */
-	public function test_mb_storage_left_OK() {
-		$this->assertCommand("-H @endpoint@ -C mycommunity -i / -w 5500 -c 6000 -T storage_mb_left", array(
+	public function test_tb_prefix_with_range_with_different_prefix_in_the_same_range_CRITICAL() {
+		$this->assertCommand("-H @endpoint@ -C mycommunity -i / -w2tb:2.1gb -c~:2.50gb", array(
 		), array(
-			"OK: 5434MB of storage left |'/'=5434MB;5500;6000"
-		), 0);
-	}
-	public function test_mb_storage_left_WARNING() {
-		$this->assertCommand("-H @endpoint@ -C mycommunity -f -i / -w 4000 -c 6000 -T storage_mb_left", array(
-		), array(
-			"WARNING: 5434MB of storage left"
-		), 1);
-	}
-	public function test_mb_storage_left_CRITICAL() {
-		$this->assertCommand("-H @endpoint@ -C mycommunity -f -i / -w 4000 -c 4500 -T storage_mb_left", array(
-		), array(
-			"CRITICAL: 5434MB of storage left"
+			"CRITICAL: Used space on '/': 32.59% (2.57GiB) of total 7.87GiB |Used=2755420160B;2308974418329;2684354560;0;8454070272 Free=5698650112B;;;0;8454070272"
 		), 2);
 	}
-/**
- * Storage GB used/left
- */
-	public function test_gb_storage_used_OK() {
-		$this->assertCommand("-H @endpoint@ -C mycommunity -i / -w 3 -c 4 -T storage_gb_used", array(
+	public function test_warning_gb_OK() {
+		$this->assertCommand("-H @endpoint@ -C mycommunity -i / -w2.00:3.5gb", array(
 		), array(
-			"OK: 3GB of storage used |'/'=3GB;3;4"
+			"OK: Used space on '/': 32.59% (2.57GiB) of total 7.87GiB |Used=2755420160B;3758096384;0;0;8454070272 Free=5698650112B;;;0;8454070272"
 		), 0);
 	}
-	public function test_gb_storage_left_OK() {
-		$this->assertCommand("-H @endpoint@ -C mycommunity -i / -w 6 -c 7 -T storage_gb_left", array(
+	public function test_warning_gb_uppercase_OK() {
+		$this->assertCommand("-H @endpoint@ -C mycommunity -i / -w2.00:3.5GB", array(
 		), array(
-			"OK: 5GB of storage left |'/'=5GB;6;7"
+			"OK: Used space on '/': 32.59% (2.57GiB) of total 7.87GiB |Used=2755420160B;3758096384;0;0;8454070272 Free=5698650112B;;;0;8454070272"
+		), 0);
+	}
+	public function test_critical_gb_OK() {
+		$this->assertCommand("-H @endpoint@ -C mycommunity -i / -c2.00:3.5gb", array(
+		), array(
+			"OK: Used space on '/': 32.59% (2.57GiB) of total 7.87GiB |Used=2755420160B;0;3758096384;0;8454070272 Free=5698650112B;;;0;8454070272"
+		), 0);
+	}
+	public function test_critical_gb_uppercase_OK() {
+		$this->assertCommand("-H @endpoint@ -C mycommunity -i / -c2.00:3.5GB", array(
+		), array(
+			"OK: Used space on '/': 32.59% (2.57GiB) of total 7.87GiB |Used=2755420160B;0;3758096384;0;8454070272 Free=5698650112B;;;0;8454070272"
 		), 0);
 	}
 /**
  * Monitoring-plugins standard warning and critical interval
  */
 	public function test_monitoring_plugins_standard_warning_critical_OK() {
-		$this->assertCommand("-H @endpoint@ -C mycommunity -i / -w 30:50 -c \~:75", array(
+		$this->assertCommand("-H @endpoint@ -C mycommunity -i / -w30:50 -c~:75", array(
 		), array(
-			"OK: 32% of storage used |'/'=32%;30:50;~:75"
+			"OK: Used space on '/': 32.59% (2.57GiB) of total 7.87GiB |Used=2755420160B;4227035136;6340552704;0;8454070272 Free=5698650112B;;;0;8454070272"
 		), 0);
 	}
 	public function test_monitoring_plugins_standard_warning_critical_WARNING() {
-		$this->assertCommand("-H @endpoint@ -C mycommunity -i / -w 40:45 -c 30:75", array(
+		$this->assertCommand("-H @endpoint@ -C mycommunity -i / -w40:45 -c30:75", array(
 		), array(
-			"WARNING: 32% of storage used |'/'=32%;40:45;30:75"
+			"WARNING: Used space on '/': 32.59% (2.57GiB) of total 7.87GiB |Used=2755420160B;3804331622;6340552704;0;8454070272 Free=5698650112B;;;0;8454070272"
 		), 1);
 	}
 	public function test_monitoring_plugins_standard_warning_critical_CRITICAL() {
-		$this->assertCommand("-H @endpoint@ -C mycommunity -i / -w 40:45 -c @30:40", array(
+		$this->assertCommand("-H @endpoint@ -C mycommunity -i / -w40:45 -c@30:40", array(
 		), array(
-			"CRITICAL: 32% of storage used |'/'=32%;40:45;@30:40"
+			"CRITICAL: Used space on '/': 32.59% (2.57GiB) of total 7.87GiB |Used=2755420160B;3804331622;3381628108;0;8454070272 Free=5698650112B;;;0;8454070272"
 		), 2);
 	}
 /**
@@ -691,49 +671,49 @@ EOF;
 	}
 
 	public function test_io_load_1_option() {
-		$this->assertCommand("-H @endpoint@ -C mycommunity -i sda -T io_1 -w 60 -c 70", array(
+		$this->assertCommand("-H @endpoint@ -C mycommunity -i sda -T io_1 -w60 -c70", array(
 			"1.3.6.1.4.1.2021.13.15.1.1.9.25" => array(2,50)
 		), array(
 			"OK: 50% IO Load-1 |'sda'=50%;60;70"
 		), 0);
 	}
 	public function test_io_load_5_option() {
-		$this->assertCommand("-H @endpoint@ -C mycommunity -f -i sda -T io_5", array(
+		$this->assertCommand("-H @endpoint@ -C mycommunity -i sda -T io_5", array(
 			"1.3.6.1.4.1.2021.13.15.1.1.10.25" => array(2,100)
 		), array(
-			'OK: 100% IO Load-5'
+			"OK: 100% IO Load-5 |'sda'=100%;;"
 		), 0);
 	}
 	public function test_io_load_15_option() {
-		$this->assertCommand("-H @endpoint@ -C mycommunity -f -i sda -T io_15", array(
+		$this->assertCommand("-H @endpoint@ -C mycommunity -i sda -T io_15", array(
 			"1.3.6.1.4.1.2021.13.15.1.1.11.25" => array(2,1)
 		), array(
-			'OK: 1% IO Load-15'
+			"OK: 1% IO Load-15 |'sda'=1%;;"
 		), 0);
 	}
 	public function test_io_load_5_OK() {
-		$this->assertCommand("-H @endpoint@ -C mycommunity -i sda -T io_5 -w 60 -c 80", array(
+		$this->assertCommand("-H @endpoint@ -C mycommunity -i sda -T io_5 -w60 -c80", array(
 			"1.3.6.1.4.1.2021.13.15.1.1.10.25" => array(2,50)
 		), array(
 			"OK: 50% IO Load-5 |'sda'=50%;60;80"
 		), 0);
 	}
 	public function test_io_load_5_WARNING() {
-		$this->assertCommand("-H @endpoint@ -C mycommunity -i sda -T io_5 -w 60 -c 80", array(
+		$this->assertCommand("-H @endpoint@ -C mycommunity -i sda -T io_5 -w60 -c80", array(
 			"1.3.6.1.4.1.2021.13.15.1.1.10.25" => array(2,75)
 		), array(
 			"WARNING: 75% IO Load-5 |'sda'=75%;60;80"
 		), 1);
 	}
 	public function test_io_load_5_CRITICAL() {
-		$this->assertCommand("-H @endpoint@ -C mycommunity -i sda -T io_5 -w 60 -c 80", array(
+		$this->assertCommand("-H @endpoint@ -C mycommunity -i sda -T io_5 -w60 -c80", array(
 			"1.3.6.1.4.1.2021.13.15.1.1.10.25" => array(2,100)
 		), array(
 			"CRITICAL: 100% IO Load-5 |'sda'=100%;60;80"
 		), 2);
 	}
 /**
- * No arguments, usage and help
+ * No arguments
  */
 	public function test_no_arguments() {
 		$this->assertCommand("", array(
@@ -741,25 +721,9 @@ EOF;
 			'check_snmp_disk: Could not parse arguments',
 			'Usage:',
 			'check_snmp_disk -H <ip_address> -C <snmp_community> -i <name of disk>',
-			'[-w <warn_range>] [-c <crit_range>] [-t <timeout>] [-T <type>]',
+			'[-w<warn_range>] [-c<crit_range>] [-t <timeout>] [-T <type>]',
 			'([-P snmp version] [-N context] [-L seclevel] [-U secname]',
 			'[-a authproto] [-A authpasswd] [-x privproto] [-X privpasswd])'
 		), 3);
-	}
-	public function test_usage() {
-		$this->assertCommand("-u", array(
-		), array(
-			'Usage:',
-			'check_snmp_disk -H <ip_address> -C <snmp_community> -i <name of disk>',
-			'[-w <warn_range>] [-c <crit_range>] [-t <timeout>] [-T <type>]',
-			'([-P snmp version] [-N context] [-L seclevel] [-U secname]',
-			'[-a authproto] [-A authpasswd] [-x privproto] [-X privpasswd])'
-		), 0);
-	}
-	public function disable_test_help() {
-		$this->assertCommand("-h", array(
-		), array(
-			''
-		), 0);
 	}
 }
