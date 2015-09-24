@@ -40,9 +40,6 @@ enum o_monitortype_t {
 };
 
 enum o_monitor_presentationtype_t {
-	MONITOR_PRESTYPE__STORAGE_LIST,
-	MONITOR_PRESTYPE__STORAGE_USED,
-	MONITOR_PRESTYPE__IO_LIST,
 	MONITOR_PRESTYPE__IO_1,
 	MONITOR_PRESTYPE__IO_5,
 	MONITOR_PRESTYPE__IO_15
@@ -57,10 +54,10 @@ int tolower(int);
 mp_snmp_context *ctx;
 char *warn_str = "", *crit_str = "";
 enum o_monitortype_t o_monitortype = MONITOR_TYPE__STORAGE;
-int o_perfdata = 1; /* perfdata on per default */
 int get_index = 0;
 char *o_disk = NULL;
-enum o_monitor_presentationtype_t o_type = MONITOR_PRESTYPE__STORAGE_USED;
+char *thresholdunit = "";
+enum o_monitor_presentationtype_t o_type;
 
 struct disk_info {
 	int Index;
@@ -303,7 +300,7 @@ struct disk_info *check_disk_io_ret(mp_snmp_context *ss, int statemask)
 			die(STATE_UNKNOWN, "UNKNOWN: SNMP error when querying %s: %s\n",
 				mp_snmp_get_peername(ctx), mp_snmp_get_errstr(ctx));
 		}
-		
+
 		/* get and store the relevant data for the disk */
 		mp_debug(3,"\nFetched data over NET-SNMP:\n");
 		if (0 != mp_snmp_walk(ss, DISKIO_TABLE, NULL, io_callback, cdi, NULL)) {
@@ -321,16 +318,19 @@ struct disk_info *check_disk_io_ret(mp_snmp_context *ss, int statemask)
 void print_usage(void)
 {
 	printf ("%s\n", _("Usage:"));
-	printf ("%s -H <ip_address> -C <snmp_community> -i <name of disk>\n",progname);
-	printf ("[-w<warn_range>] [-c<crit_range>] [-t <timeout>] [-T <type>]\n");
-	printf ("([-P snmp version] [-N context] [-L seclevel] [-U secname]\n");
+	printf ("%s -H <ip_address> -C <snmp_community> -i <name of disk> "
+		"[-T <type>]\n",progname);
+	printf ("[-m<unit_range>] [-w<warn_range>] "
+			"[-c<crit_range>] [-t <timeout>]\n");
+	printf ("([-P snmp version] [-L seclevel] [-U secname]\n");
 	printf ("[-a authproto] [-A authpasswd] [-x privproto] [-X privpasswd])\n");
 }
 
 void print_help(void)
 {
 	print_revision(progname, NP_VERSION);
-	printf ("%s\n", _("Check status of remote machines and obtain system information via SNMP"));
+	printf ("%s\n", _("Check status of remote machines and obtain system "
+		"information via SNMP"));
 	printf ("\n\n");
 
 	print_usage ();
@@ -347,12 +347,13 @@ void print_help(void)
 	printf ("    %s\n", _("io_15 - I/O load average 15 min"));
 	printf (" %s\n", "-i, --indexname=STRING");
 	printf ("    %s\n", _("STRING - Name of disk to check"));
+	printf (" %s\n", "-m, --uom");
+	printf ("    %s\n", _("Unit of measurement for warning/critical range "
+		"(default: %)"));
+	printf ("    %s\n", _("%, b, kb, mb, gb, tb, pb, eb, zb or yb"));
+
 	mp_snmp_argument_help();
 	printf ( UT_WARN_CRIT_RANGE);
-	printf ("\n%s\n", _("Examples: "));
-	printf (" %s\n", _("Disk usage of /boot:"));
-	printf ("     %s\n", _("check_snmp_disk -H localhost -C public -i /boot -w 90 -c 95"));
-	printf ("     %s\n", _("check_snmp_disk -H localhost -C public -i /boot -w 90gb -c 95gb"));
 }
 
 /* process command-line arguments */
@@ -369,6 +370,7 @@ int process_arguments(int argc, char **argv)
 		STD_LONG_OPTS,
 		{"diskname", required_argument, 0, 'i'},
 		{"type", required_argument, 0, 'T'},
+		{"uom", required_argument, 0, 'm'},
 		MP_SNMP_LONGOPTS,
 		{NULL, 0, 0, 0},
 	};
@@ -423,13 +425,10 @@ int process_arguments(int argc, char **argv)
 			case 'T':
 				if (0==strcmp(optarg, "storage_list")) {
 					o_monitortype = MONITOR_TYPE__STORAGE;
-					o_type = MONITOR_PRESTYPE__STORAGE_LIST;
 				} else if (0==strcmp(optarg, "storage_used")) {
 					o_monitortype = MONITOR_TYPE__STORAGE;
-					o_type = MONITOR_PRESTYPE__STORAGE_USED;
 				} else if (0==strcmp(optarg, "io_list")) {
 					o_monitortype = MONITOR_TYPE__IO;
-					o_type = MONITOR_PRESTYPE__IO_LIST;
 				} else if (0==strcmp(optarg, "io_1")) {
 					o_monitortype = MONITOR_TYPE__IO;
 					o_type = MONITOR_PRESTYPE__IO_1;
@@ -441,6 +440,37 @@ int process_arguments(int argc, char **argv)
 					o_type = MONITOR_PRESTYPE__IO_15;
 				} else {
 					die(STATE_UNKNOWN, _("Wrong parameter for -T.\n"));
+				}
+				break;
+			case 'm':
+				/**
+				 * We are generous and accept both upper and lowercase
+				 */
+				for (i = 0; optarg[i]; i++) {
+					optarg[i] = tolower(optarg[i]);
+				}
+				if (0 == strcmp(optarg, "b")) {
+					thresholdunit = "b";
+				} else if (0 == strcmp(optarg, "kb")) {
+					thresholdunit = "k";
+				} else if (0 == strcmp(optarg, "mb")) {
+					thresholdunit = "m";
+				} else if (0 == strcmp(optarg, "gb")) {
+					thresholdunit = "g";
+				} else if (0 == strcmp(optarg, "tb")) {
+					thresholdunit = "t";
+				} else if (0 == strcmp(optarg, "pb")) {
+					thresholdunit = "p";
+				} else if (0 == strcmp(optarg, "eb")) {
+					thresholdunit = "e";
+				} else if (0 == strcmp(optarg, "zb")) {
+					thresholdunit = "z";
+				} else if (0 == strcmp(optarg, "yb")) {
+					thresholdunit = "y";
+				} else if (0 == strcmp(optarg, "%")) {
+					thresholdunit = "%";
+				} else {
+					die(STATE_UNKNOWN, _("Wrong parameter for -m\n"));
 				}
 				break;
 			default:
@@ -496,10 +526,46 @@ double prefixedbytes_to_bytes(double bytes, const char *uom)
 	return bytes;
 }
 
+/**
+ * Parse out the uom for warning and critical ranges
+ * Calculate prefixedbytes to bytes and update thresholds to bytes
+ * Returns 0 if OK
+ */
+int update_thr(thresholds **thresh, double total_size)
+{
+	char *uom_str;
+	const char *prefix_str = "bkmgtpezy";
+
+	if ((uom_str = strpbrk(thresholdunit, prefix_str)) != NULL) {
+		(*thresh)->warning->start =
+			prefixedbytes_to_bytes((*thresh)->warning->start, uom_str);
+		(*thresh)->warning->end =
+			prefixedbytes_to_bytes((*thresh)->warning->end, uom_str);
+
+	} else {
+		(*thresh)->warning->start =
+			((*thresh)->warning->start / 100) * total_size;
+		(*thresh)->warning->end =
+			((*thresh)->warning->end / 100) * total_size;
+	}
+
+	if ((uom_str = strpbrk(thresholdunit, prefix_str)) != NULL) {
+		(*thresh)->critical->start =
+			prefixedbytes_to_bytes((*thresh)->critical->start, uom_str);
+		(*thresh)->critical->end =
+			prefixedbytes_to_bytes((*thresh)->critical->end, uom_str);
+	} else {
+		(*thresh)->critical->start =
+			((*thresh)->critical->start / 100) * total_size;
+		(*thresh)->critical->end =
+			((*thresh)->critical->end / 100) * total_size;
+	}
+	return 0;
+}
+
 int main(int argc, char **argv)
 {
 	int result = STATE_UNKNOWN;
-	int i;
 	static thresholds *thresh;
 	struct disk_info *ptr = NULL;
 	char *uom = "%"; /* used with perfdata */
@@ -532,99 +598,69 @@ int main(int argc, char **argv)
 			ptr = check_disk_ret(ctx, ~0);	/* get net-snmp disk data */
 			mp_snmp_deinit(program_name);	/* deinit */
 			if (ptr->Descr == NULL) {
-				die(STATE_UNKNOWN, _("Invalid input string for -i (Use -T storage_list for a list of valid strings).\n"));
+				die(STATE_UNKNOWN, _("Invalid input string for -i "
+					"(Use -T storage_list for a list of valid strings).\n"));
 			}
 
-			if (o_type == MONITOR_PRESTYPE__STORAGE_USED) {
-				percent_used = (double)ptr->Used/(double)ptr->Size*100;
-				bytes = (double)ptr->Used*ptr->AllocationUnits;
-				total_size = (double)ptr->Size*ptr->AllocationUnits;
-				bytes_free = total_size - bytes;
+			percent_used = (double)ptr->Used/(double)ptr->Size*100;
+			bytes = (double)ptr->Used*ptr->AllocationUnits;
+			total_size = (double)ptr->Size*ptr->AllocationUnits;
+			bytes_free = total_size - bytes;
 
-				/**
-				 * Parse out the uom for warning and critical options, calculate
-				 * prefixedbytes to bytes for perfdata and update thresholds to
-				 * perform the check on bytes.
-				 */
-				char *uom_str;
-				const char *prefix_str = "bkmgtpezy";
-				for (i = 0; warn_str[i]; i++) {
-					warn_str[i] = tolower(warn_str[i]);
-				}
-				for (i = 0; crit_str[i]; i++) {
-					crit_str[i] = tolower(crit_str[i]);
-				}
-
-				if ((uom_str = strpbrk(warn_str, prefix_str)) != NULL) {
-					sprintf(uom_str, "%c", *uom_str);
-					thresh->warning->start = prefixedbytes_to_bytes(thresh->warning->start, uom_str);
-					thresh->warning->end = prefixedbytes_to_bytes(thresh->warning->end, uom_str);
-				} else {
-					thresh->warning->start = (thresh->warning->start / 100) * total_size;
-					thresh->warning->end = (thresh->warning->end / 100) * total_size;
-				}
-
-				if ((uom_str = strpbrk(crit_str, prefix_str)) != NULL) {
-					sprintf(uom_str, "%c", *uom_str);
-					thresh->critical->start = prefixedbytes_to_bytes(thresh->critical->start, uom_str);
-					thresh->critical->end = prefixedbytes_to_bytes(thresh->critical->end, uom_str);
-				} else {
-					thresh->critical->start = (thresh->critical->start / 100) * total_size;
-					thresh->critical->end = (thresh->critical->end / 100) * total_size;
-				}
-
-				result = get_status (bytes, thresh);
-				printf("%s: Used space on '%s': %.2lf%% (%s) of total %s |%s %s",
-					state_text(result),
-					ptr->Descr,
-					percent_used,
-					(char*)humanize_bytes(bytes),
-					(char*)humanize_bytes(total_size),
-					perfdata ("Used", bytes, "B",
-						thresh->warning?TRUE:FALSE, thresh->warning?thresh->warning->end:FALSE,
-						thresh->critical?TRUE:FALSE, thresh->critical?thresh->critical->end:FALSE,
-						TRUE, 0, TRUE, total_size),
-					perfdata ("Free", bytes_free, "B",
-						FALSE, FALSE,
-						FALSE, FALSE,
-						TRUE, 0, TRUE, total_size));
-			} else {
-				die(STATE_UNKNOWN, _("Could not handle -T option.\n"));
+			if (update_thr(&thresh, total_size) != 0) {
+				die(STATE_UNKNOWN,
+					_("Failed to convert ranges to bytes\n"));
 			}
+
+			result = get_status (bytes, thresh);
+			char *used_msg;
+			char *free_msg;
+			xasprintf (&used_msg, _("Used %s"), ptr->Descr);
+			xasprintf (&free_msg, _("Free %s"), ptr->Descr);
+			printf("%s: Used space on '%s': %.2lf%% (%s) of total %s |%s %s",
+				state_text(result),
+				ptr->Descr,
+				percent_used,
+				(char*)humanize_bytes(bytes),
+				(char*)humanize_bytes(total_size),
+				perfdata (used_msg, bytes, "B",
+					thresh->warning?TRUE:FALSE, thresh->warning?thresh->warning->end:FALSE,
+					thresh->critical?TRUE:FALSE, thresh->critical?thresh->critical->end:FALSE,
+					TRUE, 0, TRUE, total_size),
+				perfdata (free_msg, bytes_free, "B",
+					FALSE, FALSE,
+					FALSE, FALSE,
+					TRUE, 0, TRUE, total_size));
+
 			break;
 		case MONITOR_TYPE__IO:
 			ptr = check_disk_io_ret(ctx, ~0);	/* get net-snmp io data */
 			mp_snmp_deinit(program_name);		/* deinit */
 			if (ptr->IO.Descr == NULL) {
-				die(STATE_UNKNOWN, _("Invalid input string for -i (Use -T io_list for a list of valid strings).\n"));
+				die(STATE_UNKNOWN, _("Invalid input string for -i "
+					"(Use -T io_list for a list of valid strings)\n"));
 			}
 
 			if (o_type == MONITOR_PRESTYPE__IO_1) {
 				result = get_status(ptr->IO.La1, thresh);
 				printf("%s: %d%s IO Load-1 ", state_text(result), ptr->IO.La1, uom);
-				if (o_perfdata == 1) {
-					printf("|'%s'=%d%s;%s;%s", ptr->IO.Descr, ptr->IO.La1,
-							uom, warn_str, crit_str);
-				}
+				printf("|'%s'=%d%s;%s;%s", ptr->IO.Descr, ptr->IO.La1,
+						uom, warn_str, crit_str);
 			}
 			else if (o_type == MONITOR_PRESTYPE__IO_5) {
 				result = get_status(ptr->IO.La5, thresh);
 				printf("%s: %d%s IO Load-5 ", state_text(result), ptr->IO.La5, uom);
-				if (o_perfdata == 1) {
-					printf("|'%s'=%d%s;%s;%s", ptr->IO.Descr, ptr->IO.La5,
-							uom, warn_str, crit_str);
-				}
+				printf("|'%s'=%d%s;%s;%s", ptr->IO.Descr, ptr->IO.La5,
+						uom, warn_str, crit_str);
 			}
 			else if (o_type == MONITOR_PRESTYPE__IO_15) {
 				result = get_status(ptr->IO.La15, thresh);
 				printf("%s: %d%s IO Load-15 ", state_text(result), ptr->IO.La15, uom);
-				if (o_perfdata == 1) {
-					printf("|'%s'=%d%s;%s;%s", ptr->IO.Descr, ptr->IO.La15,
-							uom, warn_str, crit_str);
-				}
+				printf("|'%s'=%d%s;%s;%s", ptr->IO.Descr, ptr->IO.La15,
+						uom, warn_str, crit_str);
 			}
 			else
-				die(STATE_UNKNOWN, _("Could not handle -T option.\n"));
+				die(STATE_UNKNOWN, _("Could not handle -T option\n"));
 			break;
 		default:
 			die(STATE_UNKNOWN, _("UNKNOWN: Not a valid monitor type\n"));
