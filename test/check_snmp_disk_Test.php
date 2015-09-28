@@ -516,25 +516,25 @@ EOF;
  * Storage prefixedbytes used controlled by warning and critical values
  */
 	public function test_gb_prefix_OK() {
-		$this->assertCommand("-H @endpoint@ -C mycommunity -i / -m gb -w3 -c4", array(
+		$this->assertCommand("-H @endpoint@ -C mycommunity -i / -m gib -w3 -c4", array(
 		), array(
 			"OK: Used space on '/': 32.59% (2.57GiB) of total 7.87GiB |'Used /'=2755420160.000000B;3221225472.000000;4294967296.000000;0.000000;8454070272.000000 'Free /'=5698650112.000000B;;;0.000000;8454070272.000000"
 		), 0);
 	}
 	public function test_gb_prefix_with_range_without_prefix_WARNING() {
-		$this->assertCommand("-H @endpoint@ -C mycommunity -i / -m gb -w2:2.5 -c4", array(
+		$this->assertCommand("-H @endpoint@ -C mycommunity -i / -m gib -w2:2.5 -c4", array(
 		), array(
 			"WARNING: Used space on '/': 32.59% (2.57GiB) of total 7.87GiB |'Used /'=2755420160.000000B;2684354560.000000;4294967296.000000;0.000000;8454070272.000000 'Free /'=5698650112.000000B;;;0.000000;8454070272.000000"
 		), 1);
 	}
 	public function test_gb_prefix_with_range_with_prefix_CRITICAL() {
-		$this->assertCommand("-H @endpoint@ -C mycommunity -i / -m gb -w2:2.1 -c~:2.50", array(
+		$this->assertCommand("-H @endpoint@ -C mycommunity -i / -m gib -w2:2.1 -c~:2.50", array(
 		), array(
 			"CRITICAL: Used space on '/': 32.59% (2.57GiB) of total 7.87GiB |'Used /'=2755420160.000000B;2254857830.400000;2684354560.000000;0.000000;8454070272.000000 'Free /'=5698650112.000000B;;;0.000000;8454070272.000000"
 		), 2);
 	}
 	public function test_warning_gb_OK() {
-		$this->assertCommand("-H @endpoint@ -C mycommunity -i / -m gb -w2.00:3.5", array(
+		$this->assertCommand("-H @endpoint@ -C mycommunity -i / -m gib -w2.00:3.5", array(
 		), array(
 			"OK: Used space on '/': 32.59% (2.57GiB) of total 7.87GiB |'Used /'=2755420160.000000B;3758096384.000000;0.000000;0.000000;8454070272.000000 'Free /'=5698650112.000000B;;;0.000000;8454070272.000000"
 		), 0);

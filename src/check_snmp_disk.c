@@ -350,7 +350,7 @@ void print_help(void)
 	printf (" %s\n", "-m, --uom");
 	printf ("    %s\n", _("Unit of measurement for warning/critical range "
 		"(default: %)"));
-	printf ("    %s\n", _("%, b, kb, mb, gb, tb, pb, eb, zb or yb"));
+	printf ("    %s\n", _("%, b, kib, mib, gib, tib, pib, eib, zib or yib"));
 
 	mp_snmp_argument_help();
 	printf ( UT_WARN_CRIT_RANGE);
@@ -451,21 +451,21 @@ int process_arguments(int argc, char **argv)
 				}
 				if (0 == strcmp(optarg, "b")) {
 					thresholdunit = "b";
-				} else if (0 == strcmp(optarg, "kb")) {
+				} else if (0 == strcmp(optarg, "kib")) {
 					thresholdunit = "k";
-				} else if (0 == strcmp(optarg, "mb")) {
+				} else if (0 == strcmp(optarg, "mib")) {
 					thresholdunit = "m";
-				} else if (0 == strcmp(optarg, "gb")) {
+				} else if (0 == strcmp(optarg, "gib")) {
 					thresholdunit = "g";
-				} else if (0 == strcmp(optarg, "tb")) {
+				} else if (0 == strcmp(optarg, "tib")) {
 					thresholdunit = "t";
-				} else if (0 == strcmp(optarg, "pb")) {
+				} else if (0 == strcmp(optarg, "pib")) {
 					thresholdunit = "p";
-				} else if (0 == strcmp(optarg, "eb")) {
+				} else if (0 == strcmp(optarg, "eib")) {
 					thresholdunit = "e";
-				} else if (0 == strcmp(optarg, "zb")) {
+				} else if (0 == strcmp(optarg, "zib")) {
 					thresholdunit = "z";
-				} else if (0 == strcmp(optarg, "yb")) {
+				} else if (0 == strcmp(optarg, "yib")) {
 					thresholdunit = "y";
 				} else if (0 == strcmp(optarg, "%")) {
 					thresholdunit = "%";
