@@ -468,13 +468,13 @@ EOF;
 	public function test_valid_index_option_with_default_T_parameter() {
 		$this->assertCommand("-H @endpoint@ -C mycommunity -i /", array(
 		), array(
-			"OK: Used space on '/': 32.59% (2.57GiB) of total 7.87GiB |'Used /'=2755420160B;0;0;0;8454070272 'Free /'=5698650112B;;;0;8454070272"
+			"OK: Used space on '/': 32.59% (2.57GiB) of total 7.87GiB |'Used /'=2755420160.000000B;0.000000;0.000000;0.000000;8454070272.000000 'Free /'=5698650112.000000B;;;0.000000;8454070272.000000"
 		), 0);
 	}
 	public function test_valid_index_option_with_T_parameter() {
 		$this->assertCommand("-H @endpoint@ -C mycommunity -T storage_used -i /", array(
 		), array(
-			"OK: Used space on '/': 32.59% (2.57GiB) of total 7.87GiB |'Used /'=2755420160B;0;0;0;8454070272 'Free /'=5698650112B;;;0;8454070272"
+			"OK: Used space on '/': 32.59% (2.57GiB) of total 7.87GiB |'Used /'=2755420160.000000B;0.000000;0.000000;0.000000;8454070272.000000 'Free /'=5698650112.000000B;;;0.000000;8454070272.000000"
 		), 0);
 	}
 	public function test_invalid_I_option() {
@@ -496,19 +496,19 @@ EOF;
 	public function test_percent_storage_used_OK() {
 		$this->assertCommand("-H @endpoint@ -C mycommunity -i / -w50 -c75", array(
 		), array(
-			"OK: Used space on '/': 32.59% (2.57GiB) of total 7.87GiB |'Used /'=2755420160B;4227035136;6340552704;0;8454070272 'Free /'=5698650112B;;;0;8454070272"
+			"OK: Used space on '/': 32.59% (2.57GiB) of total 7.87GiB |'Used /'=2755420160.000000B;4227035136.000000;6340552704.000000;0.000000;8454070272.000000 'Free /'=5698650112.000000B;;;0.000000;8454070272.000000"
 		), 0);
 	}
 	public function test_percent_storage_used_WARNING() {
 		$this->assertCommand("-H @endpoint@ -C mycommunity -i / -m % -w25 -c75", array(
 		), array(
-			"WARNING: Used space on '/': 32.59% (2.57GiB) of total 7.87GiB |'Used /'=2755420160B;2113517568;6340552704;0;8454070272 'Free /'=5698650112B;;;0;8454070272"
+			"WARNING: Used space on '/': 32.59% (2.57GiB) of total 7.87GiB |'Used /'=2755420160.000000B;2113517568.000000;6340552704.000000;0.000000;8454070272.000000 'Free /'=5698650112.000000B;;;0.000000;8454070272.000000"
 		), 1);
 	}
 	public function test_percent_storage_used_CRITICAL() {
 		$this->assertCommand("-H @endpoint@ -C mycommunity -i / -w25:26 -c30:31", array(
 		), array(
-			"CRITICAL: Used space on '/': 32.59% (2.57GiB) of total 7.87GiB |'Used /'=2755420160B;2198058270;2620761784;0;8454070272 'Free /'=5698650112B;;;0;8454070272"
+			"CRITICAL: Used space on '/': 32.59% (2.57GiB) of total 7.87GiB |'Used /'=2755420160.000000B;2198058270.720000;2620761784.320000;0.000000;8454070272.000000 'Free /'=5698650112.000000B;;;0.000000;8454070272.000000"
 		), 2);
 	}
 
@@ -518,25 +518,40 @@ EOF;
 	public function test_mb_prefix_OK() {
 		$this->assertCommand("-H @endpoint@ -C mycommunity -i / -m mb -w3000 -c4000", array(
 		), array(
-			"OK: Used space on '/': 32.59% (2.57GiB) of total 7.87GiB |'Used /'=2755420160B;3145728000;4194304000;0;8454070272 'Free /'=5698650112B;;;0;8454070272"
+			"OK: Used space on '/': 32.59% (2.57GiB) of total 7.87GiB |'Used /'=2755420160.000000B;3145728000.000000;4194304000.000000;0.000000;8454070272.000000 'Free /'=5698650112.000000B;;;0.000000;8454070272.000000"
 		), 0);
 	}
 	public function test_gb_prefix_with_range_without_prefix_WARNING() {
 		$this->assertCommand("-H @endpoint@ -C mycommunity -i / -m gb -w2:2.5 -c4", array(
 		), array(
-			"WARNING: Used space on '/': 32.59% (2.57GiB) of total 7.87GiB |'Used /'=2755420160B;2684354560;4294967296;0;8454070272 'Free /'=5698650112B;;;0;8454070272"
+			"WARNING: Used space on '/': 32.59% (2.57GiB) of total 7.87GiB |'Used /'=2755420160.000000B;2684354560.000000;4294967296.000000;0.000000;8454070272.000000 'Free /'=5698650112.000000B;;;0.000000;8454070272.000000"
 		), 1);
 	}
 	public function test_gb_prefix_with_range_with_prefix_CRITICAL() {
 		$this->assertCommand("-H @endpoint@ -C mycommunity -i / -m gb -w2:2.1 -c~:2.50", array(
 		), array(
-			"CRITICAL: Used space on '/': 32.59% (2.57GiB) of total 7.87GiB |'Used /'=2755420160B;2254857830;2684354560;0;8454070272 'Free /'=5698650112B;;;0;8454070272"
+			"CRITICAL: Used space on '/': 32.59% (2.57GiB) of total 7.87GiB |'Used /'=2755420160.000000B;2254857830.400000;2684354560.000000;0.000000;8454070272.000000 'Free /'=5698650112.000000B;;;0.000000;8454070272.000000"
 		), 2);
 	}
 	public function test_warning_gb_OK() {
 		$this->assertCommand("-H @endpoint@ -C mycommunity -i / -m gb -w2.00:3.5", array(
 		), array(
-			"OK: Used space on '/': 32.59% (2.57GiB) of total 7.87GiB |'Used /'=2755420160B;3758096384;0;0;8454070272 'Free /'=5698650112B;;;0;8454070272"
+			"OK: Used space on '/': 32.59% (2.57GiB) of total 7.87GiB |'Used /'=2755420160.000000B;3758096384.000000;0.000000;0.000000;8454070272.000000 'Free /'=5698650112.000000B;;;0.000000;8454070272.000000"
+		), 0);
+	}
+/**
+ * Storage prefixedbytes extreme values
+ */
+	public function test_max_prefixed_warning_OK() {
+		$this->assertCommand("-H @endpoint@ -C mycommunity -i / -m yb -w999.99", array(
+		), array(
+			"OK: Used space on '/': 32.59% (2.57GiB) of total 7.87GiB |'Used /'=2755420160.000000B;1208913730356433039409545216.000000;0.000000;0.000000;8454070272.000000 'Free /'=5698650112.000000B;;;0.000000;8454070272.000000"
+		), 0);
+	}
+	public function test_max_prefixed_warning_error_UNKNOWN() {
+		$this->assertCommand("-H @endpoint@ -C mycommunity -i / -m yb -w1000.00", array(
+		), array(
+			"OK: Used space on '/': 32.59% (2.57GiB) of total 7.87GiB |'Used /'=2755420160.000000B;1208925819614629174706176000.000000;0.000000;0.000000;8454070272.000000 'Free /'=5698650112.000000B;;;0.000000;8454070272.000000"
 		), 0);
 	}
 /**
@@ -545,19 +560,19 @@ EOF;
 	public function test_monitoring_plugins_standard_warning_critical_OK() {
 		$this->assertCommand("-H @endpoint@ -C mycommunity -i / -w30:50 -c~:75", array(
 		), array(
-			"OK: Used space on '/': 32.59% (2.57GiB) of total 7.87GiB |'Used /'=2755420160B;4227035136;6340552704;0;8454070272 'Free /'=5698650112B;;;0;8454070272"
+			"OK: Used space on '/': 32.59% (2.57GiB) of total 7.87GiB |'Used /'=2755420160.000000B;4227035136.000000;6340552704.000000;0.000000;8454070272.000000 'Free /'=5698650112.000000B;;;0.000000;8454070272.000000"
 		), 0);
 	}
 	public function test_monitoring_plugins_standard_warning_critical_WARNING() {
 		$this->assertCommand("-H @endpoint@ -C mycommunity -i / -w40:45 -c30:75", array(
 		), array(
-			"WARNING: Used space on '/': 32.59% (2.57GiB) of total 7.87GiB |'Used /'=2755420160B;3804331622;6340552704;0;8454070272 'Free /'=5698650112B;;;0;8454070272"
+			"WARNING: Used space on '/': 32.59% (2.57GiB) of total 7.87GiB |'Used /'=2755420160.000000B;3804331622.400000;6340552704.000000;0.000000;8454070272.000000 'Free /'=5698650112.000000B;;;0.000000;8454070272.000000"
 		), 1);
 	}
 	public function test_monitoring_plugins_standard_warning_critical_CRITICAL() {
 		$this->assertCommand("-H @endpoint@ -C mycommunity -i / -w40:45 -c@30:40", array(
 		), array(
-			"CRITICAL: Used space on '/': 32.59% (2.57GiB) of total 7.87GiB |'Used /'=2755420160B;3804331622;3381628108;0;8454070272 'Free /'=5698650112B;;;0;8454070272"
+			"CRITICAL: Used space on '/': 32.59% (2.57GiB) of total 7.87GiB |'Used /'=2755420160.000000B;3804331622.400000;3381628108.800000;0.000000;8454070272.000000 'Free /'=5698650112.000000B;;;0.000000;8454070272.000000"
 		), 2);
 	}
 /**

@@ -623,11 +623,11 @@ int main(int argc, char **argv)
 				percent_used,
 				(char*)humanize_bytes(bytes),
 				(char*)humanize_bytes(total_size),
-				perfdata (used_msg, bytes, "B",
+				fperfdata (used_msg, bytes, "B",
 					thresh->warning?TRUE:FALSE, thresh->warning?thresh->warning->end:FALSE,
 					thresh->critical?TRUE:FALSE, thresh->critical?thresh->critical->end:FALSE,
 					TRUE, 0, TRUE, total_size),
-				perfdata (free_msg, bytes_free, "B",
+				fperfdata (free_msg, bytes_free, "B",
 					FALSE, FALSE,
 					FALSE, FALSE,
 					TRUE, 0, TRUE, total_size));
