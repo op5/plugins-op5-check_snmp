@@ -21,7 +21,7 @@ class Check_Snmp_Memory_Test extends PHPUnit_Framework_TestCase {
 		system($command, $returnval);
 	}
 
-	public function stop_snmpsim() {
+	private function stop_snmpsim() {
 		if ($this->snmpsimroot_current === false) {
 			return;
 		}
@@ -90,147 +90,100 @@ EOF;
 	}
 /**
  * Memory testing
+ * Default values
  */
 	public function test_default() {
 		$this->assertCommand("-H @endpoint@ -C mycommunity", array(
 		), array(
-			"OK: 84% Ram used |'Ram used'=84%;;"
+			"OK: Used RAM: 29.25% (172.41MiB) of total 589.43MiB |'RAM Used'=180785152B;0;0;0;618061824 'RAM Buffered'=54124544B;;;0;618061824 'RAM Cached'=287711232B;;;0;618061824 'RAM Free'=437276672B;;;0;618061824"
 		), 0);
 	}
-	public function test_default_without_perf_data_and_warn_crit_values() {
-		$this->assertCommand("-H @endpoint@ -C mycommunity -f -w 85 -c 95", array(
+	public function test_default_with_warn_crit_values() {
+		$this->assertCommand("-H @endpoint@ -C mycommunity -w 90 -c 95", array(
 		), array(
-			'OK: 84% Ram used'
+			"OK: Used RAM: 29.25% (172.41MiB) of total 589.43MiB |'RAM Used'=180785152B;556255641;587158732;0;618061824 'RAM Buffered'=54124544B;;;0;618061824 'RAM Cached'=287711232B;;;0;618061824 'RAM Free'=437276672B;;;0;618061824"
 		), 0);
 	}
 /**
  * Ram used OK, WARNING, CRITICAL
  */
 	public function test_option_used_warning_and_critical_OK() {
-		$this->assertCommand("-H @endpoint@ -C mycommunity -T ram_used -w 85 -c 95", array(
+		$this->assertCommand("-H @endpoint@ -C mycommunity -T ram_used -w 90 -c 95", array(
 		), array(
-			"OK: 84% Ram used |'Ram used'=84%;85;95"
+			"OK: Used RAM: 29.25% (172.41MiB) of total 589.43MiB |'RAM Used'=180785152B;556255641;587158732;0;618061824 'RAM Buffered'=54124544B;;;0;618061824 'RAM Cached'=287711232B;;;0;618061824 'RAM Free'=437276672B;;;0;618061824"
 		), 0);
 	}
 	public function test_option_used_warning_and_critical_WARNING() {
-		$this->assertCommand("-H @endpoint@ -C mycommunity -T ram_used -w 70 -c 95", array(
+		$this->assertCommand("-H @endpoint@ -C mycommunity -T ram_used -w 20.50 -c 95.00 -m %", array(
 		), array(
-			"WARNING: 84% Ram used |'Ram used'=84%;70;95"
+			"WARNING: Used RAM: 29.25% (172.41MiB) of total 589.43MiB |'RAM Used'=180785152B;126702673;587158732;0;618061824 'RAM Buffered'=54124544B;;;0;618061824 'RAM Cached'=287711232B;;;0;618061824 'RAM Free'=437276672B;;;0;618061824"
 		), 1);
 	}
 	public function test_option_used_warning_and_critical_CRITICAL() {
-		$this->assertCommand("-H @endpoint@ -C mycommunity -T ram_used -w 70 -c 80", array(
+		$this->assertCommand("-H @endpoint@ -C mycommunity -T ram_used -m % -w 20.50 -c 29.24", array(
 		), array(
-			"CRITICAL: 84% Ram used |'Ram used'=84%;70;80"
+			"CRITICAL: Used RAM: 29.25% (172.41MiB) of total 589.43MiB |'RAM Used'=180785152B;126702673;180721277;0;618061824 'RAM Buffered'=54124544B;;;0;618061824 'RAM Cached'=287711232B;;;0;618061824 'RAM Free'=437276672B;;;0;618061824"
 		), 2);
 	}
 /**
- * Ram free OK, WARNING, CRITICAL
+ * Test thresholds of different types
  */
-	public function test_option_free_warning_and_critical_OK() {
-		$this->assertCommand("-H @endpoint@ -C mycommunity -T ram_free -w 20 -c 30", array(
+	public function test_option_m_with_nothing_should_give_error_message() {
+		$this->assertCommand("-H @endpoint@ -C mycommunity -T ram_used -m -w 20.50 -c 29.24", array(
 		), array(
-			"OK: 15% Ram free |'Ram free'=15%;20;30"
+			"Wrong parameter for -m"
+		), 3);
+	}
+	public function test_wc_parsing_tilde_and_at_OK() {
+		$this->assertCommand("-H @endpoint@ -C mycommunity -m gb -w~:300 -c@20:400", array(
+		), array(
+			"OK: Used RAM: 29.25% (172.41MiB) of total 589.43MiB |'RAM Used'=180785152B;322122547200;429496729600;0;618061824 'RAM Buffered'=54124544B;;;0;618061824 'RAM Cached'=287711232B;;;0;618061824 'RAM Free'=437276672B;;;0;618061824"
 		), 0);
 	}
-	public function test_option_free_warning_and_critical_WARNING() {
-		$this->assertCommand("-H @endpoint@ -C mycommunity -T ram_free -w 10 -c 30", array(
+	public function test_prefix_mb_in_ranges_OK() {
+		$this->assertCommand("-H @endpoint@ -C mycommunity -m mb -w10:300 -c20:400", array(
 		), array(
-			"WARNING: 15% Ram free |'Ram free'=15%;10;30"
-		), 1);
-	}
-	public function test_option_free_warning_and_critical_CRITICAL() {
-		$this->assertCommand("-H @endpoint@ -C mycommunity -T ram_free -w 10 -c 11", array(
-		), array(
-			"CRITICAL: 15% Ram free |'Ram free'=15%;10;11"
-		), 2);
+			"OK: Used RAM: 29.25% (172.41MiB) of total 589.43MiB |'RAM Used'=180785152B;314572800;419430400;0;618061824 'RAM Buffered'=54124544B;;;0;618061824 'RAM Cached'=287711232B;;;0;618061824 'RAM Free'=437276672B;;;0;618061824"
+		), 0);
 	}
 /**
- * Swap used OK, WARNING, CRITICAL
+ * Swap used OK, WARNING, CRITICAL and different threshold types
  */
 	public function test_option_swap_warning_and_critical_OK() {
 		$this->assertCommand("-H @endpoint@ -C mycommunity -T swap_used -w 10 -c 20", array(
 		), array(
-			"OK: 5% Swap used |'Swap used'=5%;10;20"
+			"OK: Used Swap: 5.28% (64.69MiB) of total 1.20GiB |'Swap Used'=67833856B;128449740;256899481;0;1284497408 'Swap Free'=1216663552B;;;0;1284497408"
+		), 0);
+	}
+	public function test_option_swap_warning_and_critical_gb_OK() {
+		$this->assertCommand("-H @endpoint@ -C mycommunity -T swap_used -m gb -w10 -c20", array(
+		), array(
+			"OK: Used Swap: 5.28% (64.69MiB) of total 1.20GiB |'Swap Used'=67833856B;10737418240;21474836480;0;1284497408 'Swap Free'=1216663552B;;;0;1284497408"
 		), 0);
 	}
 	public function test_option_swap_warning_and_critical_WARNING() {
 		$this->assertCommand("-H @endpoint@ -C mycommunity -T swap_used -w 1 -c 20", array(
 		), array(
-			"WARNING: 5% Swap used |'Swap used'=5%;1;20"
+			"WARNING: Used Swap: 5.28% (64.69MiB) of total 1.20GiB |'Swap Used'=67833856B;12844974;256899481;0;1284497408 'Swap Free'=1216663552B;;;0;1284497408"
+		), 1);
+	}
+	public function test_option_swap_warning_and_critical_mb_WARNING() {
+		$this->assertCommand("-H @endpoint@ -C mycommunity -T swap_used -m mb -w 10 -c 67.84", array(
+		), array(
+			"WARNING: Used Swap: 5.28% (64.69MiB) of total 1.20GiB |'Swap Used'=67833856B;10485760;71135395;0;1284497408 'Swap Free'=1216663552B;;;0;1284497408"
 		), 1);
 	}
 	public function test_option_swap_warning_and_critical_CRITICAL() {
 		$this->assertCommand("-H @endpoint@ -C mycommunity -T swap_used -w 1 -c 2", array(
 		), array(
-			"CRITICAL: 5% Swap used |'Swap used'=5%;1;2"
+			"CRITICAL: Used Swap: 5.28% (64.69MiB) of total 1.20GiB |'Swap Used'=67833856B;12844974;25689948;0;1284497408 'Swap Free'=1216663552B;;;0;1284497408"
 		), 2);
 	}
-/**
- * Buffer OK, WARNING, CRITICAL
- */
-	public function test_buffer_in_kb_warning_and_critical_OK() {
-		$this->assertCommand("-H @endpoint@ -C mycommunity -T buffer_in_kb -w 100000 -c 200000", array(
+	public function test_option_swap_warning_and_critical_mb_CRITICAL() {
+		$this->assertCommand("-H @endpoint@ -C mycommunity -T swap_used -m mb -w10.000 -c64.69", array(
 		), array(
-			"OK: 52856KB Memory Buffer |'Memory Buffer'=52856KB;100000;200000"
-		), 0);
-	}
-	public function test_buffer_in_kb_warning_and_critical_WARNING() {
-		$this->assertCommand("-H @endpoint@ -C mycommunity -T buffer_in_kb -w 20:30 -c 200000", array(
-		), array(
-			"WARNING: 52856KB Memory Buffer |'Memory Buffer'=52856KB;20:30;200000"
-		), 1);
-	}
-	public function test_buffer_in_kb_warning_and_critical_CRITICAL() {
-		$this->assertCommand("-H @endpoint@ -C mycommunity -T buffer_in_kb -w 100000 -c \~:10", array(
-		), array(
-			"CRITICAL: 52856KB Memory Buffer |'Memory Buffer'=52856KB;100000;~:10"
+			"CRITICAL: Used Swap: 5.28% (64.69MiB) of total 1.20GiB |'Swap Used'=67833856B;10485760;67832381;0;1284497408 'Swap Free'=1216663552B;;;0;1284497408"
 		), 2);
-	}
-	public function test_buffer_in_mb_warning_and_critical_OK() {
-		$this->assertCommand("-H @endpoint@ -C mycommunity -T buffer_in_mb -w 100 -c 200", array(
-		), array(
-			"OK: 51MB Memory Buffer |'Memory Buffer'=51MB;100;200"
-		), 0);
-	}
-	public function test_buffer_in_gb_warning_and_critical_OK() {
-		$this->assertCommand("-H @endpoint@ -C mycommunity -T buffer_in_gb -w 10 -c 20", array(
-		), array(
-			"OK: 0GB Memory Buffer |'Memory Buffer'=0GB;10;20"
-		), 0);
-	}
-/**
- * Cache OK, WARNING, CRITICAL
- */
-	public function test_cached_in_kb_warning_and_critical_OK() {
-		$this->assertCommand("-H @endpoint@ -C mycommunity -T cached_in_kb -w 300000 -c 400000", array(
-		), array(
-			"OK: 280968KB Memory Cached |'Memory Cached'=280968KB;300000;400000"
-		), 0);
-	}
-	public function test_cached_in_kb_warning_and_critical_WARNING() {
-		$this->assertCommand("-H @endpoint@ -C mycommunity -T cached_in_kb -w @280000:290000 -c 400000", array(
-		), array(
-			"WARNING: 280968KB Memory Cached |'Memory Cached'=280968KB;@280000:290000;400000"
-		), 1);
-	}
-	public function test_cached_in_kb_warning_and_critical_CRITICAL() {
-		$this->assertCommand("-H @endpoint@ -C mycommunity -T cached_in_kb -w 200000 -c @280000:290000", array(
-		), array(
-			"CRITICAL: 280968KB Memory Cached |'Memory Cached'=280968KB;200000;@280000:290000"
-		), 2);
-	}
-	public function test_cached_in_mb_warning_and_critical_WARNING() {
-		$this->assertCommand("-H @endpoint@ -C mycommunity -T cached_in_mb -w @270:280 -c 400", array(
-		), array(
-			"WARNING: 274MB Memory Cached |'Memory Cached'=274MB;@270:280;400"
-		), 1);
-	}
-	public function test_cached_in_gb_warning_and_critical_OK() {
-		$this->assertCommand("-H @endpoint@ -C mycommunity -T cached_in_gb -w 2 -c @28:29", array(
-		), array(
-			"OK: 0GB Memory Cached |'Memory Cached'=0GB;2;@28:29"
-		), 0);
 	}
 /**
  * No arguments, usage and help
@@ -240,21 +193,17 @@ EOF;
 		), array(
 			'check_snmp_memory: Could not parse arguments',
 			'Usage:',
-			'check_snmp_memory -H <ip_address> -C <snmp_community>',
-			'[-w <warn_range>] [-c <crit_range>] [-t <timeout>] [-T <type>]',
-			'([-P snmp version] [-N context] [-L seclevel] [-U secname]',
+			'check_snmp_memory -H <ip_address> -C <snmp_community> [-T <type>]',
+			'[-m<unit_range>] [-w<warn_range>] [-c<crit_range>] [-t <timeout>]',
+			'([-P snmp version] [-L seclevel] [-U secname]',
 			'[-a authproto] [-A authpasswd] [-x privproto] [-X privpasswd])'
 		), 3);
 	}
-	public function test_usage() {
-		$this->assertCommand("-u", array(
+	public function test_wrong_T_argument() {
+		$this->assertCommand("-H @endpoint@ -C mycommunity -T wrong", array(
 		), array(
-			'Usage:',
-			'check_snmp_memory -H <ip_address> -C <snmp_community>',
-			'[-w <warn_range>] [-c <crit_range>] [-t <timeout>] [-T <type>]',
-			'([-P snmp version] [-N context] [-L seclevel] [-U secname]',
-			'[-a authproto] [-A authpasswd] [-x privproto] [-X privpasswd])'
-		), 0);
+			"Wrong parameter for -T"
+		), 3);
 	}
 	public function disabled_test_help() {
 		$this->assertCommand("-h", array(

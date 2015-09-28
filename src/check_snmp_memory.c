@@ -2,15 +2,13 @@
  * Check system memory over snmp
  */
 const char *progname = "check_snmp_memory";
-const char *program_name = "check_snmp_memory"; /* Required for coreutils libs */
-const char *copyright = "2015";
-const char *email = "devel@monitoring-plugins.org";
+const char *program_name = "check_snmp_memory"; /* Needed for coreutils libs */
 
 #include "common.h"
 #include "utils.h"
 #include "utils_snmp.h"
 
-#define DEFAULT_TIME_OUT 15			/* only for help text atm */
+#define DEFAULT_TIME_OUT 15 /* only for help text atm */
 
 /* UCD-SNMP-MIB for memory checks on linux systems */
 #define MEMORY_TABLE "1.3.6.1.4.1.2021.4"
@@ -36,25 +34,19 @@ const char *email = "devel@monitoring-plugins.org";
 
 enum o_monitortype_t {
 	MONITOR_TYPE__RAM_USED,
-	MONITOR_TYPE__RAM_FREE,
-	MONITOR_TYPE__SWAP_USED,
-	MONITOR_TYPE__BUFFER_KB,
-	MONITOR_TYPE__BUFFER_MB,
-	MONITOR_TYPE__BUFFER_GB,
-	MONITOR_TYPE__CACHED_KB,
-	MONITOR_TYPE__CACHED_MB,
-	MONITOR_TYPE__CACHED_GB
+	MONITOR_TYPE__SWAP_USED
 };
 
 int process_arguments (int, char **);
 int validate_arguments (void);
 void print_help (void);
 void print_usage (void);
+int tolower(int);
 
 mp_snmp_context *ctx;
 char *warn_str = "", *crit_str = "";
+char *thresholdunit = "";
 enum o_monitortype_t o_monitortype = MONITOR_TYPE__RAM_USED; /* default */
-int o_perfdata = 1; /* perfdata on per default */
 
 struct mem_info {
 	int Index;
@@ -64,21 +56,20 @@ struct mem_info {
 	int AvailReal;
 	int Buffer;
 	int Cached;
-	int UsedReal; /* calculated from TotalReal-AvailReal */
-	int UsedSwap; /* calculated from TotalSwap-AvailSwap */
+	int UsedReal; /* calculated */
+	int UsedSwap; /* calculated */
 };
 /**
  * Calculated memory info values used for checking and printing output
- * with and without perfdata
+ * with perfdata
  */
 struct cmi {
-	int ram_used;
-	int ram_free;
-	int swap_used;
-	int buffer_mb;
-	int buffer_gb;
-	int cached_mb;
-	int cached_gb;
+	double bytes_used;
+	double bytes_buffer;
+	double bytes_cached;
+	double bytes_free;
+	double percent_used;
+	double total_size;
 };
 
 static int mem_callback(netsnmp_variable_list *v, void *mc_ptr, void *discard)
@@ -121,12 +112,14 @@ struct mem_info *check_mem_ret(mp_snmp_context *ss, int statemask)
 	}
 
 	/* calculate the used values */
-	mi->UsedReal = mi->TotalReal-mi->AvailReal;
-	mi->UsedSwap = mi->TotalSwap-mi->AvailSwap;
+	mi->UsedReal = mi->TotalReal - mi->AvailReal - mi->Buffer - mi->Cached;
+	mi->UsedSwap = mi->TotalSwap - mi->AvailSwap;
 
-	mp_debug(3,"Memory: %dkb total, %dkb used, %dkb free, %dkb buffers\nSwap: \t%dkb total, %dkb used, %dkb free, %dkb cached\n",
-				mi->TotalReal, mi->UsedReal, mi->AvailReal, mi->Buffer,
-				mi->TotalSwap, mi->UsedSwap, mi->AvailSwap, mi->Cached);
+	mp_debug(3,
+		"Memory: %dkb total, %dkb used, %dkb free, %dkb buffers, %dkb cached\n"
+		"Swap: \t%dkb total, %dkb used, %dkb free\n",
+		mi->TotalReal, mi->UsedReal, mi->AvailReal, mi->Buffer, mi->Cached,
+		mi->TotalSwap, mi->UsedSwap, mi->AvailSwap);
 
 	return mi;
 }
@@ -134,16 +127,18 @@ struct mem_info *check_mem_ret(mp_snmp_context *ss, int statemask)
 void print_usage (void)
 {
 	printf ("%s\n", _("Usage:"));
-	printf ("%s -H <ip_address> -C <snmp_community>\n",progname);
-	printf ("[-w <warn_range>] [-c <crit_range>] [-t <timeout>] [-T <type>]\n");
-	printf ("([-P snmp version] [-N context] [-L seclevel] [-U secname]\n");
+	printf ("%s -H <ip_address> -C <snmp_community> [-T <type>]\n",progname);
+	printf ("[-m<unit_range>] [-w<warn_range>] "
+			"[-c<crit_range>] [-t <timeout>]\n");
+	printf ("([-P snmp version] [-L seclevel] [-U secname]\n");
 	printf ("[-a authproto] [-A authpasswd] [-x privproto] [-X privpasswd])\n");
 }
 
 void print_help (void)
 {
 	print_revision (progname, NP_VERSION);
-	printf ("%s\n", _("Check status of remote machines and obtain system information via SNMP"));
+	printf ("%s\n", _("Check status of remote machines and obtain system "
+		"information via SNMP"));
 	printf ("\n\n");
 
 	print_usage ();
@@ -152,15 +147,13 @@ void print_help (void)
 	printf (UT_VERBOSE);
 	printf (UT_PLUG_TIMEOUT, DEFAULT_TIME_OUT);
 	printf (" %s\n", "-T, --type=STRING");
-	printf ("	%s\n", _("ram_used (default)"));
-	printf ("	%s\n", _("ram_free"));
-	printf ("	%s\n", _("swap_used"));
-	printf ("	%s\n", _("buffer_in_kb"));
-	printf ("	%s\n", _("buffer_in_mb"));
-	printf ("	%s\n", _("buffer_in_gb"));
-	printf ("	%s\n", _("cached_in_kb"));
-	printf ("	%s\n", _("cached_in_mb"));
-	printf ("	%s\n", _("cached_in_gb"));
+	printf ("    %s\n", _("Type of check (default: ram_used)"));
+	printf ("    %s\n", _("ram_used or swap_used"));
+	printf (" %s\n", "-m, --uom");
+	printf ("    %s\n", _("Unit of measurement for warning/critical range "
+		"(default: %)"));
+	printf ("    %s\n", _("%, b, kb, mb, gb, tb, pb, eb, zb or yb"));
+
 	mp_snmp_argument_help();
 	printf ( UT_WARN_CRIT_RANGE);
 }
@@ -171,16 +164,14 @@ int process_arguments (int argc, char **argv)
 	int c, option;
 	int i, x;
 	char *optary;
-	mp_snmp_init(program_name, 0);
 	ctx = mp_snmp_create_context();
 	if (!ctx)
 		die(STATE_UNKNOWN, _("Failed to create snmp context\n"));
 
 	static struct option longopts[] = {
 		STD_LONG_OPTS,
-		{"usage", no_argument, 0, 'u'},
-		{"perfdata", no_argument, 0, 'f'},
 		{"type", required_argument, 0, 'T'},
+		{"uom", required_argument, 0, 'm'},
 		MP_SNMP_LONGOPTS,
 		{NULL, 0, 0, 0},
 	};
@@ -229,34 +220,44 @@ int process_arguments (int argc, char **argv)
 			case 'v':
 				mp_verbosity++;
 				break;
-			case 'u':
-				print_usage();
-				exit(STATE_OK);
-				break;
-			case 'f':
-				o_perfdata = 0;
-				break;
 			case 'T':
 				if (0==strcmp(optarg, "ram_used")) {
 					o_monitortype = MONITOR_TYPE__RAM_USED;
-				} else if (0==strcmp(optarg, "ram_free")) {
-					o_monitortype = MONITOR_TYPE__RAM_FREE;
 				} else if (0==strcmp(optarg, "swap_used")) {
 					o_monitortype = MONITOR_TYPE__SWAP_USED;
-				} else if (0==strcmp(optarg, "buffer_in_kb")) {
-					o_monitortype = MONITOR_TYPE__BUFFER_KB;
-				} else if (0==strcmp(optarg, "buffer_in_mb")) {
-					o_monitortype = MONITOR_TYPE__BUFFER_MB;
-				} else if (0==strcmp(optarg, "buffer_in_gb")) {
-					o_monitortype = MONITOR_TYPE__BUFFER_GB;
-				} else if (0==strcmp(optarg, "cached_in_kb")) {
-					o_monitortype = MONITOR_TYPE__CACHED_KB;
-				} else if (0==strcmp(optarg, "cached_in_mb")) {
-					o_monitortype = MONITOR_TYPE__CACHED_MB;
-				} else if (0==strcmp(optarg, "cached_in_gb")) {
-					o_monitortype = MONITOR_TYPE__CACHED_GB;
 				} else {
-					die(STATE_UNKNOWN, _("Wrong parameter for -T.\n"));
+					die(STATE_UNKNOWN, _("Wrong parameter for -T\n"));
+				}
+				break;
+			case 'm':
+				/**
+				 * We are generous and accept both upper and lowercase
+				 */
+				for (i = 0; optarg[i]; i++) {
+					optarg[i] = tolower(optarg[i]);
+				}
+				if (0 == strcmp(optarg, "b")) {
+					thresholdunit = "b";
+				} else if (0 == strcmp(optarg, "kb")) {
+					thresholdunit = "k";
+				} else if (0 == strcmp(optarg, "mb")) {
+					thresholdunit = "m";
+				} else if (0 == strcmp(optarg, "gb")) {
+					thresholdunit = "g";
+				} else if (0 == strcmp(optarg, "tb")) {
+					thresholdunit = "t";
+				} else if (0 == strcmp(optarg, "pb")) {
+					thresholdunit = "p";
+				} else if (0 == strcmp(optarg, "eb")) {
+					thresholdunit = "e";
+				} else if (0 == strcmp(optarg, "zb")) {
+					thresholdunit = "z";
+				} else if (0 == strcmp(optarg, "yb")) {
+					thresholdunit = "y";
+				} else if (0 == strcmp(optarg, "%")) {
+					thresholdunit = "%";
+				} else {
+					die(STATE_UNKNOWN, _("Wrong parameter for -m\n"));
 				}
 				break;
 			default:
@@ -267,139 +268,156 @@ int process_arguments (int argc, char **argv)
 	free(optary);
 
 	if (optind != argc) {
-		printf("%s: %s: ", state_text(STATE_UNKNOWN), _("Unhandled arguments present"));
+		printf("%s: %s: ", state_text(STATE_UNKNOWN),
+			_("Unhandled arguments present"));
 		for (i = optind - 1; i < argc; i++) {
 			printf("%s%s", argv[i], i == argc - 1 ? "\n" : ", ");
 		}
 		exit(STATE_UNKNOWN);
 	}
-
 	return TRUE;
+}
+
+/**
+ * Parse out the uom for warning and critical ranges
+ * Calculate prefixedbytes to bytes and update thresholds to bytes
+ * Returns 0 if OK
+ */
+int update_thr(thresholds **thresh, double total_size)
+{
+	char *uom_str;
+	const char *prefix_str = "bkmgtpezy";
+
+	if ((uom_str = strpbrk(thresholdunit, prefix_str)) != NULL) {
+		(*thresh)->warning->start =
+			prefixedbytes_to_bytes((*thresh)->warning->start, uom_str);
+		(*thresh)->warning->end =
+			prefixedbytes_to_bytes((*thresh)->warning->end, uom_str);
+
+	} else {
+		(*thresh)->warning->start =
+			((*thresh)->warning->start / 100) * total_size;
+		(*thresh)->warning->end =
+			((*thresh)->warning->end / 100) * total_size;
+	}
+
+	if ((uom_str = strpbrk(thresholdunit, prefix_str)) != NULL) {
+		(*thresh)->critical->start =
+			prefixedbytes_to_bytes((*thresh)->critical->start, uom_str);
+		(*thresh)->critical->end =
+			prefixedbytes_to_bytes((*thresh)->critical->end, uom_str);
+	} else {
+		(*thresh)->critical->start =
+			((*thresh)->critical->start / 100) * total_size;
+		(*thresh)->critical->end =
+			((*thresh)->critical->end / 100) * total_size;
+	}
+	return 0;
 }
 
 int main(int argc, char **argv)
 {
-	const int MBPREFIX = 1024;
-	static thresholds *thresh;
-	struct mem_info *ptr;
-	struct cmi *cmiptr = (struct cmi *) malloc(sizeof(struct cmi));
-	char *uom = "%"; /* used with perfdata */
+	const int KIBPREFIX = 1024; /* Returned value from SNMP is in KiB */
 	int result = STATE_UNKNOWN;
-	
+	static thresholds *thresh;
+	struct cmi *cmiptr = (struct cmi *) malloc(sizeof(struct cmi));
+	struct mem_info *ptr; /* Allocated in called function */
+	const char *uom = "B";
+
+	mp_snmp_init(program_name, 0);
+
 	/* Parse extra opts if any */
 	argv=np_extra_opts (&argc, argv, progname);
 	if (process_arguments (argc, argv) == ERROR)
 		usage4 (_("Could not parse arguments"));
 
 	/**
+	 * Finalize authentication of the snmp context and print possible debug info
+	 * about the snmp_context
+	 */
+	if (0 != mp_snmp_finalize_auth(ctx)) {
+		die(STATE_UNKNOWN, _("Failed to finalize SNMP authentication\n"));
+	}
+
+	if (mp_verbosity >= 1) {
+		mp_snmp_debug_print_ctx(stdout,ctx);
+	}
+
+	/**
 	 *  Set standard monitoring-plugins thresholds
 	 */
 	set_thresholds(&thresh, warn_str, crit_str);
-
-	/**
-	 * Finalize authentication of the snmp context and print possible debug info
-	 * about the mp_snmp_context
-	 */
-	mp_snmp_finalize_auth(ctx);
-	if (mp_verbosity >= 1) {
-		mp_snmp_debug_print_ctx(stdout,ctx);
-	};
 
 	ptr = check_mem_ret(ctx, ~0); /* get net-snmp memory data */
 	mp_snmp_deinit(program_name); /* deinit */
 	/* check and output results */
 	switch (o_monitortype) {
 		case MONITOR_TYPE__RAM_USED:
-			cmiptr->ram_used = (ptr->TotalReal-ptr->AvailReal)*100/ptr->TotalReal;
-			result = get_status(cmiptr->ram_used, thresh);
-			printf("%s: %d%% Ram used ", state_text(result), cmiptr->ram_used);
-			if (o_perfdata == 1) {
-				printf("|'Ram used'=%d%s;%s;%s",
-						cmiptr->ram_used, uom, warn_str, crit_str);
+			cmiptr->bytes_used = ((double)ptr->UsedReal) * KIBPREFIX;
+			cmiptr->total_size = ptr->TotalReal * KIBPREFIX;
+			cmiptr->percent_used = (cmiptr->bytes_used / cmiptr->total_size) * 100;
+			cmiptr->bytes_free = cmiptr->total_size - cmiptr->bytes_used;
+			cmiptr->bytes_buffer = (double)ptr->Buffer * KIBPREFIX;
+			cmiptr->bytes_cached = (double)ptr->Cached * KIBPREFIX;
+
+			if (update_thr(&thresh, cmiptr->total_size) != 0) {
+				die(STATE_UNKNOWN, _("Failed to convert ranges to bytes\n"));
 			}
-			break;
-		case MONITOR_TYPE__RAM_FREE:
-			cmiptr->ram_free = ptr->AvailReal*100/ptr->TotalReal;
-			result = get_status(cmiptr->ram_free, thresh);
-			printf("%s: %d%% Ram free ", state_text(result), cmiptr->ram_free);
-			if (o_perfdata == 1) {
-				printf("|'Ram free'=%d%s;%s;%s",
-						cmiptr->ram_free, uom, warn_str, crit_str);
-			}
+
+			result = get_status (cmiptr->bytes_used, thresh);
+			printf("%s: Used RAM: %.2lf%% (%s) of total %s |%s %s %s %s",
+				state_text(result),
+				cmiptr->percent_used,
+				(char*)humanize_bytes(cmiptr->bytes_used),
+				(char*)humanize_bytes(cmiptr->total_size),
+				perfdata ("RAM Used", cmiptr->bytes_used, uom,
+					thresh->warning?TRUE:FALSE, thresh->warning?thresh->warning->end:FALSE,
+					thresh->critical?TRUE:FALSE, thresh->critical?thresh->critical->end:FALSE,
+					TRUE, 0, TRUE, cmiptr->total_size),
+				perfdata ("RAM Buffered", cmiptr->bytes_buffer, uom,
+					FALSE, FALSE,
+					FALSE, FALSE,
+					TRUE, 0, TRUE, cmiptr->total_size),
+				perfdata ("RAM Cached", cmiptr->bytes_cached, uom,
+					FALSE, FALSE,
+					FALSE, FALSE,
+					TRUE, 0, TRUE, cmiptr->total_size),
+				perfdata ("RAM Free", cmiptr->bytes_free, uom,
+					FALSE, FALSE,
+					FALSE, FALSE,
+					TRUE, 0, TRUE, cmiptr->total_size));
 			break;
 		case MONITOR_TYPE__SWAP_USED:
-			cmiptr->swap_used = (ptr->TotalSwap-ptr->AvailSwap)*100/ptr->TotalSwap;
-			result = get_status(cmiptr->swap_used, thresh);
-			printf("%s: %d%% Swap used ", state_text(result), cmiptr->swap_used);
-			if (o_perfdata == 1) {
-				printf("|'Swap used'=%d%s;%s;%s",
-						cmiptr->swap_used, uom, warn_str, crit_str);
+			cmiptr->bytes_used = ((double)ptr->UsedSwap) * KIBPREFIX;
+			cmiptr->total_size = ptr->TotalSwap * KIBPREFIX;
+			cmiptr->percent_used = (cmiptr->bytes_used / cmiptr->total_size) * 100;
+			cmiptr->bytes_free = cmiptr->total_size - cmiptr->bytes_used;
+
+			if (update_thr(&thresh, cmiptr->total_size) != 0) {
+				die(STATE_UNKNOWN, _("Failed to convert ranges to bytes\n"));
 			}
-			break;
-		case MONITOR_TYPE__BUFFER_KB:
-			uom = "KB";
-			result = get_status (ptr->Buffer, thresh);
-			printf("%s: %d%s Memory Buffer ", state_text(result), ptr->Buffer, uom);
-			if (o_perfdata == 1) {
-				printf("|'Memory Buffer'=%d%s;%s;%s",
-						ptr->Buffer, uom, warn_str, crit_str);
-			}
-			break;
-		case MONITOR_TYPE__BUFFER_MB:
-			uom = "MB";
-			cmiptr->buffer_mb = ptr->Buffer/MBPREFIX;
-			result = get_status (cmiptr->buffer_mb, thresh);
-			printf("%s: %d%s Memory Buffer ", state_text(result), cmiptr->buffer_mb, uom);
-			if (o_perfdata == 1) {
-				printf("|'Memory Buffer'=%d%s;%s;%s",
-						cmiptr->buffer_mb, uom, warn_str, crit_str);
-			}
-			break;
-		case MONITOR_TYPE__BUFFER_GB:
-			uom = "GB";
-			cmiptr->buffer_gb = ptr->Buffer/(MBPREFIX*MBPREFIX);
-			result = get_status (cmiptr->buffer_gb, thresh);
-			printf("%s: %d%s Memory Buffer ", state_text(result), cmiptr->buffer_gb, uom);
-			if (o_perfdata == 1) {
-				printf("|'Memory Buffer'=%d%s;%s;%s",
-						cmiptr->buffer_gb, uom, warn_str, crit_str);
-			}
-			break;
-		case MONITOR_TYPE__CACHED_KB:
-			uom = "KB";
-			result = get_status (ptr->Cached, thresh);
-			printf("%s: %d%s Memory Cached ", state_text(result), ptr->Cached, uom);
-			if (o_perfdata == 1) {
-				printf("|'Memory Cached'=%d%s;%s;%s",
-						ptr->Cached, uom, warn_str, crit_str);
-			}
-			break;
-		case MONITOR_TYPE__CACHED_MB:
-			uom = "MB";
-			cmiptr->cached_mb = ptr->Cached/MBPREFIX;
-			result = get_status (cmiptr->cached_mb, thresh);
-			printf("%s: %d%s Memory Cached ", state_text(result), cmiptr->cached_mb, uom);
-			if (o_perfdata == 1) {
-				printf("|'Memory Cached'=%d%s;%s;%s",
-						cmiptr->cached_mb, uom, warn_str, crit_str);
-			}
-			break;
-		case MONITOR_TYPE__CACHED_GB:
-			uom = "GB";
-			cmiptr->cached_gb = ptr->Cached/(MBPREFIX*MBPREFIX);
-			result = get_status(cmiptr->cached_gb, thresh);
-			printf("%s: %d%s Memory Cached ", state_text(result), cmiptr->cached_gb, uom);
-			if (o_perfdata == 1) {
-				printf("|'Memory Cached'=%d%s;%s;%s",
-						cmiptr->cached_gb, uom, warn_str, crit_str);
-			}
+
+			result = get_status (cmiptr->bytes_used, thresh);
+			printf("%s: Used Swap: %.2lf%% (%s) of total %s |%s %s",
+				state_text(result),
+				cmiptr->percent_used,
+				(char*)humanize_bytes(cmiptr->bytes_used),
+				(char*)humanize_bytes(cmiptr->total_size),
+				perfdata ("Swap Used", cmiptr->bytes_used, uom,
+					thresh->warning?TRUE:FALSE, thresh->warning?thresh->warning->end:FALSE,
+					thresh->critical?TRUE:FALSE, thresh->critical?thresh->critical->end:FALSE,
+					TRUE, 0, TRUE, cmiptr->total_size),
+				perfdata ("Swap Free", cmiptr->bytes_free, uom,
+					FALSE, FALSE,
+					FALSE, FALSE,
+					TRUE, 0, TRUE, cmiptr->total_size));
 			break;
 		default:
 			usage4 (_("Could not parse arguments for -T"));
 			break;
 	}
 	printf("\n");
-	
+
 	free(ctx);
 	free(ptr);
 	free(cmiptr);

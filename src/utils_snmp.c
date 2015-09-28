@@ -272,7 +272,7 @@ void mp_snmp_argument_help(void)
 	printf(" -p, --port=INTEGER\n");
 	printf("    %s\n", _("Port number (default: 161)"));
 	printf(" -C, --community=STRING\n");
-	printf("   %s\n", _("Community string for SNMP communication"));
+	printf("    %s\n", _("Community string for SNMP communication"));
 	printf(" -P, --protocol=[1|2c|3]\n");
 	printf("    %s\n", _("SNMP protocol version (default: 2c)"));
 	printf(" -L, --seclevel=[noAuthNoPriv|authNoPriv|authPriv]\n");
