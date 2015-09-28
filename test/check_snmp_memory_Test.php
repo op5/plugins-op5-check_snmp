@@ -135,13 +135,13 @@ EOF;
 		), 3);
 	}
 	public function test_wc_parsing_tilde_and_at_OK() {
-		$this->assertCommand("-H @endpoint@ -C mycommunity -m gb -w~:300 -c@20:400", array(
+		$this->assertCommand("-H @endpoint@ -C mycommunity -m gib -w~:300 -c@20:400", array(
 		), array(
 			"OK: Used RAM: 29.25% (172.41MiB) of total 589.43MiB |'RAM Used'=180785152B;322122547200;429496729600;0;618061824 'RAM Buffered'=54124544B;;;0;618061824 'RAM Cached'=287711232B;;;0;618061824 'RAM Free'=437276672B;;;0;618061824"
 		), 0);
 	}
 	public function test_prefix_mb_in_ranges_OK() {
-		$this->assertCommand("-H @endpoint@ -C mycommunity -m mb -w10:300 -c20:400", array(
+		$this->assertCommand("-H @endpoint@ -C mycommunity -m mib -w10:300 -c20:400", array(
 		), array(
 			"OK: Used RAM: 29.25% (172.41MiB) of total 589.43MiB |'RAM Used'=180785152B;314572800;419430400;0;618061824 'RAM Buffered'=54124544B;;;0;618061824 'RAM Cached'=287711232B;;;0;618061824 'RAM Free'=437276672B;;;0;618061824"
 		), 0);
@@ -156,7 +156,7 @@ EOF;
 		), 0);
 	}
 	public function test_option_swap_warning_and_critical_gb_OK() {
-		$this->assertCommand("-H @endpoint@ -C mycommunity -T swap_used -m gb -w10 -c20", array(
+		$this->assertCommand("-H @endpoint@ -C mycommunity -T swap_used -m gib -w10 -c20", array(
 		), array(
 			"OK: Used Swap: 5.28% (64.69MiB) of total 1.20GiB |'Swap Used'=67833856B;10737418240;21474836480;0;1284497408 'Swap Free'=1216663552B;;;0;1284497408"
 		), 0);
@@ -168,7 +168,7 @@ EOF;
 		), 1);
 	}
 	public function test_option_swap_warning_and_critical_mb_WARNING() {
-		$this->assertCommand("-H @endpoint@ -C mycommunity -T swap_used -m mb -w 10 -c 67.84", array(
+		$this->assertCommand("-H @endpoint@ -C mycommunity -T swap_used -m mib -w 10 -c 67.84", array(
 		), array(
 			"WARNING: Used Swap: 5.28% (64.69MiB) of total 1.20GiB |'Swap Used'=67833856B;10485760;71135395;0;1284497408 'Swap Free'=1216663552B;;;0;1284497408"
 		), 1);
@@ -180,7 +180,7 @@ EOF;
 		), 2);
 	}
 	public function test_option_swap_warning_and_critical_mb_CRITICAL() {
-		$this->assertCommand("-H @endpoint@ -C mycommunity -T swap_used -m mb -w10.000 -c64.69", array(
+		$this->assertCommand("-H @endpoint@ -C mycommunity -T swap_used -m mib -w10.000 -c64.69", array(
 		), array(
 			"CRITICAL: Used Swap: 5.28% (64.69MiB) of total 1.20GiB |'Swap Used'=67833856B;10485760;67832381;0;1284497408 'Swap Free'=1216663552B;;;0;1284497408"
 		), 2);
