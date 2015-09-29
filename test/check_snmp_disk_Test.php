@@ -515,10 +515,10 @@ EOF;
 /**
  * Storage prefixedbytes used controlled by warning and critical values
  */
-	public function test_mb_prefix_OK() {
-		$this->assertCommand("-H @endpoint@ -C mycommunity -i / -m mb -w3000 -c4000", array(
+	public function test_gb_prefix_OK() {
+		$this->assertCommand("-H @endpoint@ -C mycommunity -i / -m gb -w3 -c4", array(
 		), array(
-			"OK: Used space on '/': 32.59% (2.57GiB) of total 7.87GiB |'Used /'=2755420160.000000B;3145728000.000000;4194304000.000000;0.000000;8454070272.000000 'Free /'=5698650112.000000B;;;0.000000;8454070272.000000"
+			"OK: Used space on '/': 32.59% (2.57GiB) of total 7.87GiB |'Used /'=2755420160.000000B;3221225472.000000;4294967296.000000;0.000000;8454070272.000000 'Free /'=5698650112.000000B;;;0.000000;8454070272.000000"
 		), 0);
 	}
 	public function test_gb_prefix_with_range_without_prefix_WARNING() {
@@ -537,21 +537,6 @@ EOF;
 		$this->assertCommand("-H @endpoint@ -C mycommunity -i / -m gb -w2.00:3.5", array(
 		), array(
 			"OK: Used space on '/': 32.59% (2.57GiB) of total 7.87GiB |'Used /'=2755420160.000000B;3758096384.000000;0.000000;0.000000;8454070272.000000 'Free /'=5698650112.000000B;;;0.000000;8454070272.000000"
-		), 0);
-	}
-/**
- * Storage prefixedbytes extreme values
- */
-	public function test_max_prefixed_warning_OK() {
-		$this->assertCommand("-H @endpoint@ -C mycommunity -i / -m yb -w999.99", array(
-		), array(
-			"OK: Used space on '/': 32.59% (2.57GiB) of total 7.87GiB |'Used /'=2755420160.000000B;1208913730356433039409545216.000000;0.000000;0.000000;8454070272.000000 'Free /'=5698650112.000000B;;;0.000000;8454070272.000000"
-		), 0);
-	}
-	public function test_max_prefixed_warning_error_UNKNOWN() {
-		$this->assertCommand("-H @endpoint@ -C mycommunity -i / -m yb -w1000.00", array(
-		), array(
-			"OK: Used space on '/': 32.59% (2.57GiB) of total 7.87GiB |'Used /'=2755420160.000000B;1208925819614629174706176000.000000;0.000000;0.000000;8454070272.000000 'Free /'=5698650112.000000B;;;0.000000;8454070272.000000"
 		), 0);
 	}
 /**

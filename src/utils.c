@@ -38,6 +38,7 @@ extern const char *progname;
 
 #define STRLEN 64
 #define TXTBLK 128
+#define ARRAY_SIZE(x) (sizeof(x) / sizeof(x[0]))
 
 unsigned int timeout_state = STATE_CRITICAL;
 unsigned int timeout_interval = DEFAULT_SOCKET_TIMEOUT;
@@ -506,4 +507,46 @@ char *sperfdata (const char *label,
 	}
 
 	return data;
+}
+
+/******************************************************************************
+ *
+ * Calculate bytes to human readable bytes
+ * Calculate human readable bytes to bytes
+ *
+ ******************************************************************************/
+const char *humanize_bytes(double bytes)
+{
+	static char buf[32][16];
+	static int buf_i = 0;
+	char *p;
+	const char *suffix[] = { "byte", "KiB", "MiB", "GiB", "TiB", "PiB", "EiB", "ZiB", "YiB" };
+	unsigned int suff_i = 0;
+
+	while (suff_i < ARRAY_SIZE(suffix) && bytes > 1024) {
+		bytes /= 1024;
+		suff_i++;
+	}
+	p = buf[buf_i++];
+	sprintf(p, "%.2lf%s", bytes, suffix[suff_i]);
+	return p;
+}
+
+/**
+ * Used to transform the warning and critical values from prefixedbytes to bytes
+ */
+double prefixedbytes_to_bytes(double bytes, const char *uom)
+{
+	const char *prefix[] = { "b", "k", "m", "g", "t", "p", "e", "z", "y" };
+	unsigned int pref_i = 0;
+
+	while (pref_i < ARRAY_SIZE(prefix)) {
+		if (0==strcmp(uom, prefix[pref_i])) {
+			break;
+		} else {
+			bytes = bytes * 1024;
+			pref_i++;
+		}
+	}
+	return bytes;
 }

@@ -198,3 +198,6 @@ copies of the plugins under the terms of the GNU General Public License.\n\
 For more information about these matters, see the file named COPYING.\n")
 
 #endif /* NP_UTILS_H */
+
+const char *humanize_bytes(double bytes);
+double prefixedbytes_to_bytes(double bytes, const char *uom);
