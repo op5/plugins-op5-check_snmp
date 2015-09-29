@@ -200,17 +200,18 @@ static int process_arguments (int argc, char **argv)
 
 int parse_thresholds(char **legacy_thrs, char *threshold, size_t n_thresholds)
 {
-	char *legacy_token = "";
 	size_t i = 0;
+	char *legacy_token;
 	legacy_token = strtok(threshold, ",");
 
 	while (legacy_token) {
-		legacy_thrs[i++] = legacy_token;
+		legacy_thrs[i] = legacy_token;
 		legacy_token = strtok(NULL, ",");
+		i++;
 	}
-	if (i != n_thresholds) {
-		die(STATE_UNKNOWN, _("Warning and critical thresholds only take three "
-			"arguments (STRING,STRING,STRING)\n"));
+
+	if (i > n_thresholds) {
+		die(STATE_UNKNOWN, _("Too many arguments for warning and critical thresholds\n"));
 		return FALSE;
 	}
 	return TRUE;

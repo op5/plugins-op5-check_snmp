@@ -197,6 +197,13 @@ EOF;
 /**
  * Load
  */
+	public function test_load_default_OK() {
+		$this->assertCommand("-H @endpoint@ -C mycommunity -T load", array(
+			"1.3.6.1.4.1.2021.10.1.5.3" => array(2,4)
+		), array(
+			"OK: 1, 5, 15 min load average: 0.02, 0.03, 0.04 |'Load1'=0.02;; 'Load5'=0.03;; 'Load15'=0.04;;"
+		), 0);
+	}
 	public function test_load_OK() {
 		$this->assertCommand("-H @endpoint@ -C mycommunity -T load -w 1.1,1.2,1.3 -c 2.1,2.2,2.3", array(
 			"1.3.6.1.4.1.2021.10.1.5.3" => array(2,4)
@@ -221,39 +228,46 @@ EOF;
 /**
  * Load thresholds with incorrect input
  */
-	public function test_load_wrong_amount_of_warning_and_critical_arguments() {
+	public function test_load_with_two_warning_and_critical_arguments() {
 		$this->assertCommand("-H @endpoint@ -C mycommunity -T load -w 1.1,1.2 -c 2.1,2.2", array(
 			"1.3.6.1.4.1.2021.10.1.5.3" => array(2,4)
 		), array(
-			"Warning and critical thresholds only take three arguments (STRING,STRING,STRING)"
-		), 3);
+			"OK: 1, 5, 15 min load average: 0.02, 0.03, 0.04 |'Load1'=0.02;1.1;2.1 'Load5'=0.03;1.2;2.2 'Load15'=0.04;;"
+		), 0);
 	}
-	public function test_load_wrong_uneven_amount_of_warning_and_critical_arguments() {
+	public function test_load_uneven_amount_of_warning_and_critical_arguments() {
 		$this->assertCommand("-H @endpoint@ -C mycommunity -T load -w 1.1,1.2 -c 2.1", array(
 			"1.3.6.1.4.1.2021.10.1.5.3" => array(2,4)
 		), array(
-			"Warning and critical thresholds only take three arguments (STRING,STRING,STRING)"
-		), 3);
+			"OK: 1, 5, 15 min load average: 0.02, 0.03, 0.04 |'Load1'=0.02;1.1;2.1 'Load5'=0.03;1.2; 'Load15'=0.04;;"
+		), 0);
 	}
-	public function test_load_wrong_amount_of_critical_arguments() {
-		$this->assertCommand("-H @endpoint@ -C mycommunity -T load -w 1.1,1.2,1.3 -c 2.1", array(
+	public function test_load_only_warning_arguments() {
+		$this->assertCommand("-H @endpoint@ -C mycommunity -T load -w 1.1,1.2,1.3", array(
 			"1.3.6.1.4.1.2021.10.1.5.3" => array(2,4)
 		), array(
-			"Warning and critical thresholds only take three arguments (STRING,STRING,STRING)"
-		), 3);
+			"OK: 1, 5, 15 min load average: 0.02, 0.03, 0.04 |'Load1'=0.02;1.1; 'Load5'=0.03;1.2; 'Load15'=0.04;1.3;"
+		), 0);
 	}
-	public function test_load_to_many_critical_arguments() {
-		$this->assertCommand("-H @endpoint@ -C mycommunity -T load -w 1.1,1.2,1.3 -c 2.1,2.2,2.3,2.4", array(
+	public function test_load_only_critical_arguments() {
+		$this->assertCommand("-H @endpoint@ -C mycommunity -T load -c 2.1,2.2,2.3", array(
 			"1.3.6.1.4.1.2021.10.1.5.3" => array(2,4)
 		), array(
-			"Warning and critical thresholds only take three arguments (STRING,STRING,STRING)"
-		), 3);
+			"OK: 1, 5, 15 min load average: 0.02, 0.03, 0.04 |'Load1'=0.02;;2.1 'Load5'=0.03;;2.2 'Load15'=0.04;;2.3"
+		), 0);
 	}
-	public function test_load_to_many_warning_arguments() {
+	public function test_load_too_many_warning_arguments() {
 		$this->assertCommand("-H @endpoint@ -C mycommunity -T load -w 1.1,1.2,1.3,1.4 -c 2.1,2.2,2.3", array(
 			"1.3.6.1.4.1.2021.10.1.5.3" => array(2,4)
 		), array(
-			"Warning and critical thresholds only take three arguments (STRING,STRING,STRING)"
+			"Too many arguments for warning and critical thresholds"
+		), 3);
+	}
+	public function test_load_too_many_critical_arguments() {
+		$this->assertCommand("-H @endpoint@ -C mycommunity -T load -w 1.1,1.2,1.3 -c 2.1,2.2,2.3,2.4", array(
+			"1.3.6.1.4.1.2021.10.1.5.3" => array(2,4)
+		), array(
+			"Too many arguments for warning and critical thresholds"
 		), 3);
 	}
 /**
