@@ -20,7 +20,12 @@ depcomp
 install-sh
 missing
 src/check_snmp_cpu
+src/check_snmp_load_avg
 src/check_snmp_disk
 src/check_snmp_memory
 src/check_snmp_procs
 stamp-h1
+config.status.lineno
+configure.lineno
+session.
+src/.metadata/

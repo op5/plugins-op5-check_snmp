@@ -28,29 +28,37 @@ BuildRequires: op5-naemon-devel
 
 %package -n monitor-plugin-check_snmp_disk
 Group: Applications/System
-Summary: Nagios compatible plugins to check disks over SNMP
+Summary: Nagios compatible plugin to check disks over SNMP
 
 %description -n monitor-plugin-check_snmp_disk
 %{summary}
 
 %package -n monitor-plugin-check_snmp_cpu
 Group: Applications/System
-Summary: Nagios compatible plugins to check cpu over SNMP
+Summary: Nagios compatible plugin to check cpu over SNMP
 Requires: op5-monitor-user
 
 %description -n monitor-plugin-check_snmp_cpu
 %{summary}
 
+%package -n monitor-plugin-check_snmp_load_avg
+Group: Applications/System
+Summary: Nagios compatible plugin to check load average over SNMP
+Requires: op5-monitor-user
+
+%description -n monitor-plugin-check_snmp_load_avg
+%{summary}
+
 %package -n monitor-plugin-check_snmp_memory
 Group: Applications/System
-Summary: Nagios compatible plugins to check memory over SNMP
+Summary: Nagios compatible plugin to check memory over SNMP
 
 %description -n monitor-plugin-check_snmp_memory
 %{summary}
 
 %package -n monitor-plugin-check_snmp_procs
 Group: Applications/System
-Summary: Nagios compatible plugins to check procs over SNMP
+Summary: Nagios compatible plugin to check procs over SNMP
 Requires: op5-naemon
 
 %description -n monitor-plugin-check_snmp_procs
@@ -73,6 +81,7 @@ mkdir -p %buildroot%prefix/metadata
 mkdir -p %buildroot%{_localstatedir}/check_snmp_cpu
 cp op5build/check_snmp_disk.metadata %buildroot%prefix/metadata/check_snmp_disk.metadata
 cp op5build/check_snmp_cpu.metadata %buildroot%prefix/metadata/check_snmp_cpu.metadata
+cp op5build/check_snmp_load_avg.metadata %buildroot%prefix/metadata/check_snmp_load_avg.metadata
 cp op5build/check_snmp_memory.metadata %buildroot%prefix/metadata/check_snmp_memory.metadata
 cp op5build/check_snmp_procs.metadata %buildroot%prefix/metadata/check_snmp_procs.metadata
 
@@ -89,6 +98,11 @@ rm -rf %buildroot
 %attr(755,root,root) %{prefix}/check_snmp_cpu
 %attr(644,root,root) %{prefix}/metadata/check_snmp_cpu.metadata
 %dir %attr(755,%{daemon_user},%{daemon_group}) %{_localstatedir}/check_snmp_cpu
+
+%files -n monitor-plugin-check_snmp_load_avg
+%defattr(-,root,root,-)
+%attr(755,root,root) %{prefix}/check_snmp_load_avg
+%attr(644,root,root) %{prefix}/metadata/check_snmp_load_avg.metadata
 
 %files -n monitor-plugin-check_snmp_memory
 %defattr(-,root,root,-)
