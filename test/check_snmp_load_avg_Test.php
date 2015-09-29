@@ -119,80 +119,14 @@ EOF;
 		$this->assertEquals($expectedreturn, $return);
 	}
 /**
- * Testing
- * Load-1
+ * Testing load default
  */
 	public function test_default_without_parameters() {
 		$this->assertCommand("-H @endpoint@ -C mycommunity", array(
+			"1.3.6.1.4.1.2021.10.1.5.3" => array(2,4)
 		), array(
-			"OK: 1 min load average: 0.02 |'Load1'=0.02;;"
+			"OK: 1, 5, 15 min load average: 0.02, 0.03, 0.04 |'Load1'=0.02;; 'Load5'=0.03;; 'Load15'=0.04;;"
 		), 0);
-	}
-	public function test_load1_OK() {
-		$this->assertCommand("-H @endpoint@ -C mycommunity -T load1", array(
-		), array(
-			"OK: 1 min load average: 0.02 |'Load1'=0.02;;"
-		), 0);
-	}
-	public function test_load1_WARNING() {
-		$this->assertCommand("-H @endpoint@ -C mycommunity -T load1 -w 0.40 -c 0.90", array(
-			"1.3.6.1.4.1.2021.10.1.5.1" => array(2,50)
-		), array(
-			"WARNING: 1 min load average: 0.50 |'Load1'=0.50;0.40;0.90"
-		), 1);
-	}
-	public function test_load1_CRITICAL() {
-		$this->assertCommand("-H @endpoint@ -C mycommunity -T load1 -w 0.10 -c 0.20", array(
-			"1.3.6.1.4.1.2021.10.1.5.1" => array(2,100)
-		), array(
-			"CRITICAL: 1 min load average: 1.00 |'Load1'=1.00;0.10;0.20"
-		), 2);
-	}
-/**
- * Load-5
- */
-	public function test_load5_OK() {
-		$this->assertCommand("-H @endpoint@ -C mycommunity -T load5", array(
-		), array(
-			"OK: 5 min load average: 0.03 |'Load5'=0.03;;"
-		), 0);
-	}
-	public function test_load5_WARNING() {
-		$this->assertCommand("-H @endpoint@ -C mycommunity -T load5 -w 0.40 -c 0.90", array(
-			"1.3.6.1.4.1.2021.10.1.5.2" => array(2,50)
-		), array(
-			"WARNING: 5 min load average: 0.50 |'Load5'=0.50;0.40;0.90"
-		), 1);
-	}
-	public function test_load5_CRITICAL() {
-		$this->assertCommand("-H @endpoint@ -C mycommunity -T load5 -w 0.10 -c 0.20", array(
-			"1.3.6.1.4.1.2021.10.1.5.2" => array(2,100)
-		), array(
-			"CRITICAL: 5 min load average: 1.00 |'Load5'=1.00;0.10;0.20"
-		), 2);
-	}
-/**
- * Load-15
- */
-	public function test_load15_OK() {
-		$this->assertCommand("-H @endpoint@ -C mycommunity -T load15", array(
-		), array(
-			"OK: 15 min load average: 0.00 |'Load15'=0.00;;"
-		), 0);
-	}
-	public function test_load15_WARNING() {
-		$this->assertCommand("-H @endpoint@ -C mycommunity -T load15 -w 0.40 -c 0.90", array(
-			"1.3.6.1.4.1.2021.10.1.5.3" => array(2,50)
-		), array(
-			"WARNING: 15 min load average: 0.50 |'Load15'=0.50;0.40;0.90"
-		), 1);
-	}
-	public function test_load15_CRITICAL() {
-		$this->assertCommand("-H @endpoint@ -C mycommunity -T load15 -w 0.10 -c 0.20", array(
-			"1.3.6.1.4.1.2021.10.1.5.3" => array(2,100)
-		), array(
-			"CRITICAL: 15 min load average: 1.00 |'Load15'=1.00;0.10;0.20"
-		), 2);
 	}
 /**
  * Load

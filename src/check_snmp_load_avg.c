@@ -16,20 +16,8 @@ const char *program_name = "check_snmp_load_avg"; /* for coreutils libs */
 #define LOAD_SUBIDX_LaLoad5 2
 #define LOAD_SUBIDX_LaLoad15 3
 
-enum o_monitortype_t {
-	MONITOR_TYPE__LOAD1,
-	MONITOR_TYPE__LOAD5,
-	MONITOR_TYPE__LOAD15,
-	MONITOR_TYPE__LOAD
-};
-
-static int process_arguments (int, char **);
-void print_help (void);
-void print_usage (void);
-
 mp_snmp_context *ctx;
 char *warn_str = "", *crit_str = "";
-enum o_monitortype_t o_monitortype = MONITOR_TYPE__LOAD1;
 
 struct cpu_info {
 	float Load1;
@@ -97,9 +85,6 @@ void print_help (void)
 	printf (UT_PLUG_TIMEOUT, DEFAULT_TIME_OUT);
 	printf (" %s\n", "-T, --type=STRING");
 	printf ("	%s\n", _("load"));
-	printf ("	%s\n", _("load1"));
-	printf ("	%s\n", _("load5"));
-	printf ("	%s\n", _("load15"));
 	mp_snmp_argument_help();
 	printf (UT_WARN_CRIT_RANGE);
 }
@@ -167,15 +152,7 @@ static int process_arguments (int argc, char **argv)
 				mp_verbosity++;
 				break;
 			case 'T':
-				if (0==strcmp(optarg, "load")) {
-					o_monitortype = MONITOR_TYPE__LOAD;
-				} else if (0==strcmp(optarg, "load1")) {
-					o_monitortype = MONITOR_TYPE__LOAD1;
-				} else if (0==strcmp(optarg, "load5")) {
-					o_monitortype = MONITOR_TYPE__LOAD5;
-				} else if (0==strcmp(optarg, "load15")) {
-					o_monitortype = MONITOR_TYPE__LOAD15;
-				} else {
+				if (0!=strcmp(optarg, "load")) {
 					die(STATE_UNKNOWN, _("Wrong parameter for -T.\n"));
 				}
 				break;
@@ -198,22 +175,27 @@ static int process_arguments (int argc, char **argv)
 	return TRUE;
 }
 
-int parse_thresholds(char **legacy_thrs, char *threshold, size_t n_thresholds)
+/**
+ * Takes an array of thresholds and a comma separeted threshold string which
+ * gets parsed into individual ranges in the array. The function also needs to
+ * know the maximum number of thresholds it should parse.
+ */
+static int parse_thresholds(char **thrs, char *threshold, size_t n_thresholds)
 {
 	size_t i = 0;
-	char *legacy_token;
-	legacy_token = strtok(threshold, ",");
+	char *token;
+	token = strtok(threshold, ",");
 
-	while (legacy_token) {
-		legacy_thrs[i] = legacy_token;
-		legacy_token = strtok(NULL, ",");
+	while (token) {
+		if (i >= n_thresholds) {
+			die(STATE_UNKNOWN, _("Too many arguments for warning and critical thresholds\n"));
+			return FALSE;
+		}
+		thrs[i] = token;
+		token = strtok(NULL, ",");
 		i++;
 	}
 
-	if (i > n_thresholds) {
-		die(STATE_UNKNOWN, _("Too many arguments for warning and critical thresholds\n"));
-		return FALSE;
-	}
 	return TRUE;
 }
 
@@ -221,10 +203,11 @@ int main(int argc, char **argv)
 {
 	thresholds *thresh;
 	struct cpu_info *ptr;
-	int i, result = STATE_UNKNOWN;
-	int legacy_temp_result = STATE_UNKNOWN;
-	char *legacy_warn1 = "", *legacy_warn5 = "", *legacy_warn15 = "";
-	char *legacy_crit1 = "", *legacy_crit5 = "", *legacy_crit15 = "";
+	int result = STATE_UNKNOWN;
+	int temp_result = STATE_UNKNOWN;
+	char *warn_thrs[] = {"", "", ""};
+	char *crit_thrs[] = {"", "", ""};
+	size_t n_thresholds;
 
 	mp_snmp_init(program_name, 0);
 	np_init((char *)progname, argc, argv);
@@ -247,81 +230,36 @@ int main(int argc, char **argv)
 	mp_snmp_deinit(program_name); /* deinit */
 
 	/**
-	 * set standard monitoring-plugins thresholds
-	 * and check if we need to run the plugin in
-	 * legacy mode for CPU load
+	 * Parse thresholds and set the result to the worst state
 	 */
-	if (o_monitortype != MONITOR_TYPE__LOAD)
-		set_thresholds(&thresh, warn_str, crit_str);
+	n_thresholds= ARRAY_SIZE(warn_thrs);
+	parse_thresholds(warn_thrs, warn_str, n_thresholds);
 
-	if (o_monitortype == MONITOR_TYPE__LOAD)
-	{
-		/* Parse thresholds, return FALSE on error, TRUE on success */
-		char *legacy_warn_thrs[] = {legacy_warn1, legacy_warn5, legacy_warn15};
-		size_t n_thresholds = sizeof(legacy_warn_thrs) / sizeof(legacy_warn_thrs[0]);
+	n_thresholds = ARRAY_SIZE(crit_thrs);
+	parse_thresholds(crit_thrs, crit_str, n_thresholds);
 
-		i = parse_thresholds(legacy_warn_thrs, warn_str, n_thresholds);
-		if (FALSE == i)
-			die(STATE_UNKNOWN, _("Could not parse warning thresholds\n"));
+	set_thresholds(&thresh, warn_thrs[0], crit_thrs[0]);
+	temp_result = get_status((float)ptr->Load1, thresh);
+	result = max_state(temp_result, result);
 
-		char *legacy_crit_thrs[] = {legacy_crit1, legacy_crit5, legacy_crit15};
-		n_thresholds = sizeof(legacy_crit_thrs) / sizeof(legacy_crit_thrs[0]);
+	set_thresholds(&thresh, warn_thrs[1], crit_thrs[1]);
+	temp_result = get_status((float)ptr->Load5, thresh);
+	result = max_state(temp_result, result);
 
-		i = parse_thresholds(legacy_crit_thrs, crit_str, n_thresholds);
-		if (FALSE == i)
-			die(STATE_UNKNOWN, _("Could not parse critical thresholds\n"));
+	set_thresholds(&thresh, warn_thrs[2], crit_thrs[2]);
+	temp_result = get_status((float)ptr->Load15, thresh);
+	result = max_state(temp_result, result);
 
-		set_thresholds(&thresh, legacy_warn_thrs[0], legacy_crit_thrs[0]);
-		legacy_temp_result = get_status((float)ptr->Load1, thresh);
-		result = max_state(legacy_temp_result, result);
+	printf("%s: 1, 5, 15 min load average: %.2f, %.2f, %.2f ",
+		state_text(result), (float)ptr->Load1,(float)ptr->Load5,
+		(float)ptr->Load15);
+	printf("|'Load1'=%.2f;%s;%s 'Load5'=%.2f;%s;%s "
+		"'Load15'=%.2f;%s;%s",
+		ptr->Load1, warn_thrs[0], crit_thrs[0],
+		ptr->Load5, warn_thrs[1], crit_thrs[1],
+		ptr->Load15, warn_thrs[2], crit_thrs[2]);
 
-		set_thresholds(&thresh, legacy_warn_thrs[1], legacy_crit_thrs[1]);
-		legacy_temp_result = get_status((float)ptr->Load5, thresh);
-		result = max_state(legacy_temp_result, result);
-
-		set_thresholds(&thresh, legacy_warn_thrs[2], legacy_crit_thrs[2]);
-		legacy_temp_result = get_status((float)ptr->Load15, thresh);
-		result = max_state(legacy_temp_result, result);
-
-		printf("%s: 1, 5, 15 min load average: %.2f, %.2f, %.2f ",
-			state_text(result), (float)ptr->Load1,(float)ptr->Load5,
-			(float)ptr->Load15);
-		printf("|'Load1'=%.2f;%s;%s 'Load5'=%.2f;%s;%s "
-			"'Load15'=%.2f;%s;%s",
-			ptr->Load1, legacy_warn_thrs[0], legacy_crit_thrs[0],
-			ptr->Load5, legacy_warn_thrs[1], legacy_crit_thrs[1],
-			ptr->Load15, legacy_warn_thrs[2], legacy_crit_thrs[2]);
-	}
-
-	/* check and output results */
-	switch (o_monitortype) {
-		case MONITOR_TYPE__LOAD1:
-			result = get_status((float)ptr->Load1, thresh);
-			printf("%s: 1 min load average: %.2f ",
-				state_text(result), ptr->Load1);
-			printf("|'Load1'=%.2f;%s;%s", ptr->Load1, warn_str, crit_str);
-			break;
-		case MONITOR_TYPE__LOAD5:
-			result = get_status((float)ptr->Load5, thresh);
-			printf("%s: 5 min load average: %.2f ",
-				state_text(result), (float)ptr->Load5);
-			printf("|'Load5'=%.2f;%s;%s", ptr->Load5, warn_str, crit_str);
-			break;
-		case MONITOR_TYPE__LOAD15:
-			result = get_status((float)ptr->Load15, thresh);
-			printf("%s: 15 min load average: %.2f ",
-				state_text(result), (float)ptr->Load15);
-			printf("|'Load15'=%.2f;%s;%s",
-				ptr->Load15, warn_str, crit_str);
-			break;
-		case MONITOR_TYPE__LOAD:
-			break;
-		default:
-			usage4 (_("Could not parse arguments for -T"));
-			break;
-	}
 	printf("\n");
-
 	free(ctx);
 	free(ptr);
 
