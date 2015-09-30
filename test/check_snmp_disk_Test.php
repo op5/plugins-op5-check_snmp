@@ -434,30 +434,28 @@ EOF;
 	public function test_list_storage_index_and_description() {
 		$this->assertCommand("-H @endpoint@ -C mycommunity", array(
 		), array(
-			'### Fetched storage data over NET-SNMP ###',
-			'Index:	Description:',
-			'1	Physical memory',
-			'3	Virtual memory',
-			'6	Memory buffers',
-			'7	Cached memory',
-			'10	Swap space',
-			'31	/',
-			'35	/dev/shm'
-		), 0);
+			'Physical memory',
+			'Virtual memory',
+			'Memory buffers',
+			'Cached memory',
+			'Swap space',
+			'/',
+			'/dev/shm',
+			'UNKNOWN: Found these disks to choose from. Please select one with option -i'
+		), 3);
 	}
 	public function test_list_storage_index_and_description_with_T_parameter() {
 		$this->assertCommand("-H @endpoint@ -C mycommunity -T storage_list", array(
 		), array(
-			'### Fetched storage data over NET-SNMP ###',
-			'Index:	Description:',
-			'1	Physical memory',
-			'3	Virtual memory',
-			'6	Memory buffers',
-			'7	Cached memory',
-			'10	Swap space',
-			'31	/',
-			'35	/dev/shm'
-		), 0);
+			'Physical memory',
+			'Virtual memory',
+			'Memory buffers',
+			'Cached memory',
+			'Swap space',
+			'/',
+			'/dev/shm',
+			'UNKNOWN: Found these disks to choose from. Please select one with option -i'
+		), 3);
 	}
 	public function disable_test_invalid_option() {
 		$this->assertCommand("-H @endpoint@ -C mycommunity -f -i /", array(
@@ -561,77 +559,99 @@ EOF;
 		), 2);
 	}
 /**
+ * Could not fetch the values
+ */
+	public function test_disk_could_not_fetch_the_value_for_size() {
+		$this->assertCommand("-H @endpoint@ -C mycommunity -i /", array(
+			"1.3.6.1.2.1.25.2.3.1.5.31" => array(2,"")
+		), array(
+			"UNKNOWN: Could not fetch the values at 1.3.6.1.2.1.25.2.3.1. Please check your config file for SNMP and make sure you have access"
+		), 3);
+	}
+	public function test_disk_could_not_fetch_the_value_for_used() {
+		$this->assertCommand("-H @endpoint@ -C mycommunity -i /", array(
+			"1.3.6.1.2.1.25.2.3.1.6.31" => array(2,"")
+		), array(
+			"UNKNOWN: Could not fetch the values at 1.3.6.1.2.1.25.2.3.1. Please check your config file for SNMP and make sure you have access"
+		), 3);
+	}
+	public function test_disk_could_not_fetch_the_value_for_descr() {
+		$this->assertCommand("-H @endpoint@ -C mycommunity -i /", array(
+			"1.3.6.1.2.1.25.2.3.1.3.31" => array(2,"")
+		), array(
+			"Invalid input string for -i (Use -T storage_list for a list of valid strings)."
+		), 3);
+	}
+/**
  * IO Testing
  */
 	public function test_list_io_index_and_description() {
 		$this->assertCommand("-H @endpoint@ -C mycommunity -T io_1", array(
 		), array(
-			'### Fetched IO data over NET-SNMP ###',
-			'Index:	Description:',
-			'1	ram0',
-			'2	ram1',
-			'3	ram2',
-			'4	ram3',
-			'5	ram4',
-			'6	ram5',
-			'7	ram6',
-			'8	ram7',
-			'9	ram8',
-			'10	ram9',
-			'11	ram10',
-			'12	ram11',
-			'13	ram12',
-			'14	ram13',
-			'15	ram14',
-			'16	ram15',
-			'17	loop0',
-			'18	loop1',
-			'19	loop2',
-			'20	loop3',
-			'21	loop4',
-			'22	loop5',
-			'23	loop6',
-			'24	loop7',
-			'25	sda',
-			'26	sda1',
-			'27	sdb',
-			'28	sdb1'
-		), 0);
+			'ram0',
+			'ram1',
+			'ram2',
+			'ram3',
+			'ram4',
+			'ram5',
+			'ram6',
+			'ram7',
+			'ram8',
+			'ram9',
+			'ram10',
+			'ram11',
+			'ram12',
+			'ram13',
+			'ram14',
+			'ram15',
+			'loop0',
+			'loop1',
+			'loop2',
+			'loop3',
+			'loop4',
+			'loop5',
+			'loop6',
+			'loop7',
+			'sda',
+			'sda1',
+			'sdb',
+			'sdb1',
+			'UNKNOWN: Found these disks to choose from. Please select one with option -i'
+		), 3);
 	}
 	public function test_list_io_index_and_description_with_T_parameter() {
 		$this->assertCommand("-H @endpoint@ -C mycommunity -T io_list", array(
 		), array(
-			'### Fetched IO data over NET-SNMP ###',
-			'Index:	Description:',
-			'1	ram0',
-			'2	ram1',
-			'3	ram2',
-			'4	ram3',
-			'5	ram4',
-			'6	ram5',
-			'7	ram6',
-			'8	ram7',
-			'9	ram8',
-			'10	ram9',
-			'11	ram10',
-			'12	ram11',
-			'13	ram12',
-			'14	ram13',
-			'15	ram14',
-			'16	ram15',
-			'17	loop0',
-			'18	loop1',
-			'19	loop2',
-			'20	loop3',
-			'21	loop4',
-			'22	loop5',
-			'23	loop6',
-			'24	loop7',
-			'25	sda',
-			'26	sda1',
-			'27	sdb',
-			'28	sdb1'
-		), 0);
+			'ram0',
+			'ram1',
+			'ram2',
+			'ram3',
+			'ram4',
+			'ram5',
+			'ram6',
+			'ram7',
+			'ram8',
+			'ram9',
+			'ram10',
+			'ram11',
+			'ram12',
+			'ram13',
+			'ram14',
+			'ram15',
+			'loop0',
+			'loop1',
+			'loop2',
+			'loop3',
+			'loop4',
+			'loop5',
+			'loop6',
+			'loop7',
+			'sda',
+			'sda1',
+			'sdb',
+			'sdb1',
+			'UNKNOWN: Found these disks to choose from. Please select one with option -i'
+		), 3);
 	}
 	public function test_io_invalid_I_option() {
 		$this->assertCommand("-H @endpoint@ -C mycommunity -i invalid -T io_1", array(
@@ -681,6 +701,30 @@ EOF;
 		), array(
 			"CRITICAL: 100% IO Load-5 |'sda'=100%;60;80"
 		), 2);
+	}
+/**
+ * Could not fetch the values
+ */
+	public function test_io_could_not_fetch_the_value_for_la1() {
+		$this->assertCommand("-H @endpoint@ -C mycommunity -T io_1 -i sda", array(
+			"1.3.6.1.4.1.2021.13.15.1.1.9.25" => array(2,"")
+		), array(
+			"UNKNOWN: Could not fetch the values at .1.3.6.1.4.1.2021.13.15.1.1. Please check your config file for SNMP and make sure you have access"
+		), 3);
+	}
+	public function test_io_could_not_fetch_the_value_for_la5() {
+		$this->assertCommand("-H @endpoint@ -C mycommunity -T io_5 -i sda", array(
+			"1.3.6.1.4.1.2021.13.15.1.1.10.25" => array(2,"")
+		), array(
+			"UNKNOWN: Could not fetch the values at .1.3.6.1.4.1.2021.13.15.1.1. Please check your config file for SNMP and make sure you have access"
+		), 3);
+	}
+	public function test_io_could_not_fetch_the_value_for_la15() {
+		$this->assertCommand("-H @endpoint@ -C mycommunity -T io_15 -i sda", array(
+			"1.3.6.1.4.1.2021.13.15.1.1.11.25" => array(2,"")
+		), array(
+			"UNKNOWN: Could not fetch the values at .1.3.6.1.4.1.2021.13.15.1.1. Please check your config file for SNMP and make sure you have access"
+		), 3);
 	}
 /**
  * No arguments

@@ -45,16 +45,13 @@ enum o_monitor_presentationtype_t {
 	MONITOR_PRESTYPE__IO_15
 };
 
-int process_arguments (int, char **);
-int validate_arguments (void);
-void print_help (void);
-void print_usage (void);
 int tolower(int);
 
 mp_snmp_context *ctx;
 char *warn_str = "", *crit_str = "";
 enum o_monitortype_t o_monitortype = MONITOR_TYPE__STORAGE;
 int get_index = 0;
+int disk_found = FALSE;
 char *o_disk = NULL;
 char *thresholdunit = "";
 enum o_monitor_presentationtype_t o_type;
@@ -66,7 +63,6 @@ struct disk_info {
 	int AllocationUnits;
 	int Size;
 	int Used;
-	int AllocationFailures;	/* counter */
 	struct {
 		int Index;
 		char *Descr;
@@ -112,9 +108,9 @@ static int get_io_index_from_desc(netsnmp_variable_list *v, void *ptr, void *dis
 
 static int disk_index_and_description_output(netsnmp_variable_list *v, void *ptr, void *discard)
 {
+	disk_found = TRUE;
 	switch (v->name[10]) {
 		case HRSTORAGE_SUBIDX_Descr:
-			printf("%ld\t", v->name[11]);
 			printf("%s\n", strndup((char*)v->val.string, v->val_len));
 			break;
 		default:
@@ -126,9 +122,9 @@ static int disk_index_and_description_output(netsnmp_variable_list *v, void *ptr
 
 static int io_index_and_description_output(netsnmp_variable_list *v, void *ptr, void *discard)
 {
+	disk_found = TRUE;
 	switch (v->name[11]) {
 		case DISKIO_SUBIDX_Device:
-			printf("%ld\t", v->name[12]);
 			printf("%s\n", strndup((char*)v->val.string, v->val_len));
 			break;
 		default:
@@ -246,70 +242,111 @@ static int io_callback(netsnmp_variable_list *v, void *dc_ptr, void *discard)
  */
 struct disk_info *check_disk_ret(mp_snmp_context *ss, int statemask)
 {
-	struct disk_info *cd = (struct disk_info *) malloc(sizeof(struct disk_info));
-	memset(cd, 0, sizeof(struct disk_info));
-	
-	/* Lists the index and description for all available disk storages */
+	struct disk_info *cd = malloc(sizeof(struct disk_info));
+	cd->Index=-1;
+	cd->Type=-1;
+	cd->Descr="";
+	cd->AllocationUnits=-1;
+	cd->Size=-1;
+	cd->Used=-1;
+
+	/* Lists the description for all available disk storages */
 	if (get_index == 0 && o_disk == NULL) {
-		printf("### Fetched storage data over NET-SNMP ###\n");
-		printf("Index:\tDescription:\n");
 		if (0 != mp_snmp_walk(ss, "1.3.6.1.2.1.25.2.3.1.3", NULL, disk_index_and_description_output, cd, NULL)) {
 			die(STATE_UNKNOWN, "UNKNOWN: SNMP error when querying %s: %s\n",
 				mp_snmp_get_peername(ctx), mp_snmp_get_errstr(ctx));
 		}
-		exit(STATE_OK);
+
+		if (!disk_found) {
+			die(STATE_UNKNOWN, "UNKNOWN: Could not fetch the values at %s. "
+			"Please check your config file for SNMP and make sure you have access\n", HRSTORAGE_TABLE);
+		}
+		die(STATE_UNKNOWN, "UNKNOWN: Found these disks to choose from. Please select one with option -i\n");
 	}
-	else {
-		/* get the index from description */
-		if (0 != mp_snmp_walk(ss, "1.3.6.1.2.1.25.2.3.1.3", NULL, get_disk_index_from_desc, cd, NULL)) {
-			die(STATE_UNKNOWN, "UNKNOWN: SNMP error when querying %s: %s\n",
-				mp_snmp_get_peername(ctx), mp_snmp_get_errstr(ctx));
-		}
-		
-		/* get and store the relevant data for the disk */
-		mp_debug(3,"\nFetched data over NET-SNMP:\n");
-		if (0 != mp_snmp_walk(ss, HRSTORAGE_TABLE, NULL, disk_callback, cd, NULL)) {
-			die(STATE_UNKNOWN, "UNKNOWN: SNMP error when querying %s: %s\n",
-				mp_snmp_get_peername(ctx), mp_snmp_get_errstr(ctx));
-		}
-		mp_debug(3,"\nStored values:\n");
-		mp_debug(3,"Index: %d, Description: %s, AllocationUnits %d, Size %d, Used %d\n",
-		cd->Index, cd->Descr, cd->AllocationUnits, cd->Size, cd->Used);
+
+	/**
+	 *  get the index from description
+	 */
+	if (0 != mp_snmp_walk(ss, "1.3.6.1.2.1.25.2.3.1.3", NULL, get_disk_index_from_desc, cd, NULL)) {
+		die(STATE_UNKNOWN, "UNKNOWN: SNMP error when querying %s: %s\n",
+			mp_snmp_get_peername(ctx), mp_snmp_get_errstr(ctx));
+	}
+
+	/**
+	 * get and store the relevant data for the disk
+	 */
+	mp_debug(3,"\nFetched data over NET-SNMP:\n");
+	if (0 != mp_snmp_walk(ss, HRSTORAGE_TABLE, NULL, disk_callback, cd, NULL)) {
+		die(STATE_UNKNOWN, "UNKNOWN: SNMP error when querying %s: %s\n",
+			mp_snmp_get_peername(ctx), mp_snmp_get_errstr(ctx));
+	}
+	mp_debug(3,"\nStored values:\n");
+	mp_debug(3,"Index: %d, Description: %s, AllocationUnits %d, Size %d, Used %d\n",
+	cd->Index, cd->Descr, cd->AllocationUnits, cd->Size, cd->Used);
+
+	if (0==strcmp(cd->Descr,"")) {
+		die(STATE_UNKNOWN, _("Invalid input string for -i "
+					"(Use -T storage_list for a list of valid strings).\n"));
+	}
+	if (cd->Index == -1 || cd->Type == -1 || cd->AllocationUnits == -1 ||
+		cd->Size == -1 || cd->Used == -1) {
+		die(STATE_UNKNOWN, "UNKNOWN: Could not fetch the values at %s. "
+			"Please check your config file for SNMP and make sure you have access\n", HRSTORAGE_TABLE);
 	}
 
 	return cd;
 }
 struct disk_info *check_disk_io_ret(mp_snmp_context *ss, int statemask)
 {
-	struct disk_info *cdi = (struct disk_info *) malloc(sizeof(struct disk_info));
-	memset(cdi, 0, sizeof(struct disk_info));
-	
+	struct disk_info *cdi = malloc(sizeof(struct disk_info));
+	cdi->IO.Index=-1;
+	cdi->IO.Descr="";
+	cdi->IO.La1=-1;
+	cdi->IO.La5=-1;
+	cdi->IO.La15=-1;
+
 	/* Lists the index and description for all available disk IO */
 	if (get_index == 0 && o_disk == NULL) {
-		printf("### Fetched IO data over NET-SNMP ###\n");
-		printf("Index:\tDescription:\n");
 		if (0 != mp_snmp_walk(ss,".1.3.6.1.4.1.2021.13.15.1.1.2" , NULL, io_index_and_description_output, cdi, NULL)) {
 			die(STATE_UNKNOWN, "UNKNOWN: SNMP error when querying %s: %s\n",
 				mp_snmp_get_peername(ctx), mp_snmp_get_errstr(ctx));
 		}
-		exit(STATE_OK);
-	}
-	else {
-		/* get the index from description */
-		if (0 != mp_snmp_walk(ss,".1.3.6.1.4.1.2021.13.15.1.1.2" , NULL, get_io_index_from_desc, cdi, NULL)) {
-			die(STATE_UNKNOWN, "UNKNOWN: SNMP error when querying %s: %s\n",
-				mp_snmp_get_peername(ctx), mp_snmp_get_errstr(ctx));
-		}
 
-		/* get and store the relevant data for the disk */
-		mp_debug(3,"\nFetched data over NET-SNMP:\n");
-		if (0 != mp_snmp_walk(ss, DISKIO_TABLE, NULL, io_callback, cdi, NULL)) {
-			die(STATE_UNKNOWN, "UNKNOWN: SNMP error when querying %s: %s\n",
-				mp_snmp_get_peername(ctx), mp_snmp_get_errstr(ctx));
-		};
-		mp_debug(3,"\nStored values:\n");
-		mp_debug(3,"Index: %d, Description: %s, La1 %d, La5 %d, La15 %d\n",
-		cdi->IO.Index, cdi->IO.Descr, cdi->IO.La1, cdi->IO.La5, cdi->IO.La15);
+		if (!disk_found) {
+			die(STATE_UNKNOWN, "UNKNOWN: Could not fetch the values at %s. "
+			"Please check your config file for SNMP and make sure you have access\n", DISKIO_TABLE);
+		}
+		die(STATE_UNKNOWN, "UNKNOWN: Found these disks to choose from. Please select one with option -i\n");
+	}
+
+	/**
+	 *  get the index from description
+	 */
+	if (0 != mp_snmp_walk(ss,".1.3.6.1.4.1.2021.13.15.1.1.2" , NULL, get_io_index_from_desc, cdi, NULL)) {
+		die(STATE_UNKNOWN, "UNKNOWN: SNMP error when querying %s: %s\n",
+			mp_snmp_get_peername(ctx), mp_snmp_get_errstr(ctx));
+	}
+
+	/**
+	 * get and store the relevant data for the disk io
+	 */
+	mp_debug(3,"\nFetched data over NET-SNMP:\n");
+	if (0 != mp_snmp_walk(ss, DISKIO_TABLE, NULL, io_callback, cdi, NULL)) {
+		die(STATE_UNKNOWN, "UNKNOWN: SNMP error when querying %s: %s\n",
+			mp_snmp_get_peername(ctx), mp_snmp_get_errstr(ctx));
+	}
+	mp_debug(3,"\nStored values:\n");
+	mp_debug(3,"Index: %d, Description: %s, La1 %d, La5 %d, La15 %d\n",
+	cdi->IO.Index, cdi->IO.Descr, cdi->IO.La1, cdi->IO.La5, cdi->IO.La15);
+
+	if (0==strcmp(cdi->IO.Descr,"")) {
+		die(STATE_UNKNOWN, _("Invalid input string for -i "
+					"(Use -T io_list for a list of valid strings)\n"));
+	}
+	if (cdi->IO.Index == -1 || cdi->IO.La1 == -1 || cdi->IO.La5 == -1 ||
+		cdi->IO.La15 == -1) {
+		die(STATE_UNKNOWN, "UNKNOWN: Could not fetch the values at %s. "
+			"Please check your config file for SNMP and make sure you have access\n", DISKIO_TABLE);
 	}
 
 	return cdi;
@@ -562,10 +599,6 @@ int main(int argc, char **argv)
 		case MONITOR_TYPE__STORAGE:
 			ptr = check_disk_ret(ctx, ~0);	/* get net-snmp disk data */
 			mp_snmp_deinit(program_name);	/* deinit */
-			if (ptr->Descr == NULL) {
-				die(STATE_UNKNOWN, _("Invalid input string for -i "
-					"(Use -T storage_list for a list of valid strings).\n"));
-			}
 
 			percent_used = (double)ptr->Used / ptr->Size*100;
 			bytes = (double)ptr->Used * ptr->AllocationUnits;
@@ -601,10 +634,6 @@ int main(int argc, char **argv)
 		case MONITOR_TYPE__IO:
 			ptr = check_disk_io_ret(ctx, ~0);	/* get net-snmp io data */
 			mp_snmp_deinit(program_name);		/* deinit */
-			if (ptr->IO.Descr == NULL) {
-				die(STATE_UNKNOWN, _("Invalid input string for -i "
-					"(Use -T io_list for a list of valid strings)\n"));
-			}
 
 			if (o_type == MONITOR_PRESTYPE__IO_1) {
 				result = get_status(ptr->IO.La1, thresh);
