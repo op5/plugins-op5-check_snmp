@@ -40,6 +40,7 @@ enum o_monitortype_t {
 enum o_monitortype_t o_monitortype = MONITOR_TYPE__NUMBER_OF_PROCESSES;
 int o_perfdata = 1; /* perfdata on per default */
 int counter[] = {0,0,0};
+int proc_found = FALSE;
 const char *name_filter = "";
 
 enum process_state {
@@ -95,6 +96,7 @@ static const char *pstate2str(enum process_state pstate)
  */
 static int pstate_callback(netsnmp_variable_list *v, void *psc_ptr, void *discard)
 {
+	proc_found = TRUE;
 	struct process_state_count *psc = (struct process_state_count *)psc_ptr;
 
 	switch (*v->val.integer) {
@@ -121,7 +123,7 @@ static int pstate_callback(netsnmp_variable_list *v, void *psc_ptr, void *discar
  */
 struct process_state_count *check_proc_ret(mp_snmp_context *ss, int statemask)
 {
-	struct process_state_count *pstate_count = (struct process_state_count *) malloc(sizeof(struct process_state_count));
+	struct process_state_count *pstate_count = malloc(sizeof(struct process_state_count));
 	memset(pstate_count, 0, sizeof(struct process_state_count));
 	if (0 != mp_snmp_walk(ss, PROCESS_TABLE ".7", NULL, pstate_callback, pstate_count, NULL)) {
 		die(STATE_UNKNOWN, "UNKNOWN: SNMP error when querying %s: %s\n",
@@ -132,6 +134,10 @@ struct process_state_count *check_proc_ret(mp_snmp_context *ss, int statemask)
 	      pstate_count->running, pstate_count->runnable,
 	      pstate_count->notrunnable, pstate_count->invalid);
 
+	if (!proc_found) {
+		die(STATE_UNKNOWN, "UNKNOWN: Could not fetch the values at %s. "
+			"Please check your config file for SNMP and make sure you have access\n", PROCESS_TABLE);
+	}
 	return pstate_count;
 }
 

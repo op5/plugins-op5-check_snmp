@@ -38,6 +38,24 @@ class Check_Snmp_Procs_Test extends PHPUnit_Framework_TestCase {
 		return exec($check_command . " " . $args, $output, $return);
 	}
 
+	private function generate_incorrect_snmpdata() {
+		$incorrect = <<<EOF
+1.
+EOF;
+	}
+
+	public function assertCommandIncorrectSnmp($args, $expectedoutput, $expectedreturn){
+		$this->start_snmpsim($this->generate_incorrect_snmpdata());
+		$this->run_command(str_replace("@endpoint@","127.0.0.1:21161",$args), $output, $return);
+
+		if(is_array($expectedoutput))
+			$expectedoutput = implode("\n", $expectedoutput)."\n";
+		$output = implode("\n", $output)."\n";
+
+		$this->assertEquals($expectedoutput, $output);
+		$this->assertEquals($expectedreturn, $return);
+	}
+
 	private function generate_snmpdata($snmpdata_diff) {
 		$snmpdata = <<<EOF
 1.3.6.1.2.1.25.2.3.1.1.1|2|1
@@ -1126,6 +1144,14 @@ EOF;
 		), array(
 			"CRITICAL: 2 smsd process(es) |'smsd'=2;1;11 'Memory'=60736;2;22 'CPU'=7862;3;33"
 		), 2);
+	}
+/**
+ * Could not fetch the values
+ */
+	public function test_processes_could_not_fetch_the_value_for_load1_UNKNOWN() {
+		$this->assertCommandIncorrectSnmp("-H @endpoint@ -C mycommunity -T total_number_of_zombie_processes", array(
+			"UNKNOWN: Could not fetch the values at 1.3.6.1.2.1.25.4.2.1. Please check your config file for SNMP and make sure you have access"
+		), 3);
 	}
 /**
  * No arguments, usage and help
