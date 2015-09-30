@@ -1,22 +1,8 @@
 [commands]
 check_snmp_disk_list_available_disks_v2=$USER1$/check_snmp_disk -H $HOSTADDRESS$ -C '$ARG1$' -P 2c -T storage_list
-check_snmp_disk_percent_used_v2=$USER1$/check_snmp_disk -H $HOSTADDRESS$ -C '$ARG1$' -P 2c -T storage_percent_used -i '$ARG2$' -w $ARG3$ -c $ARG4$
-check_snmp_disk_percent_left_v2=$USER1$/check_snmp_disk -H $HOSTADDRESS$ -C '$ARG1$' -P 2c -T storage_percent_left -i '$ARG2$' -w $ARG3$ -c $ARG4$
-check_snmp_disk_mb_used_v2=$USER1$/check_snmp_disk -H $HOSTADDRESS$ -C '$ARG1$' -P 2c -T storage_mb_used -i '$ARG2$' -w $ARG3$ -c $ARG4$
-check_snmp_disk_mb_left_v2=$USER1$/check_snmp_disk -H $HOSTADDRESS$ -C '$ARG1$' -P 2c -T storage_mb_left -i '$ARG2$' -w $ARG3$ -c $ARG4$
-check_snmp_disk_list_available_io_v2=$USER1$/check_snmp_disk -H $HOSTADDRESS$ -C '$ARG1$' -P 2c -T io_list
-check_snmp_disk_io_1_min_average_v2=$USER1$/check_snmp_disk -H $HOSTADDRESS$ -C '$ARG1$' -P 2c -T io_1 -i '$ARG2$' -w $ARG3$ -c $ARG4$
-check_snmp_disk_io_5_min_average_v2=$USER1$/check_snmp_disk -H $HOSTADDRESS$ -C '$ARG1$' -P 2c -T io_5 -i '$ARG2$' -w $ARG3$ -c $ARG4$
-check_snmp_disk_io_15_min_average_v2=$USER1$/check_snmp_disk -H $HOSTADDRESS$ -C '$ARG1$' -P 2c -T io_15 -i '$ARG2$' -w $ARG3$ -c $ARG4$
+check_snmp_disk_used_v2=$USER1$/check_snmp_disk -H $HOSTADDRESS$ -C '$ARG1$' -P 2c -T storage_used -i '$ARG2$' -m '$ARG3$' -w$ARG4$ -c$ARG5$
 check_snmp_disk_list_available_disks_v3=$USER1$/check_snmp_disk -H $HOSTADDRESS$ $ARG1$ -P 3 -T storage_list
-check_snmp_disk_percent_used_v3=$USER1$/check_snmp_disk -H $HOSTADDRESS$ $ARG1$ -P 3 -T storage_percent_used -i '$ARG2$' -w $ARG3$ -c $ARG4$
-check_snmp_disk_percent_left_v3=$USER1$/check_snmp_disk -H $HOSTADDRESS$ $ARG1$ -P 3 -T storage_percent_left -i '$ARG2$' -w $ARG3$ -c $ARG4$
-check_snmp_disk_mb_used_v3=$USER1$/check_snmp_disk -H $HOSTADDRESS$ $ARG1$ -P 3 -T storage_mb_used -i '$ARG2$' -w $ARG3$ -c $ARG4$
-check_snmp_disk_mb_left_v3=$USER1$/check_snmp_disk -H $HOSTADDRESS$ $ARG1$ -P 3 -T storage_mb_left -i '$ARG2$' -w $ARG3$ -c $ARG4$
-check_snmp_disk_list_available_io_v3=$USER1$/check_snmp_disk -H $HOSTADDRESS$ $ARG1$ -P 3 -T io_list
-check_snmp_disk_io_1_min_average_v3=$USER1$/check_snmp_disk -H $HOSTADDRESS$ $ARG1$ -P 3 -T io_1 -i '$ARG2$' -w $ARG3$ -c $ARG4$
-check_snmp_disk_io_5_min_average_v3=$USER1$/check_snmp_disk -H $HOSTADDRESS$ $ARG1$ -P 3 -T io_5 -i '$ARG2$' -w $ARG3$ -c $ARG4$
-check_snmp_disk_io_15_min_average_v3=$USER1$/check_snmp_disk -H $HOSTADDRESS$ $ARG1$ -P 3 -T io_15 -i '$ARG2$' -w $ARG3$ -c $ARG4$
+check_snmp_disk_used_v3=$USER1$/check_snmp_disk -H $HOSTADDRESS$ $ARG1$ -P 3 -T storage_used -i '$ARG2$' -m '$ARG3$' -w$ARG4$ -c$ARG5$
 check_snmp_disk_custom=$USER1$/check_snmp_disk $ARG1$
 
 [name]

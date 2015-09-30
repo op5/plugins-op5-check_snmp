@@ -1,6 +1,5 @@
 libexec_PROGRAMS=\
 	src/check_snmp_disk \
-	src/check_snmp_cpu \
 	src/check_snmp_load_avg \
 	src/check_snmp_memory \
 	src/check_snmp_procs
@@ -16,10 +15,6 @@ COMMON_SOURCES = \
 
 src_check_snmp_disk_SOURCES=\
 	src/check_snmp_disk.c \
-	$(COMMON_SOURCES)
-
-src_check_snmp_cpu_SOURCES=\
-	src/check_snmp_cpu.c \
 	$(COMMON_SOURCES)
 
 src_check_snmp_load_avg_SOURCES=\
