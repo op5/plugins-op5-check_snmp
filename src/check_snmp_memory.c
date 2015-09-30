@@ -104,13 +104,24 @@ static int mem_callback(netsnmp_variable_list *v, void *mc_ptr, void *discard)
 
 struct mem_info *check_mem_ret(mp_snmp_context *ss, int statemask)
 {
-	struct mem_info *mi = (struct mem_info *) malloc(sizeof(struct mem_info));
-	memset(mi, 0, sizeof(struct mem_info));
+	struct mem_info *mi = malloc(sizeof(struct mem_info));
+	mi->TotalSwap=-1;
+	mi->AvailSwap=-1;
+	mi->TotalReal=-1;
+	mi->AvailReal=-1;
+	mi->Buffer=-1;
+	mi->Cached=-1;
+
 	if (0 != mp_snmp_walk(ss, MEMORY_TABLE, NULL, mem_callback, mi, NULL)) {
 		die(STATE_UNKNOWN, "UNKNOWN: SNMP error when querying %s: %s\n",
 		    mp_snmp_get_peername(ctx), mp_snmp_get_errstr(ctx));
 	}
 
+	if (mi->TotalSwap == -1 || mi->AvailSwap == -1 || mi->TotalReal == -1 ||
+		mi->AvailReal == -1 || mi->Buffer == -1 || mi->Cached == -1) {
+		die(STATE_UNKNOWN, "UNKNOWN: Could not fetch the values at %s. "
+			"Please check your config file for SNMP and make sure you have access\n", MEMORY_TABLE);
+	}
 	/* calculate the used values */
 	mi->UsedReal = mi->TotalReal - mi->AvailReal - mi->Buffer - mi->Cached;
 	mi->UsedSwap = mi->TotalSwap - mi->AvailSwap;

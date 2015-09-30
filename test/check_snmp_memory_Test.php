@@ -186,6 +186,51 @@ EOF;
 		), 2);
 	}
 /**
+ * Could not fetch the values
+ */
+	public function test_load_could_not_fetch_the_value_for_1_UNKNOWN() {
+		$this->assertCommand("-H @endpoint@ -C mycommunity -T ram_used", array(
+			"1.3.6.1.4.1.2021.4.1.0" => array(2,"")
+		), array(
+			"UNKNOWN: Could not fetch the values at 1.3.6.1.4.1.2021.4. Please check your config file for SNMP and make sure you have access"
+		), 3);
+	}
+	public function test_load_could_not_fetch_the_value_for_3_UNKNOWN() {
+		$this->assertCommand("-H @endpoint@ -C mycommunity -T ram_used", array(
+			"1.3.6.1.4.1.2021.4.3.0" => array(2,"")
+		), array(
+			"UNKNOWN: Could not fetch the values at 1.3.6.1.4.1.2021.4. Please check your config file for SNMP and make sure you have access"
+		), 3);
+	}
+	public function test_load_could_not_fetch_the_value_for_4_UNKNOWN() {
+		$this->assertCommand("-H @endpoint@ -C mycommunity -T ram_used", array(
+			"1.3.6.1.4.1.2021.4.4.0" => array(2,"")
+		), array(
+			"UNKNOWN: Could not fetch the values at 1.3.6.1.4.1.2021.4. Please check your config file for SNMP and make sure you have access"
+		), 3);
+	}
+	public function test_load_could_not_fetch_the_value_for_5_UNKNOWN() {
+		$this->assertCommand("-H @endpoint@ -C mycommunity -T ram_used", array(
+			"1.3.6.1.4.1.2021.4.5.0" => array(2,"")
+		), array(
+			"UNKNOWN: Could not fetch the values at 1.3.6.1.4.1.2021.4. Please check your config file for SNMP and make sure you have access"
+		), 3);
+	}
+	public function test_load_could_not_fetch_the_value_for_14_UNKNOWN() {
+		$this->assertCommand("-H @endpoint@ -C mycommunity -T swap_used", array(
+			"1.3.6.1.4.1.2021.4.14.0" => array(2,"")
+		), array(
+			"UNKNOWN: Could not fetch the values at 1.3.6.1.4.1.2021.4. Please check your config file for SNMP and make sure you have access"
+		), 3);
+	}
+	public function test_load_could_not_fetch_the_value_for_15_UNKNOWN() {
+		$this->assertCommand("-H @endpoint@ -C mycommunity -T swap_used", array(
+			"1.3.6.1.4.1.2021.4.15.0" => array(2,"")
+		), array(
+			"UNKNOWN: Could not fetch the values at 1.3.6.1.4.1.2021.4. Please check your config file for SNMP and make sure you have access"
+		), 3);
+	}
+/**
  * No arguments, usage and help
  */
 	public function test_no_arguments() {
