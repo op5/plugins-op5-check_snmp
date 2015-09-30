@@ -48,12 +48,19 @@ static int cpu_callback(netsnmp_variable_list *v, void *cc_ptr, void *discard)
 
 static struct cpu_info *check_cpu_ret(mp_snmp_context *ss, int statemask)
 {
-	struct cpu_info *ci = (struct cpu_info *) malloc(sizeof(struct cpu_info));
-	memset(ci, 0, sizeof(struct cpu_info));
+	struct cpu_info *ci = malloc(sizeof(struct cpu_info));
+	ci->Load1=-1;
+	ci->Load5=-1;
+	ci->Load15=-1;
 	if (0 != mp_snmp_walk(ss, LOAD_TABLE, NULL, cpu_callback, ci, NULL)) {
 		free(ci);
 		die(STATE_UNKNOWN, "UNKNOWN: SNMP error when querying %s: %s\n",
 		mp_snmp_get_peername(ctx), mp_snmp_get_errstr(ctx));
+	}
+
+	if (ci->Load1 == -1 || ci->Load5 == -1 || ci->Load15 == -1) {
+		die(STATE_UNKNOWN, "UNKNOWN: Could not fetch the values at %s. "
+			"Please check your config file for SNMP and make sure you have access\n", LOAD_TABLE);
 	}
 
 	mp_debug(3,"load1: %f, load5: %f, load15 %f\n",

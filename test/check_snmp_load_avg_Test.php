@@ -205,6 +205,30 @@ EOF;
 		), 3);
 	}
 /**
+ * Could not fetch the values
+ */
+	public function test_load_could_not_fetch_the_value_for_load1_UNKNOWN() {
+		$this->assertCommand("-H @endpoint@ -C mycommunity -T load", array(
+			"1.3.6.1.4.1.2021.10.1.5.1" => array(2,"")
+		), array(
+			"UNKNOWN: Could not fetch the values at 1.3.6.1.4.1.2021.10.1.5. Please check your config file for SNMP and make sure you have access"
+		), 3);
+	}
+	public function test_load_could_not_fetch_the_value_for_load5_UNKNOWN() {
+		$this->assertCommand("-H @endpoint@ -C mycommunity -T load", array(
+			"1.3.6.1.4.1.2021.10.1.5.2" => array(2,"")
+		), array(
+			"UNKNOWN: Could not fetch the values at 1.3.6.1.4.1.2021.10.1.5. Please check your config file for SNMP and make sure you have access"
+		), 3);
+	}
+	public function test_load_could_not_fetch_the_value_for_load15_UNKNOWN() {
+		$this->assertCommand("-H @endpoint@ -C mycommunity -T load", array(
+			"1.3.6.1.4.1.2021.10.1.5.3" => array(2,"")
+		), array(
+			"UNKNOWN: Could not fetch the values at 1.3.6.1.4.1.2021.10.1.5. Please check your config file for SNMP and make sure you have access"
+		), 3);
+	}
+/**
  * No arguments, usage and help
  */
 	public function test_no_arguments() {
