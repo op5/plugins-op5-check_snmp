@@ -284,7 +284,7 @@ void mp_snmp_argument_help(void)
 	printf(" -A, --authpassword=PASSWORD\n");
 	printf("    %s\n", _("SNMPv3 authentication password"));
 	printf(" -x, --privproto=[DES|AES]\n");
-	printf("    %s\n", _("SNMPv3 priv proto (default: DES)"));
+	printf("    %s\n", _("SNMPv3 priv proto (default: AES)"));
 	printf(" -X, --privpasswd=PASSWORD\n");
 	printf("    %s\n", _("SNMPv3 privacy password"));
 }
