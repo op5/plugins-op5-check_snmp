@@ -13,6 +13,9 @@ COMMON_SOURCES = \
 	src/utils_snmp.c src/utils_snmp.h \
 	src/common.h
 
+TAPSOURCES = $(COMMON_SOURCES) tap/tap.c
+TAPCPPFLAGS = $(AM_CPPFLAGS) $(CPPFLAGS) -I$(abs_srcdir)/tap
+
 src_check_snmp_disk_SOURCES=\
 	src/check_snmp_disk.c \
 	$(COMMON_SOURCES)
@@ -33,5 +36,12 @@ src_check_snmp_procs_LDADD=\
 src_check_snmp_procs_CFLAGS=\
 	$(naemon_CFLAGS)
 
-check:
-	phpunit $(top_srcdir)/test/
+check_PROGRAMS = \
+	src/test/check_snmp_cpu
+
+src_test_check_snmp_cpu_SOURCES = src/test/check_snmp_cpu.c $(TAPSOURCES)
+src_test_check_snmp_cpu_CPPFLAGS = $(TAPCPPFLAGS)
+src_test_check_snmp_cpu_LDADD = $(TAPLDADD)
+
+check: $(check_PROGRAMS)
+	@for i in $(check_PROGRAMS); do $$i; done

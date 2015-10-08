@@ -262,6 +262,7 @@ int process_arguments (int argc, char **argv)
 	return TRUE;
 }
 
+#ifndef MP_TEST_PROGRAM
 int main(int argc, char **argv)
 {
 	static thresholds *thresh;
@@ -425,3 +426,4 @@ int main(int argc, char **argv)
 
 	return result;
 }
+#endif /* MP_TEST_PROGRAM */

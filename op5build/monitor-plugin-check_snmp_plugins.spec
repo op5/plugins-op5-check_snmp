@@ -64,6 +64,7 @@ echo %{version} > .version_number
 autoreconf -i
 %configure --libexecdir=%{prefix}
 make V=1
+make V=1 check
 
 %install
 rm -rf %buildroot

@@ -29,3 +29,12 @@ config.status.lineno
 configure.lineno
 session.
 src/.metadata/
+src/test/check_snmp_cpu
+tap/libtap.la
+tap/tap.lo
+.libs/
+config.guess
+config.sub
+libtool
+m4/*.m4
+ltmain.sh
