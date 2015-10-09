@@ -33,6 +33,14 @@ Summary: Nagios compatible plugin to check disks over SNMP
 %description -n monitor-plugin-check_snmp_disk
 %{summary}
 
+%package -n monitor-plugin-check_snmp_cpu
+Group: Applications/System
+Summary: Nagios compatible plugin to check cpu over SNMP
+Requires: op5-monitor-user
+
+%description -n monitor-plugin-check_snmp_cpu
+%{summary}
+
 %package -n monitor-plugin-check_snmp_load_avg
 Group: Applications/System
 Summary: Nagios compatible plugin to check load average over SNMP
@@ -73,6 +81,7 @@ mkdir -p %buildroot%prefix/
 mkdir -p %buildroot%prefix/metadata
 mkdir -p %buildroot%{_localstatedir}/check_snmp_cpu
 cp op5build/check_snmp_disk.metadata %buildroot%prefix/metadata/check_snmp_disk.metadata
+cp op5build/check_snmp_cpu.metadata %buildroot%prefix/metadata/check_snmp_cpu.metadata
 cp op5build/check_snmp_load_avg.metadata %buildroot%prefix/metadata/check_snmp_load_avg.metadata
 cp op5build/check_snmp_memory.metadata %buildroot%prefix/metadata/check_snmp_memory.metadata
 cp op5build/check_snmp_procs.metadata %buildroot%prefix/metadata/check_snmp_procs.metadata
@@ -84,6 +93,12 @@ rm -rf %buildroot
 %defattr(-,root,root,-)
 %attr(755,root,root) %{prefix}/check_snmp_disk
 %attr(644,root,root) %{prefix}/metadata/check_snmp_disk.metadata
+
+%files -n monitor-plugin-check_snmp_cpu
+%defattr(-,root,root,-)
+%attr(755,root,root) %{prefix}/check_snmp_cpu
+%attr(644,root,root) %{prefix}/metadata/check_snmp_cpu.metadata
+%dir %attr(755,%{daemon_user},%{daemon_group}) %{_localstatedir}/check_snmp_cpu
 
 %files -n monitor-plugin-check_snmp_load_avg
 %defattr(-,root,root,-)
