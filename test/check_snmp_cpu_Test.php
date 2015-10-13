@@ -3,6 +3,8 @@ class Check_Snmp_Cpu_Test extends PHPUnit_Framework_TestCase {
 
 	private static $snmpsimroot = "/tmp/check_snmp_cpu_test/";
 	private $snmpsimroot_current = false;
+	private $snmpsim_community = false;
+	private $snmpsim_recfile = false;
 
 	private function start_snmpsim($snmpdata) {
 		if ($this->snmpsimroot_current !== false) {
@@ -11,7 +13,8 @@ class Check_Snmp_Cpu_Test extends PHPUnit_Framework_TestCase {
 		$this->snmpsimroot_current = static::$snmpsimroot.md5(uniqid())."/";
 		@mkdir($this->snmpsimroot_current, 0777, true);
 		@mkdir($this->snmpsimroot_current."data", 0777, true);
-		file_put_contents($this->snmpsimroot_current."data/mycommunity.snmprec", $snmpdata);
+		$this->snmpsim_recfile = $this->snmpsimroot_current."data/".$this->snmpsim_community.".snmprec";
+		file_put_contents($this->snmpsim_recfile, $snmpdata);
 
 		$command="snmpsimd.py".
 		" --daemonize".
@@ -26,16 +29,45 @@ class Check_Snmp_Cpu_Test extends PHPUnit_Framework_TestCase {
 			return;
 		}
 		posix_kill(intval(file_get_contents($this->snmpsimroot_current . "pidfile")), SIGINT);
+		if($this->snmpsim_recfile !== false) {
+			unlink($this->snmpsim_recfile);
+			$this->snmpsim_recfile = false;
+		}
 		$this->snmpsimroot_current = false;
+	}
+
+	public function setUp() {
+		$this->snmpsim_community = md5(uniqid());
 	}
 
 	public function tearDown() {
 		$this->stop_snmpsim();
+
 	}
 
 	public function run_command($args, &$output, &$return) {
 		$check_command = __DIR__ . "/../../../opt/plugins/check_snmp_cpu";
 		return exec($check_command . " " . $args, $output, $return);
+	}
+
+	private function generate_incorrect_snmpdata() {
+		$incorrect = <<<EOF
+1.
+EOF;
+	}
+
+	public function assertCommandIncorrectSnmp($args, $expectedoutput, $expectedreturn){
+		$this->start_snmpsim($this->generate_incorrect_snmpdata());
+		$args = str_replace("@endpoint@","127.0.0.1:21161",$args);
+		$args = str_replace("@community@",$this->snmpsim_community, $args);
+		$this->run_command($args, $output, $return);
+
+		if(is_array($expectedoutput))
+			$expectedoutput = implode("\n", $expectedoutput)."\n";
+		$output = implode("\n", $output)."\n";
+
+		$this->assertEquals($expectedoutput, $output);
+		$this->assertEquals($expectedreturn, $return);
 	}
 
 	private function generate_snmpdata($snmpdata_diff) {
@@ -69,6 +101,7 @@ class Check_Snmp_Cpu_Test extends PHPUnit_Framework_TestCase {
 1.3.6.1.4.1.2021.11.61.0|65|3314
 1.3.6.1.4.1.2021.11.62.0|65|29110
 1.3.6.1.4.1.2021.11.63.0|65|54902
+1.3.6.1.4.1.2021.11.64.0|65|0
 
 1.3.6.1.2.1.25.3.3.1.1.768|6|0.0
 1.3.6.1.2.1.25.3.3.1.2.768|2|1
@@ -109,7 +142,9 @@ EOF;
 
 	public function assertCommand($args, $snmpdata_diff, $expectedoutput, $expectedreturn){
 		$this->start_snmpsim($this->generate_snmpdata($snmpdata_diff));
-		$this->run_command(str_replace("@endpoint@","127.0.0.1:21161",$args), $output, $return);
+		$args = str_replace("@endpoint@","127.0.0.1:21161",$args);
+		$args = str_replace("@community@",$this->snmpsim_community, $args);
+		$this->run_command($args, $output, $return);
 
 		if(is_array($expectedoutput))
 			$expectedoutput = implode("\n", $expectedoutput)."\n";
@@ -120,32 +155,154 @@ EOF;
 	}
 
 /**
- * CPU I/O wait
- * TODO: Needs to remove the old tmp-file and create a new, and wait >1 sec
- * or simulate time difference since the plugin gives errors of there is <
- * than 1 second between checks. Now the tests just wait for 2 sec.
+ * CPU testing needs to initialize a tempfile which is located in localstatedir,
+ * to run local tests you can specify a custom dir with:
+ * MP_STATE_PATH=/tmp/lalala
+ * After running the tests you need to remove the tempfiles in order to re-run
+ * the tests successfullly.
  */
-	public function test_iowait_OK() {
-		$this->assertCommand("-H @endpoint@ -C mycommunity -T cpu_io_wait", array(
+	public function test_cpu_default_OK() {
+		// First run, no inital database
+		$this->assertCommand("-H @endpoint@ -C @community@", array(
+			"1.3.6.1.4.1.2021.11.53.0" => array(65,103504746), /* idle */
+			"1.3.6.1.4.1.2021.11.50.0" => array(65,252827) /* user */
 		), array(
-			"OK: 0.00 CPU I/O wait |'CPU I/O wait'=0.00;;"
+			"UNKNOWN: No previous state, initializing database. Re-run the plugin"
+		), 3);
+
+		// No new values since first execution
+		$this->assertCommand("-H @endpoint@ -C @community@", array(
+			"1.3.6.1.4.1.2021.11.53.0" => array(65,103504746),
+			"1.3.6.1.4.1.2021.11.50.0" => array(65,252827)
+		), array(
+			"UNKNOWN: No difference in SNMP counters since first execution, please re-run the plugin in a few seconds"
+		), 3);
+
+		// Add some new values
+		$this->assertCommand("-H @endpoint@ -C @community@", array(
+			"1.3.6.1.4.1.2021.11.53.0" => array(65,103504746+1),
+			"1.3.6.1.4.1.2021.11.50.0" => array(65,252827)
+		), array(
+			"OK: total CPU usage at 0.00% | total=0.00%;100.0;100.0 user=0.00% system=0.00% iowait=0.00% kernel=0.00% steal=0.00% nice=0.00% idle=100.00%"
 		), 0);
-		sleep(1);
-	}
-	public function test_iowait_WARNING() {
-		$this->assertCommand("-H @endpoint@ -C mycommunity -T cpu_io_wait -w 10: -c 20", array(
+
+		// Simulate retry before net-snmpd have updated the counters (reuse same values)
+		$this->assertCommand("-H @endpoint@ -C @community@", array(
+			"1.3.6.1.4.1.2021.11.53.0" => array(65,103504746+1),
+			"1.3.6.1.4.1.2021.11.50.0" => array(65,252827)
 		), array(
-			"WARNING: 0.00 CPU I/O wait |'CPU I/O wait'=0.00;10:;20"
+			"OK: total CPU usage at 0.00% | total=0.00%;100.0;100.0 user=0.00% system=0.00% iowait=0.00% kernel=0.00% steal=0.00% nice=0.00% idle=100.00%"
+		), 0);
+
+
+		// Update values, and verify that it saves the previous state, and uses new values
+		$this->assertCommand("-H @endpoint@ -C @community@", array(
+			"1.3.6.1.4.1.2021.11.53.0" => array(65,103504746+1),
+			"1.3.6.1.4.1.2021.11.50.0" => array(65,252827+1)
+		), array(
+			"OK: total CPU usage at 100.00% | total=100.00%;100.0;100.0 user=100.00% system=0.00% iowait=0.00% kernel=0.00% steal=0.00% nice=0.00% idle=0.00%"
+		), 0);
+	}
+	public function test_cpu_default_initial_WARNING() {
+		$this->assertCommand("-H @endpoint@ -C @community@ -w 55: -c 90", array(
+		), array(
+			"UNKNOWN: No previous state, initializing database. Re-run the plugin"
+		), 3);
+
+		$this->assertCommand("-H @endpoint@ -C @community@ -w 55: -c 90", array(
+			"1.3.6.1.4.1.2021.11.53.0" => array(65,103504746+1), /* last idle + 1 */
+			"1.3.6.1.4.1.2021.11.50.0" => array(65,252827+1)  /* last sys + 1 */
+		), array(
+			"WARNING: total CPU usage at 50.00% | total=50.00%;55:;90 user=50.00% system=0.00% iowait=0.00% kernel=0.00% steal=0.00% nice=0.00% idle=50.00%"
 		), 1);
-		sleep(1);
 	}
-	public function test_iowait_CRITICAL() {
-		$this->assertCommand("-H @endpoint@ -C mycommunity -T cpu_io_wait -w 10: -c 20:", array(
+	public function test_cpu_default_initial_CRITICAL() {
+		$this->assertCommand("-H @endpoint@ -C @community@ -w 55: -c~:90", array(
 		), array(
-			"CRITICAL: 0.00 CPU I/O wait |'CPU I/O wait'=0.00;10:;20:"
+			"UNKNOWN: No previous state, initializing database. Re-run the plugin"
+		), 3);
+
+		$this->assertCommand("-H @endpoint@ -C @community@ -w 55: -c~:90", array(
+			"1.3.6.1.4.1.2021.11.50.0" => array(65,252827+1)  /* last usr + 1 */
+		), array(
+			"CRITICAL: total CPU usage at 100.00% | total=100.00%;55:;~:90 user=100.00% system=0.00% iowait=0.00% kernel=0.00% steal=0.00% nice=0.00% idle=0.00%"
 		), 2);
 	}
+/**
+ * Test some values for all perfdata
+ */
+	public function test_cpu_perfdata_same_amounts_of_ticks_initial_run_OK() {
+		$this->assertCommand("-H @endpoint@ -C @community@ -w 50:90 -c 80:95", array(
+		), array(
+			"UNKNOWN: No previous state, initializing database. Re-run the plugin"
+		), 3);
 
+		$this->assertCommand("-H @endpoint@ -C @community@ -w 50:90 -c 80:95", array(
+			"1.3.6.1.4.1.2021.11.50.0" => array(65,252827+1), /* user */
+			"1.3.6.1.4.1.2021.11.51.0" => array(65,15711+1), /* nice */
+			"1.3.6.1.4.1.2021.11.52.0" => array(65,132929+1), /* system */
+			"1.3.6.1.4.1.2021.11.53.0" => array(65,103504746+1), /* idle */
+			"1.3.6.1.4.1.2021.11.54.0" => array(65,23152+1), /* wait */
+			"1.3.6.1.4.1.2021.11.55.0" => array(65,0), /* kernel */
+			"1.3.6.1.4.1.2021.11.64.0" => array(65,0+1) /* steal */
+		), array(
+			"OK: total CPU usage at 83.33% | total=83.33%;50:90;80:95 user=16.67% system=16.67% iowait=16.67% kernel=0.00% steal=16.67% nice=16.67% idle=16.67%"
+		), 0);
+	}
+	public function test_cpu_perfdata_initial_run_OK() {
+		$this->assertCommand("-H @endpoint@ -C @community@ -w 50:95 -c 80:95", array(
+		), array(
+			"UNKNOWN: No previous state, initializing database. Re-run the plugin"
+		), 3);
+
+		$this->assertCommand("-H @endpoint@ -C @community@ -w 50:95 -c 80:95", array(
+			"1.3.6.1.4.1.2021.11.50.0" => array(65,252827+1), /* user */
+			"1.3.6.1.4.1.2021.11.51.0" => array(65,15711+2), /* nice */
+			"1.3.6.1.4.1.2021.11.52.0" => array(65,132929+3), /* system */
+			"1.3.6.1.4.1.2021.11.53.0" => array(65,103504746+4), /* idle */
+			"1.3.6.1.4.1.2021.11.54.0" => array(65,23152+5), /* wait */
+			"1.3.6.1.4.1.2021.11.55.0" => array(65,0), /* kernel */
+			"1.3.6.1.4.1.2021.11.64.0" => array(65,0+6) /* steal */
+		), array(
+			"OK: total CPU usage at 80.95% | total=80.95%;50:95;80:95 user=4.76% system=14.29% iowait=23.81% kernel=0.00% steal=28.57% nice=9.52% idle=19.05%"
+		), 0);
+	}
+/**
+ * Test check on all perfdata
+ */
+	public function test_cpu_initial_run_UNKNOWN() {
+		$this->assertCommand("-H @endpoint@ -C @community@ -T user -w 90 -c 95", array(
+		), array(
+			"UNKNOWN: No previous state, initializing database. Re-run the plugin"
+		), 3);
+		$this->assertCommand("-H @endpoint@ -C @community@ -T user -w 90 -c 95", array(
+		), array(
+			"UNKNOWN: No difference in SNMP counters since first execution, please re-run the plugin in a few seconds"
+		), 3);
+
+		$this->assertCommand("-H @endpoint@ -C @community@ -T user -w 90 -c 95", array(
+			"1.3.6.1.4.1.2021.11.50.0" => array(65,252827+1), /* user */
+			"1.3.6.1.4.1.2021.11.53.0" => array(65,103504746+1), /* idle */
+		), array(
+			"OK: user CPU usage at 50.00% | total=50.00% user=50.00%;90;95 system=0.00% iowait=0.00% kernel=0.00% steal=0.00% nice=0.00% idle=50.00%"
+		), 0);
+
+		$this->assertCommand("-H @endpoint@ -C @community@ -T user -w 90 -c 95", array(
+			"1.3.6.1.4.1.2021.11.50.0" => array(65,252828+1), /* user */
+			"1.3.6.1.4.1.2021.11.51.0" => array(65,15711+1), /* nice */
+			"1.3.6.1.4.1.2021.11.53.0" => array(65,103504747+2), /* idle */
+		), array(
+			"OK: user CPU usage at 25.00% | total=50.00% user=25.00%;90;95 system=0.00% iowait=0.00% kernel=0.00% steal=0.00% nice=25.00% idle=50.00%"
+		), 0);
+	}
+/**
+ * Could not fetch the values
+ */
+	public function test_cpu_could_not_fetch_the_value_UNKNOWN() {
+		$this->assertCommandIncorrectSnmp("-H @endpoint@ -C @community@", array(
+			"UNKNOWN: Could not fetch the values at .1.3.6.1.4.1.2021.11. Please check your config file for SNMP and make sure you have access"
+		), 3);
+	}
 /**
  * No arguments, usage and help
  */

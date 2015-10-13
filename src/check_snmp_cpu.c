@@ -8,90 +8,121 @@ const char *program_name = "check_snmp_cpu"; /* for coreutils libs */
 #include "utils.h"
 #include "utils_base.h"
 #include "utils_snmp.h"
-#include <stdio.h> /* to calculate iowait */
-#include <time.h>  /* to calculate iowait */
+#include <stdio.h>
 
 #define DEFAULT_TIME_OUT 15 /* only used for help text */
 
-#define SYSTEMSTATS_TABLE ".1.3.6.1.4.1.2021.11" /* Scalars */
-#define SYSTEMSTATS_SUBIDX_CpuRawWait 54         /* of type counter */
+/**
+ * On a multi-processor system, the 'ssCpuRaw*' counters are cumulative over all
+ * CPUs, so their sum will typically be N*100 (for N processors).
+ */
+#define SYSTEMSTATS_TABLE ".1.3.6.1.4.1.2021.11" /* UCD-SNMP-MIB */
+#define SYSTEMSTATS_SUBIDX_ssCpuRawUser 50       /* Counter */
+#define SYSTEMSTATS_SUBIDX_ssCpuRawNice 51       /* Counter */
+#define SYSTEMSTATS_SUBIDX_ssCpuRawSystem 52     /* Counter can be wait+kernel*/
+#define SYSTEMSTATS_SUBIDX_ssCpuRawIdle 53       /* Counter */
+#define SYSTEMSTATS_SUBIDX_ssCpuRawWait 54       /* Counter */
+#define SYSTEMSTATS_SUBIDX_ssCpuRawKernel 55     /* Counter */
+#define SYSTEMSTATS_SUBIDX_ssCpuRawSteal 64      /* Counter */
 
-#define HRDEVICE_TABLE ".1.3.6.1.2.1.25.3.3.1"   /* hrDeviceTable */
-#define HRDEVICE_SUBIDX_TYPE 1
+enum {
+	COUNTER_total = 0,
+	COUNTER_user,
+	COUNTER_system,
+	COUNTER_iowait,
+	COUNTER_kernel,
+	COUNTER_steal,
+	COUNTER_nice,
+	COUNTER_idle
+};
+#define COUNTER_NELEMS (((int)COUNTER_idle)+1)
 
-enum o_monitortype_t {
-	MONITOR_TYPE__IOWAIT
+static const char *counter_names[] = {
+	"total",
+	"user",
+	"system",
+	"iowait",
+	"kernel",
+	"steal",
+	"nice",
+	"idle",
+	NULL
 };
 
-int asprintf(char **strp, const char *fmt, ...);
-
-mp_snmp_context *ctx;
-char *warn_str = "", *crit_str = "";
-enum o_monitortype_t o_monitortype = MONITOR_TYPE__IOWAIT;
-int cpu_found = FALSE;
+static mp_snmp_context *ctx;
+static char *warn_str = "100.0", *crit_str = "100.0"; /* never alert by default */
+static int checktype = COUNTER_total; /* check total by default */
+static int raw_found = FALSE;
 
 struct cpu_info {
-	time_t time_now;
-	int CpuRawWait;
-	int NumberOfCpus;
+	int valid;
+	unsigned int counter[COUNTER_NELEMS];
 };
 
-static int io_callback(netsnmp_variable_list *v, void *cc_ptr, void *discard)
+struct pct_cpu_info {
+	float counter[COUNTER_NELEMS];
+};
+
+static int cpu_callback(netsnmp_variable_list *v, void *cc_ptr, void *discard)
 {
 	struct cpu_info *cc = (struct cpu_info *)cc_ptr;
+	raw_found = TRUE;
+
 	switch (v->name[8]) {
-		case SYSTEMSTATS_SUBIDX_CpuRawWait:
-			cc->CpuRawWait=*v->val.integer;
-			mp_debug(3,"%d Number of 'ticks' spent waiting for I/O\n",
-				cc->CpuRawWait);
+		case SYSTEMSTATS_SUBIDX_ssCpuRawUser:
+			cc->counter[COUNTER_user]=*v->val.integer;
+			break;
+		case SYSTEMSTATS_SUBIDX_ssCpuRawNice:
+			cc->counter[COUNTER_nice]=*v->val.integer;
+			break;
+		case SYSTEMSTATS_SUBIDX_ssCpuRawSystem:
+			cc->counter[COUNTER_system]=*v->val.integer;
+			break;
+		case SYSTEMSTATS_SUBIDX_ssCpuRawIdle:
+			cc->counter[COUNTER_idle]=*v->val.integer;
+			break;
+		case SYSTEMSTATS_SUBIDX_ssCpuRawWait:
+			cc->counter[COUNTER_iowait]=*v->val.integer;
+			break;
+		case SYSTEMSTATS_SUBIDX_ssCpuRawKernel:
+			cc->counter[COUNTER_kernel]=*v->val.integer;
+			break;
+		case SYSTEMSTATS_SUBIDX_ssCpuRawSteal:
+			cc->counter[COUNTER_steal]=*v->val.integer;
 			break;
 	}
+
 	return EXIT_SUCCESS;
 }
 
-static int type_callback(netsnmp_variable_list *v, void *cc_ptr, void *discard)
+static void debugprint_cpu_info(const char *prefix, struct cpu_info *ci)
 {
-	cpu_found = TRUE;
-
-	struct cpu_info *cc = (struct cpu_info *)cc_ptr;
-	switch (v->name[10]) {
-		case HRDEVICE_SUBIDX_TYPE:
-			cc->NumberOfCpus++;
-			mp_debug(3,"%d CPU found\n",cc->NumberOfCpus);
-			if (cc->NumberOfCpus == 0) {
-				die(STATE_UNKNOWN, _("The number of CPUs is 0\n"));
-			}
-			break;
+	int i;
+	mp_debug(3, "%s:\n", prefix);
+	for(i=0;counter_names[i];i++) {
+		mp_debug(3, "%8s: %u\n", counter_names[i], ci->counter[i]);
 	}
-	return EXIT_SUCCESS;
 }
 
-struct cpu_info *check_cpu_ret(mp_snmp_context *ss, int statemask)
+static void fetch_cpu_info(mp_snmp_context *ss, struct cpu_info *ci, int statemask)
 {
-	struct cpu_info *ci = malloc(sizeof(struct cpu_info));
-	ci->CpuRawWait=-1;
-
-	if (0 != mp_snmp_walk(ss, SYSTEMSTATS_TABLE, NULL, io_callback, ci, NULL)) {
+	if (0 != mp_snmp_walk(ss, SYSTEMSTATS_TABLE, NULL, cpu_callback, ci, NULL)) {
 		die(STATE_UNKNOWN, "UNKNOWN: SNMP error when querying %s: %s\n",
-		mp_snmp_get_peername(ctx), mp_snmp_get_errstr(ctx));
-	}
-	if (0 != mp_snmp_walk(ss, HRDEVICE_TABLE, NULL, type_callback, ci, NULL)) {
-		die(STATE_UNKNOWN, "UNKNOWN: SNMP error when querying %s: %s\n",
-		mp_snmp_get_peername(ctx), mp_snmp_get_errstr(ctx));
+			mp_snmp_get_peername(ctx), mp_snmp_get_errstr(ctx));
 	}
 
-	if (ci->CpuRawWait == -1 || !cpu_found) {
-		die(STATE_UNKNOWN, "UNKNOWN: Could not fetch the values at %s and %s. "
-		"Please check your config file for SNMP and make sure you have access\n"
-		, SYSTEMSTATS_TABLE, HRDEVICE_TABLE);
+	if (!raw_found) {
+		die(STATE_UNKNOWN, "UNKNOWN: Could not fetch the values at %s. "
+			"Please check your config file for SNMP and make sure you have access\n",
+			SYSTEMSTATS_TABLE);
 	}
 
-	mp_debug(3,"CpuRawWait %d\n",
-				ci->CpuRawWait);
+	debugprint_cpu_info("From host", ci);
 
-	return ci;
+	ci->valid = 1; // We have fetched the value
 }
 
+/* not static because utils_base */
 void print_usage (void)
 {
 	printf ("%s\n", _("Usage:"));
@@ -101,7 +132,7 @@ void print_usage (void)
 	printf ("[-a authproto] [-A authpasswd] [-x privproto] [-X privpasswd])\n");
 }
 
-void print_help (void)
+static void print_help (void)
 {
 	print_revision (progname, NP_VERSION);
 	printf ("%s\n", _("Check status of remote machines and obtain "
@@ -114,21 +145,23 @@ void print_help (void)
 	printf (UT_VERBOSE);
 	printf (UT_PLUG_TIMEOUT, DEFAULT_TIME_OUT);
 	printf (" %s\n", "-T, --type=STRING");
-	printf ("	%s\n", _("cpu_io_wait"));
+	printf ("    %s\n", _("total (default)"));
+	printf ("    %s\n", _("user"));
+	printf ("    %s\n", _("nice"));
+	printf ("    %s\n", _("system"));
+	printf ("    %s\n", _("idle"));
+	printf ("    %s\n", _("iowait"));
+	printf ("    %s\n", _("steal"));
 	mp_snmp_argument_help();
 	printf ( UT_WARN_CRIT_RANGE);
 }
 
 /* process command-line arguments */
-int process_arguments (int argc, char **argv)
+static int process_arguments (int argc, char **argv, struct pct_cpu_info *pct)
 {
 	int c, option;
 	int i, x;
 	char *optary;
-
-	ctx = mp_snmp_create_context();
-	if (!ctx)
-		die(STATE_UNKNOWN, _("Failed to create snmp context\n"));
 
 	static struct option longopts[] = {
 		STD_LONG_OPTS,
@@ -136,6 +169,10 @@ int process_arguments (int argc, char **argv)
 		MP_SNMP_LONGOPTS,
 		{NULL, 0, 0, 0},
 	};
+
+	ctx = mp_snmp_create_context();
+	if (!ctx)
+		die(STATE_UNKNOWN, _("Failed to create snmp context\n"));
 
 	if (argc < 2)
 		usage4 (_("Could not parse arguments"));
@@ -182,10 +219,17 @@ int process_arguments (int argc, char **argv)
 				mp_verbosity++;
 				break;
 			case 'T':
-				if (0==strcmp(optarg, "cpu_io_wait")) {
-					o_monitortype = MONITOR_TYPE__IOWAIT;
-				} else {
-					die(STATE_UNKNOWN, _("Wrong parameter for -T.\n"));
+				{
+					int found_parameter = 0;
+					for(i=0;counter_names[i];i++) {
+						if(0==strcmp(optarg, counter_names[i])) {
+							checktype = i;
+							found_parameter = 1;
+						}
+					}
+					if(!found_parameter) {
+						die(STATE_UNKNOWN, _("Wrong parameter for -T.\n"));
+					}
 				}
 				break;
 			default:
@@ -207,19 +251,186 @@ int process_arguments (int argc, char **argv)
 	return TRUE;
 }
 
+static int load_state(struct cpu_info *ci_current, struct cpu_info *ci_last)
+{
+	state_data *previous_state;
+	char *buffer = NULL;
+	char *token;
+	int i;
+
+	previous_state = np_state_read();
+	if (previous_state == NULL) {
+		return -1;
+	}
+
+	buffer = strdup(previous_state->data);
+
+	token = strtok(buffer, " ");
+	if(!token) goto load_state_error;
+	ci_last->valid = strtoul(token, NULL, 10);
+
+	for (i=0;i<COUNTER_NELEMS;i++) {
+		token = strtok(NULL, " ");
+		if(!token) goto load_state_error;
+		ci_last->counter[i] = strtoul(token, NULL, 10);
+	}
+
+	token = strtok(NULL, " ");
+	if(!token) goto load_state_error;
+	ci_current->valid = strtoul(token, NULL, 10);
+
+	for (i=0;i<COUNTER_NELEMS;i++) {
+		token = strtok(NULL, " ");
+		if(!token) goto load_state_error;
+		ci_current->counter[i] = strtoul(token, NULL, 10);
+	}
+	if(strtok(NULL, " ") != NULL) {
+		printf("There should be no more tokens in the buffer");
+		goto load_state_error;
+	}
+
+	free(buffer);
+
+	debugprint_cpu_info("From file current", ci_current);
+	debugprint_cpu_info("From file last", ci_last);
+	return 0;
+
+load_state_error:
+	free(buffer);
+	return 0;
+}
+
+static int cpu_info_equals(struct cpu_info *ci_a, struct cpu_info *ci_b)
+{
+	int i;
+
+	for(i=0;i<COUNTER_NELEMS;i++) {
+		if (ci_a->counter[i] != ci_b->counter[i]) {
+			return 0;
+		}
+	}
+
+	return 1;
+}
+static int save_state(struct cpu_info *ci_current, struct cpu_info *ci_last)
+{
+	char state_string[4096] = "";
+	char param_string[128] = "";
+	int i;
+
+	// Save last
+	sprintf(param_string, "%u", ci_last->valid);
+	strcat(state_string, param_string);
+	for (i=0;i<COUNTER_NELEMS;i++) {
+		sprintf(param_string, " %u", ci_last->counter[i]);
+		strcat(state_string, param_string);
+	}
+	strcat(state_string, " ");
+
+	// Save current
+	sprintf(param_string, "%u", ci_current->valid);
+	strcat(state_string, param_string);
+	for (i=0;i<COUNTER_NELEMS;i++) {
+		sprintf(param_string, " %u", ci_current->counter[i]);
+		strcat(state_string, param_string);
+	}
+
+	np_state_write_string(0, state_string);
+
+	return 0;
+}
+
+/* use macros to avoid typos */
+static void calculate_cpu_usage(struct pct_cpu_info *pct, struct cpu_info *current, struct cpu_info *last)
+{
+	struct cpu_info calc;
+	float total = 0;
+	int i;
+
+	memset(pct, 0, sizeof(*pct));
+	memset(&calc, 0, sizeof(calc));
+
+	for(i=0;i<COUNTER_NELEMS;i++) {
+		calc.counter[i] = current->counter[i] - last->counter[i];
+		total += calc.counter[i];
+	}
+	total -= calc.counter[COUNTER_total];
+	/* from http://www.net-snmp.org/docs/mibs/ucdavis.html:
+	 * This object may sometimes be implemented as the
+	 * combination of the 'ssCpuRawWait(54)' and
+	 * 'ssCpuRawKernel(55)' counters, so care must be
+	 * taken when summing the overall raw counters.
+	 *
+	 * In case "system" just happens to match up with "wait + kernel",
+	 * we'll give a bogus answer, but there's nothing else that hints
+	 * about how the snmp daemon behaves, so we have to take a leap
+	 * of faith.
+	 */
+	if (last->counter[COUNTER_system] == (last->counter[COUNTER_iowait] + last->counter[COUNTER_kernel]) ||
+		current->counter[COUNTER_system] == (current->counter[COUNTER_iowait] + current->counter[COUNTER_kernel]))
+	{
+		total -= calc.counter[COUNTER_system];
+	}
+	debugprint_cpu_info("Fetched (in calculate)", current);
+	debugprint_cpu_info("Old (in calculated)", last);
+	mp_debug(3, "total ticks: %.0f\n", total);
+	debugprint_cpu_info("Calculated", &calc);
+
+	/*
+	 * avoid division-by-zero. This happens when the plugin is
+	 * run more frequently than the queried server updates its
+	 * tick-counters
+	 */
+	if (!total)
+		total = 1;
+
+	for(i=0;i<COUNTER_NELEMS;i++) {
+		pct->counter[i] = 100.00 * (float)calc.counter[i] / (float)total;
+	}
+	// Calculate total seperatly, since it's not available through SNMP natively
+	pct->counter[COUNTER_total] = 100.00 - pct->counter[COUNTER_idle];
+
+	if (!pct->counter[COUNTER_user] && !pct->counter[COUNTER_nice] && !pct->counter[COUNTER_system] && !pct->counter[COUNTER_idle] &&
+	!pct->counter[COUNTER_iowait] && !pct->counter[COUNTER_kernel] && !pct->counter[COUNTER_steal])
+	{
+		die(STATE_UNKNOWN, _("UNKNOWN: No difference between states, please re-run the plugin in a few seconds\n"));
+	}
+}
+
+static void output_message(int result, struct pct_cpu_info *pct)
+{
+	float current_value = pct->counter[checktype];
+	int i;
+	printf("%s: %s CPU usage at %.2f%% |", state_text(result), counter_names[checktype], current_value);
+	for(i=0;counter_names[i];i++) {
+		printf(" %s=%.2f%%", counter_names[i], pct->counter[i]);
+		if(checktype == i)
+			printf(";%s;%s", warn_str, crit_str);
+	}
+}
+
 #ifndef MP_TEST_PROGRAM
-int main(int argc, char **argv)
+int main(int argc, char *argv[])
+#else
+int main_as_in_test_program(int argc, char *argv[])
+#endif /* MP_TEST_PROGRAM */
 {
 	static thresholds *thresh;
-	struct cpu_info *ptr;
-	int result = STATE_UNKNOWN;
+	int result = STATE_UNKNOWN, initialize_db;
+	struct cpu_info old_current, old_last, fetched;
+	struct pct_cpu_info pct;
+
+	memset(&old_current, 0, sizeof(old_current));
+	memset(&old_last, 0, sizeof(old_last));
+	memset(&fetched, 0, sizeof(fetched));
+	memset(&pct, 0, sizeof(pct));
 
 	mp_snmp_init(program_name, 0);
 	np_init((char *)progname, argc, argv);
 
 	/* Parse extra opts if any */
 	argv=np_extra_opts(&argc, argv, progname);
-	if ( process_arguments(argc, argv) == ERROR )
+	if ( process_arguments(argc, argv, &pct) == ERROR )
 		usage4 (_("Could not parse arguments"));
 
 	/**
@@ -229,70 +440,39 @@ int main(int argc, char **argv)
 	mp_snmp_finalize_auth(ctx);
 	if (mp_verbosity >= 1) {
 		mp_snmp_debug_print_ctx(stdout,ctx);
-	};
+	}
 
-	ptr = check_cpu_ret(ctx, ~0); /* get net-snmp cpu data */
+	fetch_cpu_info(ctx, &fetched, ~0); /* get net-snmp cpu data */
 	mp_snmp_deinit(program_name); /* deinit */
+
+	/* we must get the old state before we save the new one */
+	np_enable_state(NULL, 1);
+	initialize_db = load_state(&old_current, &old_last);
+	if (!cpu_info_equals(&fetched, &old_current)) {
+		memcpy(&old_last, &old_current, sizeof(struct cpu_info));
+		memcpy(&old_current, &fetched, sizeof(struct cpu_info));
+	}
+	save_state(&old_current, &old_last);
+
+	if (initialize_db == -1)
+		die(STATE_UNKNOWN, "UNKNOWN: No previous state, initializing database. Re-run the plugin\n");
+
+	if (!old_current.valid || !old_last.valid)
+		die(STATE_UNKNOWN, "UNKNOWN: No difference in SNMP counters since first execution, please re-run the plugin in a few seconds\n");
 
 	/**
 	 * set standard monitoring-plugins thresholds
 	 */
 	set_thresholds(&thresh, warn_str, crit_str);
 
-	/**
-	 * To check iowait we need to store the time and counter value
-	 * and compare it to the previous value stored in a file.
-	 */
-	float iowait = 0;
-	if (o_monitortype == MONITOR_TYPE__IOWAIT) {
-		time_t fftime = 0;
-		ptr->time_now = time(0);
-		int ffcpurawwait = 0;
-		char *state_string = NULL;
+	calculate_cpu_usage(&pct, &old_current, &old_last);
 
-		np_enable_state(NULL, 1);
-		state_data *previous_state = np_state_read();
+	result = get_status(pct.counter[checktype], thresh);
+	output_message(result, &pct);
 
-		if (previous_state != NULL) {
-			if (sscanf(previous_state->data, "%d %ld", &ffcpurawwait,
-				&fftime) == 2)
-			{
-				if ((ptr->time_now - fftime) == 0)
-					die(STATE_UNKNOWN, _("The time interval needs to be "
-						"at least one second.\n"));
-				else if (ffcpurawwait > ptr->CpuRawWait)
-					die(STATE_UNKNOWN, _("The iowait counter rolled over.\n"));
-				iowait = (ptr->CpuRawWait - ffcpurawwait) /
-					((ptr->time_now - fftime) * ptr->NumberOfCpus);
-				mp_debug(3,"iowait: %.2f\n", iowait);
-			}
-		}
-		if (asprintf(&state_string, "%d %ld", ptr->CpuRawWait,
-			ptr->time_now) >= 3)
-		{
-			np_state_write_string(0, state_string);
-		}
-		free(state_string);
-	}
-
-	/* check and output results */
-	switch (o_monitortype) {
-		case MONITOR_TYPE__IOWAIT:
-			result = get_status(iowait, thresh);
-			printf("%s: %.2f CPU I/O wait ", state_text(result), iowait);
-			printf("|'CPU I/O wait'=%.2f;%s;%s",
-				iowait, warn_str, crit_str);
-
-			break;
-		default:
-			usage4 (_("Could not parse arguments for -T"));
-			break;
-	}
 	printf("\n");
 
 	free(ctx);
-	free(ptr);
 
 	return result;
 }
-#endif /* MP_TEST_PROGRAM */
