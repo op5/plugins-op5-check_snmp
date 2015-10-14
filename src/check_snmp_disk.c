@@ -7,12 +7,14 @@ const char *program_name = "check_snmp_disk"; /* for coreutils libs */
 #include "common.h"
 #include "utils.h"
 #include "utils_snmp.h"
-#include <stdio.h>					/* to calculate iowait */
-#include <time.h>					/* to calculate iowait */
+#include <stdio.h>
+#include <stdlib.h>
+#include <ctype.h>
+#include <naemon/naemon.h>
 
 #define DEFAULT_TIME_OUT 15			/* only used for help text */
 
-#define HRSTORAGE_TABLE "1.3.6.1.2.1.25.2.3.1" /* hrStorageEntry */
+#define HRSTORAGE_TABLE ".1.3.6.1.2.1.25.2.3.1" /* hrStorageEntry */
 #define HRSTORAGE_SUBIDX_Index 1
 #define HRSTORAGE_SUBIDX_Type 2					/* not used */
 #define HRSTORAGE_SUBIDX_Descr 3
@@ -21,40 +23,29 @@ const char *program_name = "check_snmp_disk"; /* for coreutils libs */
 #define HRSTORAGE_SUBIDX_Used 6
 #define HRSTORAGE_SUBIDX_AllocationFailures 7
 
-#define DISKIO_TABLE ".1.3.6.1.4.1.2021.13.15.1.1" /* diskIOTable */
-#define DISKIO_SUBIDX_Index 1
-#define DISKIO_SUBIDX_Device 2
-#define DISKIO_SUBIDX_NRead 3		/* not used */
-#define DISKIO_SUBIDX_NWritten 4	/* not used */
-#define DISKIO_SUBIDX_Reads 5		/* not used */
-#define DISKIO_SUBIDX_Writes 6		/* not used */
-#define DISKIO_SUBIDX_LA1 9
-#define DISKIO_SUBIDX_LA5 10
-#define DISKIO_SUBIDX_LA15 11
-#define DISKIO_SUBIDX_ReadX 12		/* not used */
-#define DISKIO_SUBIDX_WrittenX 13	/* not used */
-
-enum o_monitortype_t {
-	MONITOR_TYPE__STORAGE,
-	MONITOR_TYPE__IO
+/* Storage types, gleaned from HOST-RESOURCES-TYPES */
+enum {
+	STORAGE_TYPE_Other,
+	STORAGE_TYPE_Ram,
+	STORAGE_TYPE_VirtualMemory,
+	STORAGE_TYPE_FixedDisk,
+	STORAGE_TYPE_RemovableDisk,
+	STORAGE_TYPE_FloppyDisk,
+	STORAGE_TYPE_CompactDisc,
+	STORAGE_TYPE_RamDisk,
+	STORAGE_TYPE_FlashMemory,
+	STORAGE_TYPE_NetworkDisk,
 };
 
-enum o_monitor_presentationtype_t {
-	MONITOR_PRESTYPE__IO_1,
-	MONITOR_PRESTYPE__IO_5,
-	MONITOR_PRESTYPE__IO_15
-};
+#define STORAGE_MASK_DISK \
+	(1 << STORAGE_TYPE_FixedDisk) | \
+	(1 << STORAGE_TYPE_RemovableDisk) | \
+	(1 << STORAGE_TYPE_NetworkDisk)
 
-int tolower(int);
-
-mp_snmp_context *ctx;
-char *warn_str = "", *crit_str = "";
-enum o_monitortype_t o_monitortype = MONITOR_TYPE__STORAGE;
-int get_index = 0;
-int disk_found = FALSE;
-char *o_disk = NULL;
-char *thresholdunit = "";
-enum o_monitor_presentationtype_t o_type;
+static int list_disks = 1;
+static char *warn_str = "", *crit_str = "";
+static char *o_disk = NULL;
+static char *thresholdunit = "";
 
 struct disk_info {
 	int Index;
@@ -63,293 +54,50 @@ struct disk_info {
 	int AllocationUnits;
 	int Size;
 	int Used;
-	struct {
-		int Index;
-		char *Descr;
-		int La1;
-		int La5;
-		int La15;
-	} IO;
+	struct disk_info *next;
 };
 
-/**
- * Helper functions to let the user use the name of the disk rather than the
- * index and functions to print the available storages to check.
+static const char *storage_type_name(unsigned int type)
+{
+	/* static, because we want this in the .data segment */
+	static const char *storage_types[] = {
+		"Other",
+		"Ram",
+		"VirtualMemory",
+		"FixedDisk",
+		"RemovableDisk",
+		"FloppyDisk",
+		"CompactDisc",
+		"RamDisk",
+		"FlashMemory",
+		"NetworkDisk",
+	};
+
+	/* snmp is 1-indexed. C is 0-indexed. Account for it */
+	if (type > 0 && (type - 1) < (ARRAY_SIZE(storage_types)))
+		return storage_types[type - 1];
+
+	return "unknown";
+}
+
+/*
+ * this is a tiny bit magic, but so long as it matches up with
+ * storage_type_name, we really don't give a damn
  */
-static int get_disk_index_from_desc(netsnmp_variable_list *v, void *ptr, void *discard)
+static int oid2storage_type(oid *o, unsigned int len)
 {
-	switch (v->name[10]) {
-		case HRSTORAGE_SUBIDX_Descr:
-			if (0 == strcmp(o_disk, strndup((char*)v->val.string, v->val_len))) {
-				get_index = v->name[11];
-			}
-			break;
-		default:
-			mp_debug(3,"Unknown disk description.\n");
-			break;
-	}
-	return EXIT_SUCCESS;
-}
+	/* common parts for hrStorage{Other,Ram,...} */
+	oid base_oid[] = { 1, 3, 6, 1, 2, 1, 25, 2, 1 };
 
-static int get_io_index_from_desc(netsnmp_variable_list *v, void *ptr, void *discard)
-{
-	switch (v->name[11]) {
-		case DISKIO_SUBIDX_Device:
-			if (0 == strcmp(o_disk, strndup((char*)v->val.string, v->val_len))) {
-				get_index = v->name[12];
-			}
-			break;
-		default:
-			mp_debug(3,"Unknown io description.\n");
-			break;
-	}
-	return EXIT_SUCCESS;
-}
-
-static int disk_index_and_description_output(netsnmp_variable_list *v, void *ptr, void *discard)
-{
-	disk_found = TRUE;
-	switch (v->name[10]) {
-		case HRSTORAGE_SUBIDX_Descr:
-			printf("%s\n", strndup((char*)v->val.string, v->val_len));
-			break;
-		default:
-			mp_debug(3,"Unknown disk description.\n");
-			break;
-	}
-	return EXIT_SUCCESS;
-}
-
-static int io_index_and_description_output(netsnmp_variable_list *v, void *ptr, void *discard)
-{
-	disk_found = TRUE;
-	switch (v->name[11]) {
-		case DISKIO_SUBIDX_Device:
-			printf("%s\n", strndup((char*)v->val.string, v->val_len));
-			break;
-		default:
-			mp_debug(3,"Unknown io description.\n");
-			break;
-	}
-	return EXIT_SUCCESS;
-}
-
-/**
- * Helper functions to get all the relevant data over SNMP and store it
- * in a structure which stores the data for further use in the plugin.
- */
-static int disk_callback(netsnmp_variable_list *v, void *dc_ptr, void *discard)
-{
-	struct disk_info *dc = (struct disk_info *)dc_ptr;
-
-	switch (v->name[10]) {
-		case HRSTORAGE_SUBIDX_Index:
-			mp_debug(3,"Index: %ld\n",*v->val.integer);
-			if(v->name[11] == get_index)
-				dc->Index=*v->val.integer;
-			break;
-		case HRSTORAGE_SUBIDX_Type:
-			dc->Type=*v->val.integer;
-			mp_debug(3,"Type: %ld\n",*v->val.integer);
-			break;
-		case HRSTORAGE_SUBIDX_Descr:
-			mp_debug(3,"Description: %s\n",strndup((char*)v->val.string, v->val_len));
-			if(v->name[11] == get_index)
-				dc->Descr=strndup((char*)v->val.string, v->val_len);
-			break;
-		case HRSTORAGE_SUBIDX_AllocationUnits:
-			mp_debug(3,"AllocationUnits: %ld\n",*v->val.integer);
-			if(v->name[11] == get_index)
-				dc->AllocationUnits=*v->val.integer;
-			break;
-		case HRSTORAGE_SUBIDX_Size:
-			mp_debug(3,"Size: %ld\n",*v->val.integer);
-			if(v->name[11] == get_index)
-				dc->Size=*v->val.integer;
-			break;
-		case HRSTORAGE_SUBIDX_Used:
-			mp_debug(3,"Used: %ld\n",*v->val.integer);
-			if(v->name[11] == get_index)
-				dc->Used=*v->val.integer;
-			break;
-		default:
-			mp_debug(3,"Unknown disk_callback value.\n");
-			break;
-	}
-	return EXIT_SUCCESS;
-}
-
-static int io_callback(netsnmp_variable_list *v, void *dc_ptr, void *discard)
-{
-	struct disk_info *dc = (struct disk_info *)dc_ptr;
-
-	switch (v->name[11]) {
-		case DISKIO_SUBIDX_Index:
-			mp_debug(3,"Index: %ld\n",*v->val.integer);
-			if(v->name[12] == get_index)
-				dc->IO.Index=*v->val.integer;
-			break;
-		case DISKIO_SUBIDX_Device:
-			mp_debug(3,"Description: %s\n", strndup((char*)v->val.string, v->val_len));
-			if(v->name[12] == get_index)
-				dc->IO.Descr=strndup((char*)v->val.string, v->val_len);
-			break;
-		case DISKIO_SUBIDX_NRead:
-			mp_debug(3,"NRead: %ld\n", *v->val.integer);
-			break;
-		case DISKIO_SUBIDX_NWritten:
-			mp_debug(3,"NWritten: %ld\n", *v->val.integer);
-			break;
-		case DISKIO_SUBIDX_Reads:
-			mp_debug(3,"Reads: %ld\n", *v->val.integer);
-			break;
-		case DISKIO_SUBIDX_Writes:
-			mp_debug(3,"Writes: %ld\n", *v->val.integer);
-			break;
-		case DISKIO_SUBIDX_LA1:
-			mp_debug(3,"IO Load-1: %ld\n",*v->val.integer);
-			if(v->name[12] == get_index)
-				dc->IO.La1=*v->val.integer;
-			break;
-		case DISKIO_SUBIDX_LA5:
-			mp_debug(3,"IO Load-5: %ld\n",*v->val.integer);
-			if(v->name[12] == get_index)
-				dc->IO.La5=*v->val.integer;
-			break;
-		case DISKIO_SUBIDX_LA15:
-			mp_debug(3,"IO Load-15: %ld\n",*v->val.integer);
-			if(v->name[12] == get_index)
-				dc->IO.La15=*v->val.integer;
-			break;
-		case DISKIO_SUBIDX_ReadX:
-			mp_debug(3,"ReadX: %ld\n", *v->val.integer);
-			break;
-		case DISKIO_SUBIDX_WrittenX:
-			mp_debug(3,"WrittenX: %ld\n", *v->val.integer);
-			break;
-		default:
-			mp_debug(3,"Unknown io_callback value.\n");
-			break;
-	}
-	return EXIT_SUCCESS;
-}
-
-/**
- * Use helper functions to get all the relevant data over SNMP and store it
- * in a structure which stores the data for further use in the plugin. Since
- * we like the user to use the name of the disk rather than the index we
- * handle it here.
- */
-struct disk_info *check_disk_ret(mp_snmp_context *ss, int statemask)
-{
-	struct disk_info *cd = malloc(sizeof(struct disk_info));
-	cd->Index=-1;
-	cd->Type=-1;
-	cd->Descr="";
-	cd->AllocationUnits=-1;
-	cd->Size=-1;
-	cd->Used=-1;
-
-	/* Lists the description for all available disk storages */
-	if (get_index == 0 && o_disk == NULL) {
-		if (0 != mp_snmp_walk(ss, "1.3.6.1.2.1.25.2.3.1.3", NULL, disk_index_and_description_output, cd, NULL)) {
-			die(STATE_UNKNOWN, "UNKNOWN: SNMP error when querying %s: %s\n",
-				mp_snmp_get_peername(ctx), mp_snmp_get_errstr(ctx));
-		}
-
-		if (!disk_found) {
-			die(STATE_UNKNOWN, "UNKNOWN: Could not fetch the values at %s. "
-			"Please check your config file for SNMP and make sure you have access\n", HRSTORAGE_TABLE);
-		}
-		die(STATE_UNKNOWN, "UNKNOWN: Found these disks to choose from. Please select one with option -i\n");
+	if (len < ARRAY_SIZE(base_oid)) {
+		return -1;
 	}
 
-	/**
-	 *  get the index from description
-	 */
-	if (0 != mp_snmp_walk(ss, "1.3.6.1.2.1.25.2.3.1.3", NULL, get_disk_index_from_desc, cd, NULL)) {
-		die(STATE_UNKNOWN, "UNKNOWN: SNMP error when querying %s: %s\n",
-			mp_snmp_get_peername(ctx), mp_snmp_get_errstr(ctx));
+	if (memcmp(o, base_oid, sizeof(base_oid))) {
+		return -1;
 	}
 
-	/**
-	 * get and store the relevant data for the disk
-	 */
-	mp_debug(3,"\nFetched data over NET-SNMP:\n");
-	if (0 != mp_snmp_walk(ss, HRSTORAGE_TABLE, NULL, disk_callback, cd, NULL)) {
-		die(STATE_UNKNOWN, "UNKNOWN: SNMP error when querying %s: %s\n",
-			mp_snmp_get_peername(ctx), mp_snmp_get_errstr(ctx));
-	}
-	mp_debug(3,"\nStored values:\n");
-	mp_debug(3,"Index: %d, Description: %s, AllocationUnits %d, Size %d, Used %d\n",
-	cd->Index, cd->Descr, cd->AllocationUnits, cd->Size, cd->Used);
-
-	if (0==strcmp(cd->Descr,"")) {
-		die(STATE_UNKNOWN, _("Invalid input string for -i "
-					"(Use -T storage_list for a list of valid strings).\n"));
-	}
-	if (cd->Index == -1 || cd->Type == -1 || cd->AllocationUnits == -1 ||
-		cd->Size == -1 || cd->Used == -1) {
-		die(STATE_UNKNOWN, "UNKNOWN: Could not fetch the values at %s. "
-			"Please check your config file for SNMP and make sure you have access\n", HRSTORAGE_TABLE);
-	}
-
-	return cd;
-}
-struct disk_info *check_disk_io_ret(mp_snmp_context *ss, int statemask)
-{
-	struct disk_info *cdi = malloc(sizeof(struct disk_info));
-	cdi->IO.Index=-1;
-	cdi->IO.Descr="";
-	cdi->IO.La1=-1;
-	cdi->IO.La5=-1;
-	cdi->IO.La15=-1;
-
-	/* Lists the index and description for all available disk IO */
-	if (get_index == 0 && o_disk == NULL) {
-		if (0 != mp_snmp_walk(ss,".1.3.6.1.4.1.2021.13.15.1.1.2" , NULL, io_index_and_description_output, cdi, NULL)) {
-			die(STATE_UNKNOWN, "UNKNOWN: SNMP error when querying %s: %s\n",
-				mp_snmp_get_peername(ctx), mp_snmp_get_errstr(ctx));
-		}
-
-		if (!disk_found) {
-			die(STATE_UNKNOWN, "UNKNOWN: Could not fetch the values at %s. "
-			"Please check your config file for SNMP and make sure you have access\n", DISKIO_TABLE);
-		}
-		die(STATE_UNKNOWN, "UNKNOWN: Found these disks to choose from. Please select one with option -i\n");
-	}
-
-	/**
-	 *  get the index from description
-	 */
-	if (0 != mp_snmp_walk(ss,".1.3.6.1.4.1.2021.13.15.1.1.2" , NULL, get_io_index_from_desc, cdi, NULL)) {
-		die(STATE_UNKNOWN, "UNKNOWN: SNMP error when querying %s: %s\n",
-			mp_snmp_get_peername(ctx), mp_snmp_get_errstr(ctx));
-	}
-
-	/**
-	 * get and store the relevant data for the disk io
-	 */
-	mp_debug(3,"\nFetched data over NET-SNMP:\n");
-	if (0 != mp_snmp_walk(ss, DISKIO_TABLE, NULL, io_callback, cdi, NULL)) {
-		die(STATE_UNKNOWN, "UNKNOWN: SNMP error when querying %s: %s\n",
-			mp_snmp_get_peername(ctx), mp_snmp_get_errstr(ctx));
-	}
-	mp_debug(3,"\nStored values:\n");
-	mp_debug(3,"Index: %d, Description: %s, La1 %d, La5 %d, La15 %d\n",
-	cdi->IO.Index, cdi->IO.Descr, cdi->IO.La1, cdi->IO.La5, cdi->IO.La15);
-
-	if (0==strcmp(cdi->IO.Descr,"")) {
-		die(STATE_UNKNOWN, _("Invalid input string for -i "
-					"(Use -T io_list for a list of valid strings)\n"));
-	}
-	if (cdi->IO.Index == -1 || cdi->IO.La1 == -1 || cdi->IO.La5 == -1 ||
-		cdi->IO.La15 == -1) {
-		die(STATE_UNKNOWN, "UNKNOWN: Could not fetch the values at %s. "
-			"Please check your config file for SNMP and make sure you have access\n", DISKIO_TABLE);
-	}
-
-	return cdi;
+	return o[ARRAY_SIZE(base_oid)];
 }
 
 void print_usage(void)
@@ -363,7 +111,7 @@ void print_usage(void)
 	printf ("[-a authproto] [-A authpasswd] [-x privproto] [-X privpasswd])\n");
 }
 
-void print_help(void)
+static void print_help(void)
 {
 	print_revision(progname, NP_VERSION);
 	printf ("%s\n", _("Check status of remote machines and obtain system "
@@ -375,15 +123,6 @@ void print_help(void)
 	printf (UT_HELP_VRSN);
 	printf (UT_VERBOSE);
 	printf (UT_PLUG_TIMEOUT, DEFAULT_TIME_OUT);
-	printf (" %s\n", "-T, --type=STRING");
-	printf ("    %s\n", _("storage_list - List available storages to check"));
-	printf ("    %s\n", _("storage_used - Storage used (default)"));
-	printf ("    %s\n", _("io_list - List available disks to check I/O"));
-	printf ("    %s\n", _("io_1 - I/O load average 1 min"));
-	printf ("    %s\n", _("io_5 - I/O load average 5 min"));
-	printf ("    %s\n", _("io_15 - I/O load average 15 min"));
-	printf (" %s\n", "-i, --indexname=STRING");
-	printf ("    %s\n", _("STRING - Name of disk to check"));
 	printf (" %s\n", "-m, --uom");
 	printf ("    %s\n", _("Unit of measurement for warning/critical range "
 		"(default: %)"));
@@ -394,19 +133,15 @@ void print_help(void)
 }
 
 /* process command-line arguments */
-int process_arguments(int argc, char **argv)
+static int process_arguments(mp_snmp_context *ctx, int argc, char **argv)
 {
 	int c, option;
 	int i, x;
 	char *optary;
-	ctx = mp_snmp_create_context();
-	if (!ctx)
-		die(STATE_UNKNOWN, _("Failed to create snmp context\n"));
 
 	static struct option longopts[] = {
 		STD_LONG_OPTS,
 		{"diskname", required_argument, 0, 'i'},
-		{"type", required_argument, 0, 'T'},
 		{"uom", required_argument, 0, 'm'},
 		MP_SNMP_LONGOPTS,
 		{NULL, 0, 0, 0},
@@ -440,6 +175,9 @@ int process_arguments(int argc, char **argv)
 			continue;
 
 		switch (c) {
+			case 'l':
+				list_disks = 1;
+				break;
 			case 'w':
 				warn_str = optarg;
 				break;
@@ -458,26 +196,6 @@ int process_arguments(int argc, char **argv)
 				break;
 			case 'i':
 				o_disk = optarg;
-				break;
-			case 'T':
-				if (0==strcmp(optarg, "storage_list")) {
-					o_monitortype = MONITOR_TYPE__STORAGE;
-				} else if (0==strcmp(optarg, "storage_used")) {
-					o_monitortype = MONITOR_TYPE__STORAGE;
-				} else if (0==strcmp(optarg, "io_list")) {
-					o_monitortype = MONITOR_TYPE__IO;
-				} else if (0==strcmp(optarg, "io_1")) {
-					o_monitortype = MONITOR_TYPE__IO;
-					o_type = MONITOR_PRESTYPE__IO_1;
-				} else if (0==strcmp(optarg, "io_5")) {
-					o_monitortype = MONITOR_TYPE__IO;
-					o_type = MONITOR_PRESTYPE__IO_5;
-				} else if (0==strcmp(optarg, "io_15")) {
-					o_monitortype = MONITOR_TYPE__IO;
-					o_type = MONITOR_PRESTYPE__IO_15;
-				} else {
-					die(STATE_UNKNOWN, _("Wrong parameter for -T.\n"));
-				}
 				break;
 			case 'm':
 				/**
@@ -533,7 +251,7 @@ int process_arguments(int argc, char **argv)
  * Calculate prefixedbytes to bytes and update thresholds to bytes
  * Returns 0 if OK
  */
-int update_thr(thresholds **thresh, double total_size)
+static int update_thr(thresholds **thresh, double total_size)
 {
 	char *uom_str;
 	const char *prefix_str = "bkmgtpezy";
@@ -565,19 +283,103 @@ int update_thr(thresholds **thresh, double total_size)
 	return 0;
 }
 
+static int disk_compare(const void *a_, const void *b_)
+{
+	const struct disk_info *a = (struct disk_info *)a_;
+	const struct disk_info *b = (struct disk_info *)b_;
+
+	return a->Index - b->Index;
+}
+
+static int store_hrStorageTable(netsnmp_variable_list *v, void *the_tree, void *discard)
+{
+	struct rbtree *t = (struct rbtree *)the_tree;
+	struct disk_info *di, locator;
+
+	if (v->name[10] == HRSTORAGE_SUBIDX_Index) {
+		/* new disk, so create it and store it */
+		di = calloc(1, sizeof(*di));
+		if (!di) {
+			die(STATE_UNKNOWN, _("Failed to allocate memory for disk info data\n"));
+		}
+		di->Index = *v->val.integer;
+		rbtree_insert(t, di);
+		return 0;
+	}
+
+	locator.Index = v->name[11];
+
+	di = rbtree_find(t, (struct disk_info *)&locator);
+	switch (v->name[10]) {
+	 case HRSTORAGE_SUBIDX_Type:
+		di->Type = oid2storage_type(v->val.objid, v->val_len);
+		break;
+	 case HRSTORAGE_SUBIDX_Descr:
+		di->Descr = strndup((char *)v->val.string, v->val_len);
+		break;
+	 case HRSTORAGE_SUBIDX_AllocationUnits:
+		di->AllocationUnits = *v->val.integer;
+		break;
+	 case HRSTORAGE_SUBIDX_Size:
+		di->Size = *v->val.integer;
+		break;
+	 case HRSTORAGE_SUBIDX_Used:
+		di->Used = *v->val.integer;
+		break;
+	}
+
+	return 0;
+}
+
+static int get_hrStorageTable(mp_snmp_context *ctx, struct rbtree *all_disks)
+{
+	if (mp_snmp_walk(ctx, HRSTORAGE_TABLE, NULL, store_hrStorageTable, all_disks, NULL))
+	{
+		die(STATE_UNKNOWN, _("SNMP error when querying %s: %s\n"),
+		    mp_snmp_get_peername(ctx), mp_snmp_get_errstr(ctx));
+	}
+
+	return 0;
+}
+
+static int print_disk_entry(void *di_ptr, void *discard)
+{
+	struct disk_info *di = (struct disk_info *)di_ptr;
+	unsigned long long size, used;
+	double pct_used;
+
+	/* maintain precision */
+	size = (unsigned long long)di->Size * (unsigned long long)di->AllocationUnits;
+	used = (unsigned long long)di->Used * (unsigned long long)di->AllocationUnits;
+	pct_used = ((double)used / (double)size) * 100.0;
+	printf("%-16s: %-14s %dK-blocks   %6.2f%% used of %s\n",
+	       di->Descr, storage_type_name(di->Type),
+	       di->AllocationUnits >> 10,
+	       pct_used, humanize_bytes(size));
+	return 0;
+}
+
+#ifndef MP_TEST_PROGRAM
 int main(int argc, char **argv)
 {
-	int result = STATE_UNKNOWN;
 	static thresholds *thresh;
-	struct disk_info *ptr = NULL;
-	char *uom = "%"; /* used with perfdata */
-	double bytes, total_size, percent_used, bytes_free;
+	struct rbtree *all_disks = NULL;
+	unsigned int num_left;
+	static mp_snmp_context *ctx;
+
+	all_disks = rbtree_create(disk_compare);
+	if (!all_disks) {
+		die(STATE_UNKNOWN, _("Failed to allocate memory for tracking disk storage\n"));
+	}
 
 	mp_snmp_init(program_name, 0);
+	ctx = mp_snmp_create_context();
+	if (!ctx)
+		die(STATE_UNKNOWN, _("Failed to create snmp context\n"));
 
 	/* Parse extra opts if any */
 	argv=np_extra_opts (&argc, argv, progname);
-	if (process_arguments(argc, argv) == ERROR)
+	if (process_arguments(ctx, argc, argv) == ERROR)
 		usage4 (_("Could not parse arguments"));
 
 	/**
@@ -586,84 +388,36 @@ int main(int argc, char **argv)
 	 */
 	mp_snmp_finalize_auth(ctx);
 	if (mp_verbosity >= 1) {
-		mp_snmp_debug_print_ctx(stdout,ctx);
+		mp_snmp_debug_print_ctx(stdout, ctx);
 	};
+
+	get_hrStorageTable(ctx, all_disks);
+	mp_snmp_destroy_context(ctx);
+	ctx = NULL;
+	num_left = rbtree_num_nodes(all_disks);
+
+	mp_debug(3, "Found %d storage units\n", num_left);
+	if (!num_left) {
+		die(STATE_UNKNOWN, _("Failed to fetch data. Do we have permission to read hrStorageTable?\n"));
+	}
 
 	/**
 	 *  Set standard monitoring-plugins thresholds
 	 */
 	set_thresholds(&thresh, warn_str, crit_str);
 
-	/* get, calculate and set result status */
-	switch (o_monitortype) {
-		case MONITOR_TYPE__STORAGE:
-			ptr = check_disk_ret(ctx, ~0);	/* get net-snmp disk data */
-			mp_snmp_deinit(program_name);	/* deinit */
+	if (1 || list_disks) /* XXX: Remove "1 ||" when finished */
+		rbtree_traverse(all_disks, print_disk_entry, NULL, rbinorder);
 
-			percent_used = (double)ptr->Used / ptr->Size*100;
-			bytes = (double)ptr->Used * ptr->AllocationUnits;
-			total_size = (double)ptr->Size * ptr->AllocationUnits;
-			bytes_free = total_size - bytes;
-
-			if (update_thr(&thresh, total_size) != 0) {
-				die(STATE_UNKNOWN,
-					_("Failed to convert ranges to bytes\n"));
-			}
-
-			result = get_status (bytes, thresh);
-			char *used_msg;
-			char *free_msg;
-			xasprintf (&used_msg, _("Used %s"), ptr->Descr);
-			xasprintf (&free_msg, _("Free %s"), ptr->Descr);
-			printf("%s: Used space on '%s': %.2lf%% (%s) of total %s |%s %s",
-				state_text(result),
-				ptr->Descr,
-				percent_used,
-				(char*)humanize_bytes(bytes),
-				(char*)humanize_bytes(total_size),
-				fperfdata (used_msg, bytes, "B",
-					thresh->warning?TRUE:FALSE, thresh->warning?thresh->warning->end:FALSE,
-					thresh->critical?TRUE:FALSE, thresh->critical?thresh->critical->end:FALSE,
-					TRUE, 0, TRUE, total_size),
-				fperfdata (free_msg, bytes_free, "B",
-					FALSE, FALSE,
-					FALSE, FALSE,
-					TRUE, 0, TRUE, total_size));
-
-			break;
-		case MONITOR_TYPE__IO:
-			ptr = check_disk_io_ret(ctx, ~0);	/* get net-snmp io data */
-			mp_snmp_deinit(program_name);		/* deinit */
-
-			if (o_type == MONITOR_PRESTYPE__IO_1) {
-				result = get_status(ptr->IO.La1, thresh);
-				printf("%s: %d%s IO Load-1 ", state_text(result), ptr->IO.La1, uom);
-				printf("|'%s'=%d%s;%s;%s", ptr->IO.Descr, ptr->IO.La1,
-						uom, warn_str, crit_str);
-			}
-			else if (o_type == MONITOR_PRESTYPE__IO_5) {
-				result = get_status(ptr->IO.La5, thresh);
-				printf("%s: %d%s IO Load-5 ", state_text(result), ptr->IO.La5, uom);
-				printf("|'%s'=%d%s;%s;%s", ptr->IO.Descr, ptr->IO.La5,
-						uom, warn_str, crit_str);
-			}
-			else if (o_type == MONITOR_PRESTYPE__IO_15) {
-				result = get_status(ptr->IO.La15, thresh);
-				printf("%s: %d%s IO Load-15 ", state_text(result), ptr->IO.La15, uom);
-				printf("|'%s'=%d%s;%s;%s", ptr->IO.Descr, ptr->IO.La15,
-						uom, warn_str, crit_str);
-			}
-			else
-				die(STATE_UNKNOWN, _("Could not handle -T option\n"));
-			break;
-		default:
-			die(STATE_UNKNOWN, _("UNKNOWN: Not a valid monitor type\n"));
-	}
-
-	printf("\n");
-
-	free(ctx);
-	free(ptr);
-
-	return result;
+	/*
+	 * TODO:
+	 * apply filters (all_disks -> interesting_disks)
+	 * match thresholds against filtered units
+	 *   (interesting -> critical, interesting -> warning)
+	 * construct output string based on non-ok filtered units
+	 * construct perfdata string based on "interesting_disks"
+	 */
+	printf("OK: All disks within thresholds.\n");
+	return 0;
 }
+#endif /* MP_TEST_PROGRAM */

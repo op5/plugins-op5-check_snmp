@@ -24,6 +24,8 @@ TAPCPPFLAGS = $(ALL_CFLAGS) $(CPPFLAGS) -I$(abs_srcdir)/tap
 src_check_snmp_disk_SOURCES=\
 	src/check_snmp_disk.c \
 	$(COMMON_SOURCES)
+src_check_snmp_disk_LDADD = $(naemon_LIBS)
+src_check_snmp_disk_CFLAGS = $(ALL_CFLAGS) $(naemon_CFLAGS)
 
 src_check_snmp_cpu_SOURCES=\
 	src/check_snmp_cpu.c \
@@ -46,11 +48,16 @@ src_check_snmp_procs_CFLAGS=\
 	$(naemon_CFLAGS) $(ALL_CFLAGS)
 
 check_PROGRAMS = \
+	src/test/check_snmp_disk \
 	src/test/check_snmp_cpu
 
 src_test_check_snmp_cpu_SOURCES = src/test/check_snmp_cpu.c $(TAPSOURCES)
 src_test_check_snmp_cpu_CPPFLAGS = $(TAPCPPFLAGS)
 src_test_check_snmp_cpu_LDADD = $(TAPLDADD)
+
+src_test_check_snmp_disk_SOURCES = src/test/check_snmp_disk.c $(TAPSOURCES)
+src_test_check_snmp_disk_CPPFLAGS = $(TAPCPPFLAGS) $(naemon_CFLAGS)
+src_test_check_snmp_disk_LDADD = $(TAPLDADD) $(naemon_LIBS)
 
 check: $(check_PROGRAMS)
 	@for i in $(check_PROGRAMS); do $$i; done
