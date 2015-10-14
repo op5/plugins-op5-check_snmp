@@ -1,3 +1,8 @@
+AM_CPPFLAGS = -DNP_STATE_DIR_PREFIX=\"$(localstatedir)\" -D_GNU_SOURCE=1
+AM_CPPFLAGS += @AM_CPPFLAGS@
+AM_CFLAGS = @AM_CFLAGS@
+ALL_CFLAGS = $(AM_CFLAGS) $(AM_CPPFLAGS)
+
 libexec_PROGRAMS=\
 	src/check_snmp_disk \
 	src/check_snmp_cpu \
@@ -5,7 +10,6 @@ libexec_PROGRAMS=\
 	src/check_snmp_memory \
 	src/check_snmp_procs
 
-AM_CPPFLAGS = -DNP_STATE_DIR_PREFIX=\"$(localstatedir)\" -D_GNU_SOURCE=1
 LIBS = $(SNMPLIBS)
 COMMON_SOURCES = \
 	src/utils_base.c src/utils_base.h \
@@ -15,7 +19,7 @@ COMMON_SOURCES = \
 	src/common.h
 
 TAPSOURCES = $(COMMON_SOURCES) tap/tap.c
-TAPCPPFLAGS = $(AM_CPPFLAGS) $(CPPFLAGS) -I$(abs_srcdir)/tap
+TAPCPPFLAGS = $(ALL_CFLAGS) $(CPPFLAGS) -I$(abs_srcdir)/tap
 
 src_check_snmp_disk_SOURCES=\
 	src/check_snmp_disk.c \
@@ -39,7 +43,7 @@ src_check_snmp_procs_SOURCES=\
 src_check_snmp_procs_LDADD=\
 	$(naemon_LIBS)
 src_check_snmp_procs_CFLAGS=\
-	$(naemon_CFLAGS)
+	$(naemon_CFLAGS) $(ALL_CFLAGS)
 
 check_PROGRAMS = \
 	src/test/check_snmp_cpu

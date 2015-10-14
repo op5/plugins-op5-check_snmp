@@ -60,10 +60,6 @@ int is_percentage (char *);
 
 int is_option (char *);
 
-#ifndef HAVE_GETTIMEOFDAY
-int gettimeofday(struct timeval *, struct timezone *);
-#endif
-
 double delta_time (struct timeval tv);
 long deltime (struct timeval tv);
 

@@ -383,7 +383,7 @@ int mp_translate_state (char *state_text) {
  * hopefully a unique key per service/plugin invocation. Use the extra-opts
  * parse of argv, so that uniqueness in parameters are reflected there.
  */
-char *_np_state_generate_key() {
+char *_np_state_generate_key(void) {
 	struct sha1_ctx ctx;
 	int i;
 	char **argv = this_monitoring_plugin->argv;
@@ -411,7 +411,7 @@ char *_np_state_generate_key() {
 	return p;
 }
 
-void _cleanup_state_data() {
+void _cleanup_state_data(void) {
 	if (this_monitoring_plugin->state->state_data!=NULL) {
 		np_free(this_monitoring_plugin->state->state_data->data);
 		np_free(this_monitoring_plugin->state->state_data);
@@ -423,7 +423,7 @@ void _cleanup_state_data() {
  *   envvar NAGIOS_PLUGIN_STATE_DIRECTORY
  *   statically compiled shared state directory
  */
-char* _np_state_calculate_location_prefix(){
+char* _np_state_calculate_location_prefix(void){
 	char *env_dir;
 
 	/* Do not allow passing MP_STATE_PATH in setuid plugins
@@ -501,7 +501,7 @@ void np_enable_state(char *keyname, int expected_data_version) {
  * If numerically lower, then return as no previous state. die with UNKNOWN
  * if exceptional error.
  */
-state_data *np_state_read() {
+state_data *np_state_read(void) {
 	state_data *this_state_data=NULL;
 	FILE *statefile;
 	int rc = FALSE;

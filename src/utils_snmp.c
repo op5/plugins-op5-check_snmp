@@ -295,7 +295,7 @@ int mp_snmp_handle_argument(mp_snmp_context *ctx, int option, const char *opt)
 
 	switch (option) {
 	case 'H':
-		ctx->session.peername = (u_char *)opt;
+		ctx->session.peername = (char *)opt;
 		break;
 	case 'p':
 		ctx->session.remote_port = (unsigned short)atoi(opt);
@@ -390,7 +390,7 @@ int mp_snmp_walk(mp_snmp_context *ctx, const char *base_oid, const char *end_oid
 	size_t root_len;
 	oid end[MAX_OID_LEN];
 	size_t end_len = 0;
-	int count, running, status = STAT_ERROR, exitval = 0;
+	int running, status = STAT_ERROR, exitval = 0;
 	int result;
 
 	if (!(s = snmp_open(&ctx->session))) {

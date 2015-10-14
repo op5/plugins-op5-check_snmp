@@ -37,11 +37,11 @@ enum o_monitortype_t {
 	MONITOR_TYPE__NUMBER_OF_PROCESSES_WITH_MEM_AND_CPU
 };
 
-enum o_monitortype_t o_monitortype = MONITOR_TYPE__NUMBER_OF_PROCESSES;
-int o_perfdata = 1; /* perfdata on per default */
-int counter[] = {0,0,0};
-int proc_found = FALSE;
-const char *name_filter = "";
+static enum o_monitortype_t o_monitortype = MONITOR_TYPE__NUMBER_OF_PROCESSES;
+static int o_perfdata = 1; /* perfdata on per default */
+static int counter[] = {0,0,0};
+static int proc_found = FALSE;
+static const char *name_filter = "";
 
 enum process_state {
 	PROC_STATE_RUNNING = 1,
@@ -96,8 +96,9 @@ static const char *pstate2str(enum process_state pstate)
  */
 static int pstate_callback(netsnmp_variable_list *v, void *psc_ptr, void *discard)
 {
-	proc_found = TRUE;
 	struct process_state_count *psc = (struct process_state_count *)psc_ptr;
+
+	proc_found = TRUE;
 
 	switch (*v->val.integer) {
 	case PROC_STATE_RUNNING:
@@ -156,7 +157,7 @@ static int proc_info_ret(void *p_, void *discard)
 
 	if (0 == strcmp(p->Name, name_filter))
 	{
-		counter[0] = counter[0]++;
+		counter[0]++;
 		counter[1] = counter[1] + p->Perf.CPU;
 		counter[2] = counter[2] + p->Perf.Mem;
 	}
@@ -235,13 +236,13 @@ static int parse_snmp_var(netsnmp_variable_list *v, void *discard1, void *discar
 		p->ID = *v->val.integer;
 		break;
 	case PROCESS_SUBIDX_RunName:
-		p->Name = strndup(v->val.string, v->val_len);
+		p->Name = strndup((char *)v->val.string, v->val_len);
 		break;
 	case PROCESS_SUBIDX_RunParameters:
-		p->Parameters = strndup(v->val.string, v->val_len);
+		p->Parameters = strndup((char *)v->val.string, v->val_len);
 		break;
 	case PROCESS_SUBIDX_RunPath:
-		p->Path = strndup(v->val.string, v->val_len);
+		p->Path = strndup((char *)v->val.string, v->val_len);
 		break;
 	case PROCESS_SUBIDX_RunStatus:
 		p->Status = *v->val.integer;
@@ -301,14 +302,11 @@ int main(int argc, char **argv)
 	char *warn_str = "", *crit_str = "";
 	char *state_str = NULL;
 	int state_filter;
-	const char *ereg_name_filter;
 	bitmap *bm = NULL;
 	int legacy_i, legacy_temp_result = STATE_UNKNOWN;
 	char *legacy_warn1 = "", *legacy_warn5 = "", *legacy_warn15 = "";
 	char *legacy_crit1 = "", *legacy_crit5 = "", *legacy_crit15 = "";
 	char *legacy_token = "";
-
-	argv=np_extra_opts (&argc, argv, progname);
 
 	static struct option longopts[] = {
 		STD_LONG_OPTS,
@@ -319,7 +317,9 @@ int main(int argc, char **argv)
 		MP_SNMP_LONGOPTS,
 		{NULL, 0, 0, 0},
 	};
-	
+
+	argv=np_extra_opts (&argc, argv, progname);
+
 	if (argc < 2)
 		usage4 (_("Could not parse arguments"));
 
@@ -387,9 +387,6 @@ int main(int argc, char **argv)
 				break;
 			case 'i':
 				name_filter = optarg;
-				break;
-			case CHAR_MAX + 1:
-				ereg_name_filter = optarg;
 				break;
 			case 'f':
 				o_perfdata = 0;

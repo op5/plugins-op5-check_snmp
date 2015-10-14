@@ -10,6 +10,7 @@ AC_PROG_CC
 AM_PROG_CC_C_O
 AC_PROG_RANLIB
 
+AM_CFLAGS=""
 AM_CPPFLAGS=""
 PKG_CHECK_MODULES([naemon], [naemon])
 
@@ -17,15 +18,18 @@ PKG_CHECK_MODULES([naemon], [naemon])
 AX_CHECK_COMPILE_FLAG([-Wall], AM_CFLAGS+=" -Wall")
 AX_CHECK_COMPILE_FLAG([-pipe], AM_CFLAGS+=" -pipe")
 AX_CHECK_COMPILE_FLAG([-ggdb3], AM_CFLAGS+=" -ggdb3")
-AX_CHECK_COMPILE_FLAG([-Werror], AM_CFLAGS+=" -Werror")
+#AX_CHECK_COMPILE_FLAG([-Werror], AM_CFLAGS+=" -Werror")
 AX_CHECK_COMPILE_FLAG([-Wextra], AM_CFLAGS+=" -Wextra")
 AX_CHECK_COMPILE_FLAG([-Wredundant-decls], AM_CFLAGS+=" -Wredundant-decls")
 AX_CHECK_COMPILE_FLAG([-Wtrigraphs], AM_CFLAGS+=" -Wtrigraphs")
 AX_CHECK_COMPILE_FLAG([-Wdeclaration-after-statement], AM_CFLAGS+=" -Wdeclaration-after-statement")
 AX_CHECK_COMPILE_FLAG([-Wshadow], AM_CFLAGS+=" -Wshadow")
 AX_CHECK_COMPILE_FLAG([-Wstrict-prototypes], AM_CFLAGS+=" -Wstrict-prototypes")
+AX_CHECK_COMPILE_FLAG([-Wno-unused-parameter], AM_CFLAGS+=" -Wno-unused-parameter")
 AX_CHECK_COMPILE_FLAG([-Wno-unused-result], AM_CFLAGS+=" -Wno-unused-result")
 
+AC_SUBST([AM_CPPFLAGS])
+AC_SUBST([AM_CFLAGS])
 
 # START SNMP STUFF
 AC_PATH_PROG(NETSNMPCONFIG,net-snmp-config)
@@ -45,11 +49,6 @@ fi
 CPPFLAGS=$ac_save_CPPFLAGS
 AC_SUBST(SNMPLIBS)
 # END SNMP STUFF
-
-AX_CHECK_COMPILE_FLAG([-Wall], AM_CPPFLAGS+=" -Wall")
-AX_CHECK_COMPILE_FLAG([-Werror], AM_CPPFLAGS+=" -Werror")
-
-AC_SUBST([AM_CPPFLAGS])
 
 AC_CONFIG_FILES([
 	Makefile

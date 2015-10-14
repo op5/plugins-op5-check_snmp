@@ -175,9 +175,6 @@ int process_arguments (int argc, char **argv)
 	int c, option;
 	int i, x;
 	char *optary;
-	ctx = mp_snmp_create_context();
-	if (!ctx)
-		die(STATE_UNKNOWN, _("Failed to create snmp context\n"));
 
 	static struct option longopts[] = {
 		STD_LONG_OPTS,
@@ -336,6 +333,9 @@ int main(int argc, char **argv)
 	const char *uom = "B";
 
 	mp_snmp_init(program_name, 0);
+	ctx = mp_snmp_create_context();
+	if (!ctx)
+		die(STATE_UNKNOWN, _("Failed to create snmp context\n"));
 
 	/* Parse extra opts if any */
 	argv=np_extra_opts (&argc, argv, progname);

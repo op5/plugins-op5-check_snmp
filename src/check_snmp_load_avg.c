@@ -16,8 +16,8 @@ const char *program_name = "check_snmp_load_avg"; /* for coreutils libs */
 #define LOAD_SUBIDX_LaLoad5 2
 #define LOAD_SUBIDX_LaLoad15 3
 
-mp_snmp_context *ctx;
-char *warn_str = "", *crit_str = "";
+static mp_snmp_context *ctx;
+static char *warn_str = "", *crit_str = "";
 
 struct cpu_info {
 	float Load1;
@@ -102,10 +102,6 @@ static int process_arguments (int argc, char **argv)
 	int c, option;
 	int i, x;
 	char *optary;
-
-	ctx = mp_snmp_create_context();
-	if (!ctx)
-		die(STATE_UNKNOWN, _("Failed to create snmp context\n"));
 
 	struct option longopts[] = {
 		STD_LONG_OPTS,
@@ -217,6 +213,10 @@ int main(int argc, char **argv)
 	size_t n_thresholds;
 
 	mp_snmp_init(program_name, 0);
+	ctx = mp_snmp_create_context();
+	if (!ctx)
+		die(STATE_UNKNOWN, _("Failed to create snmp context\n"));
+
 	np_init((char *)progname, argc, argv);
 
 	/* Parse extra opts if any */
