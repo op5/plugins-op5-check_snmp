@@ -26,6 +26,17 @@ const char *program_name = "check_snmp_disk"; /* for coreutils libs */
 #define HRSTORAGE_SUBIDX_Used 6
 #define HRSTORAGE_SUBIDX_AllocationFailures 7
 
+/*
+ * HRSTORAGE_SUBIDX_Index not included, because we'll never
+ * create a disk_info struct without getting it
+ */
+#define HRSTORAGE_ALL ( \
+	(1 << HRSTORAGE_SUBIDX_Type) | \
+	(1 << HRSTORAGE_SUBIDX_Descr) | \
+	(1 << HRSTORAGE_SUBIDX_AllocationUnits) | \
+	(1 << HRSTORAGE_SUBIDX_Size) | \
+	(1 << HRSTORAGE_SUBIDX_Used))
+
 /* Storage types, gleaned from HOST-RESOURCES-TYPES */
 enum {
 	STORAGE_TYPE_Other = 1,
@@ -49,14 +60,20 @@ enum {
 	(1 << STORAGE_TYPE_VirtualMemory)
 
 static int disk_mask;
-static int list_disks = 1;
+static int list_disks;
 static char *warn_str = "", *crit_str = "";
-static char *thresholdunit = "";
+static char thresholdunit = '%';
 static struct rbtree *filter_tree;
 static int discard_default_filters;
 static int include_filters, exclude_filters;
 static char filter_charmap_magic[255];
 #define num_filters (include_filters + exclude_filters)
+
+struct di_result {
+	char *uom;
+	thresholds *thresh;
+	struct rbtree *critical, *warning;
+};
 
 struct disk_info {
 	unsigned int Index;
@@ -65,6 +82,8 @@ struct disk_info {
 	unsigned int AllocationUnits;
 	unsigned int Size;
 	unsigned int Used;
+
+	unsigned int have_vars;
 
 	unsigned long long size_bytes;
 	unsigned long long used_bytes;
@@ -172,7 +191,7 @@ static int parse_disk_types(const char *orig_str)
 		} else if (!prefixcasecmp(str, "net")) {
 			mask |= (1 << STORAGE_TYPE_NetworkDisk);
 		} else {
-			printf("Unrecognized disktype: %s\n", str);
+			mp_debug(1, "Unrecognized disktype: %s\n", str);
 			error = 1;
 		}
 		if (comma) {
@@ -238,7 +257,7 @@ static struct disk_filter *parse_filter(char *what_str, int flags, const char *o
 
 	switch (f->what) {
 	 case FILTER_Type:
-		f->value = parse_disk_types(orig_str);
+		/* disk type is handled separately */
 		break;
 	 case FILTER_Size:
 	 case FILTER_AllocationUnits:
@@ -292,10 +311,10 @@ static int match_filter_value(int flags, double a, double b)
 		match = a == b;
 		break;
 	 case FILTER_GT: case FILTER_GT_PLUS:
-		match = a >= b;
+		match = a > b;
 		break;
 	 case FILTER_LT: case FILTER_LT_MINUS:
-		match = a <= b;
+		match = a < b;
 		break;
 	 default:
 		return 0;
@@ -359,10 +378,18 @@ static int filter_disks(void *di_ptr, void *to_tree)
 	struct disk_info *di = (struct disk_info *)di_ptr;
 	struct rbtree *target_tree = (struct rbtree *)to_tree;
 
-	mp_debug(3, "Checking disk '%s' against filters\n", di->Descr);
+	mp_debug(3, "Checking disk '%s' against filters\n", di->Descr ? di->Descr : "(noname; will be skipped)");
+	if (!di->Descr) {
+		die(STATE_UNKNOWN, _("Failed to read description for storage unit with index %d. Please check your SNMP configuration\n"), di->Index);
+	}
 	if (disk_mask && ((1 << di->Type) & disk_mask) == 0) {
 		mp_debug(3, "   Wrong type\n");
 		di->filter_out++;
+	}
+	if (!di->filter_out && (di->have_vars & HRSTORAGE_ALL) != HRSTORAGE_ALL) {
+		mp_debug(3, "have_vars: %u; HRSTORAGE_ALL: %u; delta: %u\n", di->have_vars, HRSTORAGE_ALL, di->have_vars ^ HRSTORAGE_ALL);
+		die(STATE_UNKNOWN, _("Failed to read data for storage unit %d (%s). Please check your SNMP configuration\n"),
+		    di->Index, di->Descr ? di->Descr : "NULL");
 	}
 
 	if (!di->filter_out && filter_tree && rbtree_num_nodes(filter_tree)) {
@@ -456,9 +483,9 @@ static void print_help(void)
 	printf ("    %s\n", _("Discard default filters"));
 	printf (" %s\n", "-T, --types");
 	printf ("    %s\n", _("Comma-separated list of storage types"));
-	printf (" %s\n", "-r, --include-regex <regex>");
+	printf (" %s\n", "-e, --include-regex <regex>");
 	printf ("    %s\n", _("Regular expression to match for inclusion"));
-	printf (" %s\n", "-R, --exclude-regex <regex>");
+	printf (" %s\n", "-E, --exclude-regex <regex>");
 	printf ("    %s\n", _("Regular expression to match for exclusion"));
 	printf (" %s\n", "-i, --include-name <string>");
 	printf ("    %s\n", _("Name of storage unit to include"));
@@ -491,7 +518,7 @@ static void print_help(void)
 /* process command-line arguments */
 static int process_arguments(mp_snmp_context *ctx, int argc, char **argv)
 {
-	int c, option;
+	int c, option, parsed = 0;
 	int i, x;
 	char *optary;
 	static struct option longopts[] = {
@@ -502,8 +529,8 @@ static int process_arguments(mp_snmp_context *ctx, int argc, char **argv)
 		{ "list", no_argument, 0, 'l' },
 		{ "include-name", required_argument, 0, 'i' },
 		{ "exclude-name", required_argument, 0, 'I' },
-		{ "include-regex", required_argument, 0, 'r' },
-		{ "exclude-regex", required_argument, 0, 'R' },
+		{ "include-regex", required_argument, 0, 'e' },
+		{ "exclude-regex", required_argument, 0, 'E' },
 		{ "exclude-size", required_argument, 0, 's' },
 		{ "exclude-blocks", required_argument, 0, 'b' },
 		{ "exclude-blocksize", required_argument, 0, 'B' },
@@ -541,6 +568,7 @@ static int process_arguments(mp_snmp_context *ctx, int argc, char **argv)
 	mp_debug(3,"optary: %s\n", optary);
 
 	while (1) {
+		parsed++;
 		c = getopt_long(argc, argv, optary, longopts, &option);
 		if (c < 0 || c == EOF)
 			break;
@@ -557,10 +585,10 @@ static int process_arguments(mp_snmp_context *ctx, int argc, char **argv)
 			case 'I':
 				add_filter("name", FILTER_EQ | FILTER_EXCLUDE, optarg);
 				break;
-			case 'r':
+			case 'e':
 				add_filter("name", FILTER_REGEX, optarg);
 				break;
-			case 'R':
+			case 'E':
 				add_filter("name", FILTER_REGEX | FILTER_EXCLUDE, optarg);
 				break;
 			case 's':
@@ -593,6 +621,9 @@ static int process_arguments(mp_snmp_context *ctx, int argc, char **argv)
 				break;
 			case 'T':
 				disk_mask = parse_disk_types(optarg);
+				if (!disk_mask) {
+					die(STATE_UNKNOWN, _("Invalid type filter: %s\n"), optarg);
+				}
 				break;
 			case 'l':
 				list_disks = 1;
@@ -620,32 +651,19 @@ static int process_arguments(mp_snmp_context *ctx, int argc, char **argv)
 				for (i = 0; optarg[i]; i++) {
 					optarg[i] = tolower(optarg[i]);
 				}
-				if (0 == strcmp(optarg, "b")) {
-					thresholdunit = "b";
-				} else if (0 == strcmp(optarg, "kib")) {
-					thresholdunit = "k";
-				} else if (0 == strcmp(optarg, "mib")) {
-					thresholdunit = "m";
-				} else if (0 == strcmp(optarg, "gib")) {
-					thresholdunit = "g";
-				} else if (0 == strcmp(optarg, "tib")) {
-					thresholdunit = "t";
-				} else if (0 == strcmp(optarg, "pib")) {
-					thresholdunit = "p";
-				} else if (0 == strcmp(optarg, "eib")) {
-					thresholdunit = "e";
-				} else if (0 == strcmp(optarg, "zib")) {
-					thresholdunit = "z";
-				} else if (0 == strcmp(optarg, "yib")) {
-					thresholdunit = "y";
-				} else if (0 == strcmp(optarg, "%")) {
-					thresholdunit = "%";
+				if (!strcmp(optarg, "b") || !strcmp(optarg, "kib") ||
+				    !strcmp(optarg, "mib") || !strcmp(optarg, "gib") ||
+				    !strcmp(optarg, "tib") || !strcmp(optarg, "pib") ||
+				    !strcmp(optarg, "eib") || !strcmp(optarg, "zib") ||
+				    !strcmp(optarg, "yib") || !strcmp(optarg, "%"))
+				{
+					thresholdunit = *optarg;
 				} else {
 					die(STATE_UNKNOWN, _("Wrong parameter for -m\n"));
 				}
 				break;
 			default:
-				die(STATE_UNKNOWN, _("Unknown argument\n"));
+				exit(STATE_UNKNOWN);
 				break;
 		}
 	}
@@ -667,36 +685,23 @@ static int process_arguments(mp_snmp_context *ctx, int argc, char **argv)
  * Calculate prefixedbytes to bytes and update thresholds to bytes
  * Returns 0 if OK
  */
-static int update_thr(thresholds **thresh, double total_size)
+static void update_threshold_range(range *r)
 {
-	char *uom_str;
-	const char *prefix_str = "bkmgtpezy";
+	unsigned int i, mul = 1;
+	const char ssi_str[] = "bkmgtpezy";
 
-	if ((uom_str = strpbrk(thresholdunit, prefix_str)) != NULL) {
-		(*thresh)->warning->start =
-			prefixedbytes_to_bytes((*thresh)->warning->start, uom_str);
-		(*thresh)->warning->end =
-			prefixedbytes_to_bytes((*thresh)->warning->end, uom_str);
+	if (thresholdunit == '%')
+		return;
 
-	} else {
-		(*thresh)->warning->start =
-			((*thresh)->warning->start / 100) * total_size;
-		(*thresh)->warning->end =
-			((*thresh)->warning->end / 100) * total_size;
+	for (i = 0; i < sizeof(ssi_str); i++) {
+		if (ssi_str[i] == thresholdunit)
+			break;
+		mul *= 1024;
 	}
-
-	if ((uom_str = strpbrk(thresholdunit, prefix_str)) != NULL) {
-		(*thresh)->critical->start =
-			prefixedbytes_to_bytes((*thresh)->critical->start, uom_str);
-		(*thresh)->critical->end =
-			prefixedbytes_to_bytes((*thresh)->critical->end, uom_str);
-	} else {
-		(*thresh)->critical->start =
-			((*thresh)->critical->start / 100) * total_size;
-		(*thresh)->critical->end =
-			((*thresh)->critical->end / 100) * total_size;
-	}
-	return 0;
+	if (!r->start_infinity)
+		r->start = r->start * mul;
+	if (!r->end_infinity)
+		r->end = r->end * mul;
 }
 
 static int disk_compare(const void *a_, const void *b_)
@@ -726,6 +731,12 @@ static int store_hrStorageTable(netsnmp_variable_list *v, void *the_tree, void *
 	locator.Index = v->name[11];
 
 	di = rbtree_find(t, (struct disk_info *)&locator);
+	if (!di) {
+		die(STATE_UNKNOWN, _("Unable to locate disk with index %d. Internal error or SNMP configuration error\n"), locator.Index);
+	}
+
+	di->have_vars |= (1 << v->name[10]);
+
 	switch (v->name[10]) {
 	 case HRSTORAGE_SUBIDX_Type:
 		di->Type = oid2storage_type(v->val.objid, v->val_len);
@@ -741,6 +752,8 @@ static int store_hrStorageTable(netsnmp_variable_list *v, void *the_tree, void *
 		break;
 	 case HRSTORAGE_SUBIDX_Used:
 		di->Used = *v->val.integer;
+		break;
+	 case HRSTORAGE_SUBIDX_AllocationFailures:
 		break;
 	}
 
@@ -804,20 +817,102 @@ static void destroy_disk_filter(void *filter_ptr)
 	free(df);
 }
 
+static int match_used_bytes(void *di_ptr, void *result_ptr)
+{
+	struct disk_info *di = (struct disk_info *)di_ptr;
+	struct di_result *r = (struct di_result *)result_ptr;
+	double value;
+
+	value = '%' == thresholdunit ? di->pct_used : di->used_bytes;
+
+	if (check_range(value, r->thresh->critical)) {
+		rbtree_insert(r->critical, di);
+	} else if (check_range(value, r->thresh->warning)) {
+		rbtree_insert(r->warning, di);
+	}
+
+	return 0;
+}
+
+static int di2output(void *di_ptr, void *num_left_ptr)
+{
+	struct disk_info *di = (struct disk_info *)di_ptr;
+	int *num_left = (int *)num_left_ptr;
+
+	(*num_left)--;
+	printf("%s: %.2f%% used of %s%s", di->Descr, di->pct_used,
+	       humanize_bytes(di->size_bytes), *num_left ? ", " : "");
+	return 0;
+}
+
+/* helper to quickly print perfdata ranges */
+static const char *threshold_range2str(struct disk_info *di, range *r)
+{
+	static char str_ary[2][128]; /* 2 strings of 128 bytes is enough */
+	static int slot = 0;
+	double start, end;
+	char *str;
+
+	str = str_ary[slot];
+	slot ^= 1; /* toggle between the two buffers */
+
+	if ('%' == thresholdunit) {
+		start = (double)di->size_bytes * r->start / 100.0;
+		end = (double)di->size_bytes * r->end / 100.0;
+	} else {
+		start = r->start;
+		end = r->end;
+	}
+	if (r->start_infinity) {
+		if (r->end_infinity) {
+			return "~:";
+		}
+		snprintf(str, 128, "~:%.0f", end);
+	} else if (r->end_infinity) {
+		snprintf(str, 128, "%.0f:", start);
+	} else {
+		snprintf(str, 128, "%.0f:%.0f", start, end);
+	}
+
+	return str;
+}
+
+static int di2perfdata(void *di_ptr, void *thresh_ptr)
+{
+	struct disk_info *di = (struct disk_info *)di_ptr;
+	thresholds *thresh = (thresholds *)thresh_ptr;
+
+	printf("'%s_used'=%lluB;%s;%s;0;%llu ",
+	       di->Descr, di->used_bytes,
+	       threshold_range2str(di, thresh->warning), threshold_range2str(di, thresh->critical),
+	       di->size_bytes);
+
+	return 0;
+}
+
 #ifndef MP_TEST_PROGRAM
 int main(int argc, char **argv)
 {
-	static thresholds *thresh;
-	struct rbtree *all_disks, *interesting, *warning, *critical;
+	struct rbtree *all_disks, *interesting;
 	unsigned int num_left;
 	static mp_snmp_context *ctx;
+	struct di_result result;
+	char *env_verbose;
+	int state = STATE_OK;
+
+	/* useful for debugging option parsing */
+	if ((env_verbose = getenv("MP_VERBOSITY"))) {
+		mp_verbosity = *env_verbose ? atoi(env_verbose) : 500;
+	}
 
 	all_disks = rbtree_create(disk_compare);
 	interesting = rbtree_create(disk_compare);
-	warning = rbtree_create(disk_compare);
-	critical = rbtree_create(disk_compare);
+	result.warning = rbtree_create(disk_compare);
+	result.critical = rbtree_create(disk_compare);
 	filter_tree = rbtree_create(filter_compare);
-	if (!all_disks || !interesting || !warning || !critical || !filter_tree) {
+	if (!all_disks || !interesting || !result.warning || \
+	    !result.critical || !filter_tree)
+	{
 		die(STATE_UNKNOWN, _("Failed to allocate memory for tracking disk storage\n"));
 	}
 
@@ -839,6 +934,14 @@ int main(int argc, char **argv)
 	if (mp_verbosity >= 1) {
 		mp_snmp_debug_print_ctx(stdout, ctx);
 	};
+
+	/**
+	 * Set standard monitoring-plugins thresholds
+	 * and fix them according to the ssi elevation
+	 */
+	set_thresholds(&result.thresh, warn_str, crit_str);
+	update_threshold_range(result.thresh->warning);
+	update_threshold_range(result.thresh->critical);
 
 	get_hrStorageTable(ctx, all_disks);
 	mp_snmp_destroy_context(ctx);
@@ -862,37 +965,62 @@ int main(int argc, char **argv)
 	}
 	rbtree_traverse(all_disks, filter_disks, interesting, rbinorder);
 
-	/**
-	 *  Set standard monitoring-plugins thresholds
-	 */
-	set_thresholds(&thresh, warn_str, crit_str);
+	if (0 == rbtree_num_nodes(interesting)) {
+		die(STATE_UNKNOWN, _("No storage units match your filters.\n"));
+	}
 
 	if (list_disks) {
 		rbtree_traverse(interesting, print_disk_entry, NULL, rbinorder);
 	} else {
+		int counter, num_warning, num_critical, num_interesting;
 
-		/*
-		 * TODO:
-		 * match thresholds against filtered units
-		 *   (interesting -> critical, interesting -> warning)
-		 * construct output string based on non-ok filtered units
-		 * construct perfdata string based on "interesting_disks"
-		 */
-		printf("OK: All disks within thresholds.\n");
+		rbtree_traverse(interesting, match_used_bytes, &result, rbinorder);
+		num_interesting = rbtree_num_nodes(interesting);
+		num_warning = rbtree_num_nodes(result.warning);
+		num_critical = rbtree_num_nodes(result.critical);
+		if (num_critical)
+			state = STATE_CRITICAL;
+		else if (num_warning)
+			state = STATE_WARNING;
+
+		/* now we construct the output */
+		printf("%s: ", state_text(state));
+		if (num_critical) {
+			counter = num_critical;
+			printf("%d/%d critical (", num_critical, num_interesting);
+			rbtree_traverse(result.critical, di2output, &counter, rbinorder);
+			printf(")");
+		}
+		if (num_warning) {
+			counter = num_warning;
+			printf("%d/%d warning (", num_warning, num_interesting);
+			rbtree_traverse(result.warning, di2output, &counter, rbinorder);
+			printf(")");
+		}
+		if (!num_warning && !num_critical) {
+			counter = num_interesting;
+			printf("%d/%d OK (", num_interesting, num_interesting);
+			rbtree_traverse(interesting, di2output, &counter, rbinorder);
+			printf(")");
+		}
+
+		printf("\n|");
+		rbtree_traverse(interesting, di2perfdata, result.thresh, rbinorder);
+		putchar('\n');
 	}
 
 	/* Now make valgrind shut up. Helpful during development */
 	rbtree_destroy(filter_tree, destroy_disk_filter);
 	rbtree_destroy(all_disks, destroy_disk_info);
 	rbtree_destroy(interesting, NULL);
-	rbtree_destroy(critical, NULL);
-	rbtree_destroy(warning, NULL);
-	if (thresh) {
-		free(thresh->warning);
-		free(thresh->critical);
-		free(thresh);
+	rbtree_destroy(result.critical, NULL);
+	rbtree_destroy(result.warning, NULL);
+	if (result.thresh) {
+		free(result.thresh->warning);
+		free(result.thresh->critical);
+		free(result.thresh);
 	}
 
-	return 0;
+	return state;
 }
 #endif /* MP_TEST_PROGRAM */
