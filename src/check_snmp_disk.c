@@ -65,6 +65,7 @@ static char *warn_str = "", *crit_str = "";
 static char thresholdunit = '%';
 static struct rbtree *filter_tree;
 static int discard_default_filters;
+static int sum_all_disks;
 static int include_filters, exclude_filters;
 static char filter_charmap_magic[255];
 #define num_filters (include_filters + exclude_filters)
@@ -576,6 +577,9 @@ static int process_arguments(mp_snmp_context *ctx, int argc, char **argv)
 			continue;
 
 		switch (c) {
+			case 'S':
+				sum_all_disks = 1;
+				break;
 			case 'D':
 				discard_default_filters = 1;
 				break;
@@ -890,6 +894,17 @@ static int di2perfdata(void *di_ptr, void *thresh_ptr)
 	return 0;
 }
 
+static int summarize_disks(void *di_ptr, void *tot_di_ptr)
+{
+	struct disk_info *di = (struct disk_info *)di_ptr;
+	struct disk_info *tot = (struct disk_info *)tot_di_ptr;
+
+	/* the "total" disk always uses 4k blocksize */
+	tot->Used += di->Used * ((float)di->AllocationUnits / (float)tot->AllocationUnits);
+	tot->Size += di->Size * ((float)di->AllocationUnits / (float)tot->AllocationUnits);
+	return 0;
+}
+
 #ifndef MP_TEST_PROGRAM
 int main(int argc, char **argv)
 {
@@ -899,6 +914,8 @@ int main(int argc, char **argv)
 	struct di_result result;
 	char *env_verbose;
 	int state = STATE_OK;
+	int counter, num_warning, num_critical, num_interesting;
+	struct disk_info di_totals;
 
 	/* useful for debugging option parsing */
 	if ((env_verbose = getenv("MP_VERBOSITY"))) {
@@ -971,18 +988,36 @@ int main(int argc, char **argv)
 
 	if (list_disks) {
 		rbtree_traverse(interesting, print_disk_entry, NULL, rbinorder);
+		return 0;
+	}
+
+	if (sum_all_disks && rbtree_num_nodes(interesting) > 1) {
+		memset(&di_totals, 0, sizeof(di_totals));
+		di_totals.Descr = "total";
+		di_totals.AllocationUnits = 4096;
+		rbtree_traverse(interesting, summarize_disks, &di_totals, rbinorder);
+		calculate_disk_usage(&di_totals, NULL);
+		match_used_bytes(&di_totals, &result);
 	} else {
-		int counter, num_warning, num_critical, num_interesting;
-
 		rbtree_traverse(interesting, match_used_bytes, &result, rbinorder);
-		num_interesting = rbtree_num_nodes(interesting);
-		num_warning = rbtree_num_nodes(result.warning);
-		num_critical = rbtree_num_nodes(result.critical);
-		if (num_critical)
-			state = STATE_CRITICAL;
-		else if (num_warning)
-			state = STATE_WARNING;
+	}
 
+	num_interesting = rbtree_num_nodes(interesting);
+	num_warning = rbtree_num_nodes(result.warning);
+	num_critical = rbtree_num_nodes(result.critical);
+	if (num_critical)
+		state = STATE_CRITICAL;
+	else if (num_warning)
+		state = STATE_WARNING;
+
+	if (sum_all_disks && rbtree_num_nodes(interesting) > 1) {
+		printf("%s: %d storage units selected. Sum ", state_text(state), rbtree_num_nodes(interesting));
+		counter = 1;
+		di2output(&di_totals, &counter);
+		printf("\n|");
+		di2perfdata(&di_totals, result.thresh);
+		putchar('\n');
+	} else {
 		/* now we construct the output */
 		printf("%s: ", state_text(state));
 		if (num_critical) {

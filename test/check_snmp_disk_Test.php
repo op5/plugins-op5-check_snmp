@@ -12,7 +12,7 @@ class Check_Snmp_Disk_Test extends PHPUnit_Framework_TestCase {
 		@mkdir($this->snmpsimroot_current, 0777, true);
 		@mkdir($this->snmpsimroot_current."data", 0777, true);
 		file_put_contents($this->snmpsimroot_current."data/mycommunity.snmprec", $snmpdata);
-		
+
 		$command="snmpsimd.py".
 		" --daemonize".
 		" --pid-file=".$this->snmpsimroot_current . "pidfile".
@@ -236,6 +236,13 @@ EOF;
 		), array(
 			"CRITICAL: 1/1 critical (/: 44.46% used of 22.79GiB)",
 			"|'/_used'=10879410176B;6118145024:6362870825;7341774029:7586499830;0;24472580096",
+		), 2);
+	}
+	public function test_sum_storage_used_CRITICAL() {
+		$this->assertCommand("-H @endpoint@ -C mycommunity -D -S -w 25:26 -c30:31", array(
+		), array(
+			"CRITICAL: 13 storage units selected. Sum total: 71.08% used of 257.70GiB",
+			"|'total_used'=196682547200B;69175566336:71942588989;83010679603:85777702257;0;276702265344",
 		), 2);
 	}
 
