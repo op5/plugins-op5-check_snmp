@@ -160,11 +160,11 @@ usage5 (void)
 	print_usage();
 	exit (STATE_UNKNOWN);
 }
-
+/* FIXME do not commit upstream, only to be used internally at op5 */
 void
 print_revision (const char *command_name, const char *revision)
 {
-	printf ("%s v%s (%s %s)\n",
+	printf ("%s %s (%s %s)\n",
 	         command_name, revision, PACKAGE, VERSION);
 }
 

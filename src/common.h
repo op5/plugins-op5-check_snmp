@@ -75,6 +75,7 @@ enum {
 #endif
 
 #define _(_X) (_X)
-#define NP_VERSION "FIXME"
+/* FIXME do not commit upstream, only to be used internally at op5 */
+#define NP_VERSION "initially developed by op5 - GPLv2"
 
 #endif /* _COMMON_H_ */
