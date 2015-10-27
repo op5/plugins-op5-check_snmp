@@ -16,6 +16,7 @@ COMMON_SOURCES = \
 	src/utils.c src/utils.h \
 	src/sha1.c src/sha1.h \
 	src/utils_snmp.c src/utils_snmp.h \
+	src/rbtree.c src/rbtree.h \
 	src/common.h
 
 TAPSOURCES = $(COMMON_SOURCES) tap/tap.c
@@ -24,8 +25,6 @@ TAPCPPFLAGS = $(ALL_CFLAGS) $(CPPFLAGS) -I$(abs_srcdir)/tap
 src_check_snmp_disk_SOURCES=\
 	src/check_snmp_disk.c \
 	$(COMMON_SOURCES)
-src_check_snmp_disk_LDADD = $(naemon_LIBS)
-src_check_snmp_disk_CFLAGS = $(ALL_CFLAGS) $(naemon_CFLAGS)
 
 src_check_snmp_cpu_SOURCES=\
 	src/check_snmp_cpu.c \
@@ -42,10 +41,6 @@ src_check_snmp_memory_SOURCES=\
 src_check_snmp_procs_SOURCES=\
 	src/check_snmp_procs.c \
 	$(COMMON_SOURCES)
-src_check_snmp_procs_LDADD=\
-	$(naemon_LIBS)
-src_check_snmp_procs_CFLAGS=\
-	$(naemon_CFLAGS) $(ALL_CFLAGS)
 
 check_PROGRAMS = \
 	src/test/check_snmp_disk \
@@ -56,8 +51,8 @@ src_test_check_snmp_cpu_CPPFLAGS = $(TAPCPPFLAGS)
 src_test_check_snmp_cpu_LDADD = $(TAPLDADD)
 
 src_test_check_snmp_disk_SOURCES = src/test/check_snmp_disk.c $(TAPSOURCES)
-src_test_check_snmp_disk_CPPFLAGS = $(TAPCPPFLAGS) $(naemon_CFLAGS)
-src_test_check_snmp_disk_LDADD = $(TAPLDADD) $(naemon_LIBS)
+src_test_check_snmp_disk_CPPFLAGS = $(TAPCPPFLAGS)
+src_test_check_snmp_disk_LDADD = $(TAPLDADD)
 
 check: $(check_PROGRAMS)
 	@for i in $(check_PROGRAMS); do $$i; done

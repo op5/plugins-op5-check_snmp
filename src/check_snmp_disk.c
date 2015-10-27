@@ -10,7 +10,8 @@ const char *program_name = "check_snmp_disk"; /* for coreutils libs */
 #include <stdio.h>
 #include <stdlib.h>
 #include <ctype.h>
-#include <naemon/naemon.h>
+#include <string.h>
+#include "rbtree.h"
 #include <regex.h>
 
 #define REGEX_FLAGS (REG_EXTENDED | REG_NOSUB | REG_NEWLINE)

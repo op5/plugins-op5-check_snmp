@@ -11,7 +11,7 @@ const char *email = "devel@monitoring-plugins.org";
 #include "common.h"
 #include "utils.h"
 #include "utils_snmp.h"
-#include <naemon/naemon.h>
+#include "rbtree.h"
 
 #define DEFAULT_COMMUNITY "public" 	/* only used for help text */
 #define DEFAULT_PORT "161"			/* only used for help text */
@@ -302,7 +302,6 @@ int main(int argc, char **argv)
 	char *warn_str = "", *crit_str = "";
 	char *state_str = NULL;
 	int state_filter;
-	bitmap *bm = NULL;
 	int legacy_i, legacy_temp_result = STATE_UNKNOWN;
 	char *legacy_warn1 = "", *legacy_warn5 = "", *legacy_warn15 = "";
 	char *legacy_crit1 = "", *legacy_crit5 = "", *legacy_crit15 = "";
@@ -331,11 +330,6 @@ int main(int argc, char **argv)
 		if (o->val >= CHAR_MAX || o->val <= 0) {
 			continue;
 		}
-		if (bitmap_isset(bm, o->val)) {
-			printf("###\n### %c is a double option, doofus!\n###\n", c);
-			exit(1);
-		}
-		bitmap_set(bm, o->val);
 		if (o->val < CHAR_MAX)
 			optary[i++] = o->val;
 		if (o->has_arg)
@@ -344,7 +338,6 @@ int main(int argc, char **argv)
 			optary[i++] = ':';
 	}
 
-	bitmap_destroy(bm);
 	mp_debug(2,"optary: %s\n", optary);
 	mp_snmp_init("check_snmp_procs", 0);
 	ctx = mp_snmp_create_context();

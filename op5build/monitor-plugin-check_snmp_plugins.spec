@@ -20,8 +20,6 @@ BuildRequires: automake
 BuildRequires: check-devel
 BuildRequires: valgrind
 BuildRequires: net-snmp-devel
-# op5-naemon-devel is needed by check_snmp_procs
-BuildRequires: op5-naemon-devel
 
 %description
 %{summary}
@@ -59,7 +57,6 @@ Summary: Nagios compatible plugin to check memory over SNMP
 %package -n monitor-plugin-check_snmp_procs
 Group: Applications/System
 Summary: Nagios compatible plugin to check procs over SNMP
-Requires: op5-naemon
 
 %description -n monitor-plugin-check_snmp_procs
 %{summary}

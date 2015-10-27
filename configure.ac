@@ -12,7 +12,6 @@ AC_PROG_RANLIB
 
 AM_CFLAGS=""
 AM_CPPFLAGS=""
-PKG_CHECK_MODULES([naemon], [naemon])
 
 # check for compiler flags. Enabling warnings must come before disabling
 AX_CHECK_COMPILE_FLAG([-Wall], AM_CFLAGS+=" -Wall")
