@@ -38,6 +38,24 @@ class Check_Snmp_Memory_Test extends PHPUnit_Framework_TestCase {
 		return exec($check_command . " " . $args, $output, $return);
 	}
 
+	private function generate_incorrect_snmpdata() {
+		$incorrect = <<<EOF
+1.
+EOF;
+	}
+
+	public function assertCommandIncorrectSnmp($args, $expectedoutput, $expectedreturn){
+		$this->start_snmpsim($this->generate_incorrect_snmpdata());
+		$this->run_command(str_replace("@endpoint@","127.0.0.1:21161",$args), $output, $return);
+
+		if(is_array($expectedoutput))
+			$expectedoutput = implode("\n", $expectedoutput)."\n";
+		$output = implode("\n", $output)."\n";
+
+		$this->assertEquals($expectedoutput, $output);
+		$this->assertEquals($expectedreturn, $return);
+	}
+
 	private function generate_snmpdata($snmpdata_diff) {
 		$snmpdata = <<<EOF
 1.3.6.1.4.1.2021.4.1.0|2|0
@@ -188,47 +206,54 @@ EOF;
 /**
  * Could not fetch the values
  */
-	public function test_load_could_not_fetch_the_value_for_1_UNKNOWN() {
+	public function test_memory_could_not_fetch_the_value_for_ram_used_UNKNOWN() {
+		$this->assertCommandIncorrectSnmp("-H @endpoint@ -C mycommunity -T ram_used", array(
+			"UNKNOWN: Could not fetch the values at 1.3.6.1.4.1.2021.4. Please check your config file for SNMP and make sure you have access"
+		), 3);
+	}
+	public function test_memory_could_not_fetch_the_value_for_swap_used_UNKNOWN() {
+		$this->assertCommandIncorrectSnmp("-H @endpoint@ -C mycommunity -T swap_used", array(
+			"UNKNOWN: Could not fetch the values at 1.3.6.1.4.1.2021.4. Please check your config file for SNMP and make sure you have access"
+		), 3);
+	}
+	public function test_memory_could_not_fetch_the_index_value_for_ram_used_UNKNOWN() {
 		$this->assertCommand("-H @endpoint@ -C mycommunity -T ram_used", array(
-			"1.3.6.1.4.1.2021.4.1.0" => array(2,"")
+			"1.3.6.1.4.1.2021.4.1.0" => array(2,""), /* no Index */
 		), array(
 			"UNKNOWN: Could not fetch the values at 1.3.6.1.4.1.2021.4. Please check your config file for SNMP and make sure you have access"
 		), 3);
 	}
-	public function test_load_could_not_fetch_the_value_for_3_UNKNOWN() {
+	public function test_memory_could_not_fetch_the_totalreal_value_for_ram_used_UNKNOWN() {
 		$this->assertCommand("-H @endpoint@ -C mycommunity -T ram_used", array(
-			"1.3.6.1.4.1.2021.4.3.0" => array(2,"")
+			"1.3.6.1.4.1.2021.4.5.0" => array(2,""), /* no TotalReal */
 		), array(
 			"UNKNOWN: Could not fetch the values at 1.3.6.1.4.1.2021.4. Please check your config file for SNMP and make sure you have access"
 		), 3);
 	}
-	public function test_load_could_not_fetch_the_value_for_4_UNKNOWN() {
+	public function test_memory_could_not_fetch_the_buffer_value_for_ram_used_UNKNOWN() {
 		$this->assertCommand("-H @endpoint@ -C mycommunity -T ram_used", array(
-			"1.3.6.1.4.1.2021.4.4.0" => array(2,"")
+			"1.3.6.1.4.1.2021.4.14.0" => array(2,""), /* no buffer */
 		), array(
 			"UNKNOWN: Could not fetch the values at 1.3.6.1.4.1.2021.4. Please check your config file for SNMP and make sure you have access"
 		), 3);
 	}
-	public function test_load_could_not_fetch_the_value_for_5_UNKNOWN() {
+/**
+ * Overflow test for MON-8645
+ */
+	public function test_overflow_ram_OK() {
 		$this->assertCommand("-H @endpoint@ -C mycommunity -T ram_used", array(
-			"1.3.6.1.4.1.2021.4.5.0" => array(2,"")
+			"1.3.6.1.4.1.2021.4.5.0" => array(2,"603576000"), /* TotalReal */
+			"1.3.6.1.4.1.2021.4.6.0" => array(2,"60357600") /* AvailReal */
 		), array(
-			"UNKNOWN: Could not fetch the values at 1.3.6.1.4.1.2021.4. Please check your config file for SNMP and make sure you have access"
-		), 3);
+			"OK: Used RAM: 89.94% (517.74GiB) of total 575.61GiB |'RAM Used'=555913805824B;0;0;0;618061824000 'RAM Buffered'=54124544B;;;0;618061824000 'RAM Cached'=287711232B;;;0;618061824000 'RAM Free'=62148018176B;;;0;618061824000"
+		), 0);
 	}
-	public function test_load_could_not_fetch_the_value_for_14_UNKNOWN() {
+	public function test_overflow_swap_UNKNOWN() {
 		$this->assertCommand("-H @endpoint@ -C mycommunity -T swap_used", array(
-			"1.3.6.1.4.1.2021.4.14.0" => array(2,"")
+			"1.3.6.1.4.1.2021.4.3.0" => array(2,"60357600")
 		), array(
-			"UNKNOWN: Could not fetch the values at 1.3.6.1.4.1.2021.4. Please check your config file for SNMP and make sure you have access"
-		), 3);
-	}
-	public function test_load_could_not_fetch_the_value_for_15_UNKNOWN() {
-		$this->assertCommand("-H @endpoint@ -C mycommunity -T swap_used", array(
-			"1.3.6.1.4.1.2021.4.15.0" => array(2,"")
-		), array(
-			"UNKNOWN: Could not fetch the values at 1.3.6.1.4.1.2021.4. Please check your config file for SNMP and make sure you have access"
-		), 3);
+			"OK: Used Swap: 98.03% (56.43GiB) of total 57.56GiB |'Swap Used'=60589518848B;0;0;0;61806182400 'Swap Free'=1216663552B;;;0;61806182400"
+		), 0);
 	}
 /**
  * No arguments, usage and help

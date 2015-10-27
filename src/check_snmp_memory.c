@@ -49,15 +49,22 @@ char *thresholdunit = "";
 enum o_monitortype_t o_monitortype = MONITOR_TYPE__RAM_USED; /* default */
 
 struct mem_info {
-	int Index;
-	int TotalSwap;
-	int AvailSwap;
-	int TotalReal;
-	int AvailReal;
-	int Buffer;
-	int Cached;
-	int UsedReal; /* calculated */
-	int UsedSwap; /* calculated */
+	unsigned int Index;
+	unsigned int TotalSwap;
+	unsigned int AvailSwap;
+	unsigned int TotalReal;
+	unsigned int AvailReal;
+	unsigned int Buffer;
+	unsigned int Cached;
+	unsigned int UsedReal; /* calculated */
+	unsigned int UsedSwap; /* calculated */
+	int index_found;
+	int totalswap_found;
+	int availswap_found;
+	int totalreal_found;
+	int availreal_found;
+	int buffer_found;
+	int cached_found;
 };
 /**
  * Calculated memory info values used for checking and printing output
@@ -78,25 +85,32 @@ static int mem_callback(netsnmp_variable_list *v, void *mc_ptr, void *discard)
 
 	switch (v->name[8]) {
 		case MEMORY_SUBIDX_MemIndex:
-			mc->Index=*v->val.integer;
+			mc->Index = *v->val.integer;
+			mc->index_found = 1;
 			break;
 		case MEMORY_SUBIDX_MemTotalSwap:
-			mc->TotalSwap=*v->val.integer;
+			mc->TotalSwap = *v->val.integer;
+			mc->totalswap_found = 1;
 			break;
 		case MEMORY_SUBIDX_MemAvailSwap:
-			mc->AvailSwap=*v->val.integer;
+			mc->AvailSwap = *v->val.integer;
+			mc->availswap_found = 1;
 			break;
 		case MEMORY_SUBIDX_MemTotalReal:
-			mc->TotalReal=*v->val.integer;
+			mc->TotalReal = *v->val.integer;
+			mc->totalreal_found = 1;
 			break;
 		case MEMORY_SUBIDX_MemAvailReal:
-			mc->AvailReal=*v->val.integer;
+			mc->AvailReal = *v->val.integer;
+			mc->availreal_found = 1;
 			break;
 		case MEMORY_SUBIDX_MemBuffer:
-			mc->Buffer=*v->val.integer;
+			mc->Buffer = *v->val.integer;
+			mc->buffer_found = 1;
 			break;
 		case MEMORY_SUBIDX_MemCached:
-			mc->Cached=*v->val.integer;
+			mc->Cached = *v->val.integer;
+			mc->cached_found = 1;
 			break;
 	}
 	return EXIT_SUCCESS;
@@ -105,30 +119,27 @@ static int mem_callback(netsnmp_variable_list *v, void *mc_ptr, void *discard)
 struct mem_info *check_mem_ret(mp_snmp_context *ss, int statemask)
 {
 	struct mem_info *mi = malloc(sizeof(struct mem_info));
-	mi->TotalSwap=-1;
-	mi->AvailSwap=-1;
-	mi->TotalReal=-1;
-	mi->AvailReal=-1;
-	mi->Buffer=-1;
-	mi->Cached=-1;
+	memset(mi, 0, sizeof(struct mem_info));
 
 	if (0 != mp_snmp_walk(ss, MEMORY_TABLE, NULL, mem_callback, mi, NULL)) {
 		die(STATE_UNKNOWN, "UNKNOWN: SNMP error when querying %s: %s\n",
 		    mp_snmp_get_peername(ctx), mp_snmp_get_errstr(ctx));
 	}
-
-	if (mi->TotalSwap == -1 || mi->AvailSwap == -1 || mi->TotalReal == -1 ||
-		mi->AvailReal == -1 || mi->Buffer == -1 || mi->Cached == -1) {
+	if (0 == mi->availreal_found || 0 == mi->availswap_found ||
+		0 == mi->buffer_found || 0 == mi->cached_found || 0 == mi->index_found ||
+		0 == mi->totalreal_found || 0 == mi->totalswap_found)
+	{
 		die(STATE_UNKNOWN, "UNKNOWN: Could not fetch the values at %s. "
 			"Please check your config file for SNMP and make sure you have access\n", MEMORY_TABLE);
 	}
-	/* calculate the used values */
+
+	/* Calculate the used values */
 	mi->UsedReal = mi->TotalReal - mi->AvailReal - mi->Buffer - mi->Cached;
 	mi->UsedSwap = mi->TotalSwap - mi->AvailSwap;
 
 	mp_debug(3,
-		"Memory: %dkb total, %dkb used, %dkb free, %dkb buffers, %dkb cached\n"
-		"Swap: \t%dkb total, %dkb used, %dkb free\n",
+		"Memory: %ukb total, %ukb used, %ukb free, %ukb buffers, %ukb cached\n"
+		"Swap: \t%ukb total, %ukb used, %ukb free\n",
 		mi->TotalReal, mi->UsedReal, mi->AvailReal, mi->Buffer, mi->Cached,
 		mi->TotalSwap, mi->UsedSwap, mi->AvailSwap);
 
@@ -364,10 +375,10 @@ int main(int argc, char **argv)
 	/* check and output results */
 	switch (o_monitortype) {
 		case MONITOR_TYPE__RAM_USED:
-			cmiptr->bytes_used = ((double)ptr->UsedReal) * KIBPREFIX;
-			cmiptr->total_size = ptr->TotalReal * KIBPREFIX;
-			cmiptr->percent_used = (cmiptr->bytes_used / cmiptr->total_size) * 100;
-			cmiptr->bytes_free = cmiptr->total_size - cmiptr->bytes_used;
+			cmiptr->bytes_used = (double)ptr->UsedReal * KIBPREFIX;
+			cmiptr->total_size = (double)ptr->TotalReal * KIBPREFIX;
+			cmiptr->percent_used = (double)(cmiptr->bytes_used / cmiptr->total_size) * 100;
+			cmiptr->bytes_free = (double)cmiptr->total_size - cmiptr->bytes_used;
 			cmiptr->bytes_buffer = (double)ptr->Buffer * KIBPREFIX;
 			cmiptr->bytes_cached = (double)ptr->Cached * KIBPREFIX;
 
@@ -399,10 +410,10 @@ int main(int argc, char **argv)
 					TRUE, 0, TRUE, cmiptr->total_size));
 			break;
 		case MONITOR_TYPE__SWAP_USED:
-			cmiptr->bytes_used = ((double)ptr->UsedSwap) * KIBPREFIX;
-			cmiptr->total_size = ptr->TotalSwap * KIBPREFIX;
-			cmiptr->percent_used = (cmiptr->bytes_used / cmiptr->total_size) * 100;
-			cmiptr->bytes_free = cmiptr->total_size - cmiptr->bytes_used;
+			cmiptr->bytes_used = (double)ptr->UsedSwap * KIBPREFIX;
+			cmiptr->total_size = (double)ptr->TotalSwap * KIBPREFIX;
+			cmiptr->percent_used = (double)(cmiptr->bytes_used / cmiptr->total_size) * 100;
+			cmiptr->bytes_free = (double)cmiptr->total_size - cmiptr->bytes_used;
 
 			if (update_thr(&thresh, cmiptr->total_size) != 0) {
 				die(STATE_UNKNOWN, _("Failed to convert ranges to bytes\n"));
