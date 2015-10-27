@@ -42,9 +42,11 @@ src_check_snmp_procs_SOURCES=\
 	src/check_snmp_procs.c \
 	$(COMMON_SOURCES)
 
-check_PROGRAMS = \
+TESTS = \
 	src/test/check_snmp_disk \
 	src/test/check_snmp_cpu
+
+check_PROGRAMS = $(TESTS)
 
 src_test_check_snmp_cpu_SOURCES = src/test/check_snmp_cpu.c $(TAPSOURCES)
 src_test_check_snmp_cpu_CPPFLAGS = $(TAPCPPFLAGS)
@@ -53,6 +55,3 @@ src_test_check_snmp_cpu_LDADD = $(TAPLDADD)
 src_test_check_snmp_disk_SOURCES = src/test/check_snmp_disk.c $(TAPSOURCES)
 src_test_check_snmp_disk_CPPFLAGS = $(TAPCPPFLAGS)
 src_test_check_snmp_disk_LDADD = $(TAPLDADD)
-
-check: $(check_PROGRAMS)
-	@for i in $(check_PROGRAMS); do $$i; done
