@@ -25,11 +25,11 @@ oid hrStorageNetworkDisk[] =   { 1, 3, 6, 1, 2, 1, 25, 2, 1, 10 };
 		ok(err == e, "parse_bytes(" #str ") has errorcode " #e""); \
 	} while (0)
 #define TRY_PARSE_DISK_TYPES(v, str) ok((v) == parse_disk_types(str), #str " should yield mask " #v)
-int main(int argc, char **argv)
+int main(int argc, char *argv[])
 {
 	int err;
 
-	plan_tests(28);
+	plan_tests(45);
 	TRY_OID2TYPE(1, hrStorageOther);
 	TRY_OID2TYPE(2, hrStorageRam);
 	TRY_OID2TYPE(3, hrStorageVirtualMemory);
@@ -70,7 +70,7 @@ int main(int argc, char **argv)
 	TRY_PARSE_DISK_TYPES(1 << STORAGE_TYPE_FloppyDisk, "floppy");
 	TRY_PARSE_DISK_TYPES(1 << STORAGE_TYPE_CompactDisc, "cd");
 	TRY_PARSE_DISK_TYPES(1 << STORAGE_TYPE_RamDisk, "ramdisk");
-	TRY_PARSE_DISK_TYPES(1 << STORAGE_TYPE_FlashMemory, "flashmemory");
+	TRY_PARSE_DISK_TYPES(1 << STORAGE_TYPE_FlashMemory, "flash");
 	TRY_PARSE_DISK_TYPES(1 << STORAGE_TYPE_NetworkDisk, "net");
 	TRY_PARSE_DISK_TYPES(STORAGE_MASK_DISK, "disk");
 	TRY_PARSE_DISK_TYPES(STORAGE_MASK_MEM, "mem");

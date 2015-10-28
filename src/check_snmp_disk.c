@@ -156,7 +156,7 @@ static double parse_bytes(const char *str, int *err)
 	return 0;
 }
 
-#define prefixcasecmp(a, b) strncasecmp(a, b, sizeof(b) - 1)
+#define prefixcasecmp(a, b) strncasecmp(a, b, strlen(a))
 static int parse_disk_types(const char *orig_str)
 {
 	char *str, *comma;
@@ -908,6 +908,9 @@ static int summarize_disks(void *di_ptr, void *tot_di_ptr)
 
 #ifndef MP_TEST_PROGRAM
 int main(int argc, char **argv)
+#else
+int main_as_in_test_program(int argc, char *argv[])
+#endif /* MP_TEST_PROGRAM */
 {
 	struct rbtree *all_disks, *interesting;
 	unsigned int num_left;
@@ -1059,4 +1062,3 @@ int main(int argc, char **argv)
 
 	return state;
 }
-#endif /* MP_TEST_PROGRAM */
