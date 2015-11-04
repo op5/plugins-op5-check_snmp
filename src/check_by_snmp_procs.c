@@ -2,8 +2,8 @@
  * Check system load over snmp
  */
 
-const char *progname = "check_snmp_procs";
-const char *program_name = "check_snmp_procs";
+const char *progname = "check_by_snmp_procs";
+const char *program_name = "check_by_snmp_procs";
 const char *copyright = "2015";
 const char *email = "devel@monitoring-plugins.org";
 
@@ -339,7 +339,7 @@ int main(int argc, char **argv)
 	}
 
 	mp_debug(2,"optary: %s\n", optary);
-	mp_snmp_init("check_snmp_procs", 0);
+	mp_snmp_init("check_by_snmp_procs", 0);
 	ctx = mp_snmp_create_context();
 	if (!ctx)
 		die(STATE_UNKNOWN, _("Failed to create snmp context\n"));
@@ -512,7 +512,7 @@ int main(int argc, char **argv)
 			usage4 (_("Could not parse arguments for -T"));
 			break;
 	}
-	mp_snmp_deinit("check_snmp_procs");
+	mp_snmp_deinit("check_by_snmp_procs");
 	printf("\n");
 
 	free(ctx);

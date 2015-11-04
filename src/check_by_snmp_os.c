@@ -2,8 +2,8 @@
  * Check os specific aspects over snmp
  * Add a big description
  */
-const char *progname = "check_snmp_os";
-const char *program_name = "check_snmp_os"; /* for coreutils libs */
+const char *progname = "check_by_snmp_os";
+const char *program_name = "check_by_snmp_os"; /* for coreutils libs */
 const char *copyright = "2015";
 const char *email = "devel@monitoring-plugins.org";
 

@@ -1,6 +1,6 @@
 #include <tap.h>
 #define MP_TEST_PROGRAM 1
-#include "../check_snmp_cpu.c"
+#include "../check_by_snmp_cpu.c"
 int main(int argc, char **argv)
 {
 	struct cpu_info old, fetched;

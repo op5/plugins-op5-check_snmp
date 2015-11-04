@@ -4,11 +4,11 @@ AM_CFLAGS = @AM_CFLAGS@
 ALL_CFLAGS = $(AM_CFLAGS) $(AM_CPPFLAGS)
 
 libexec_PROGRAMS=\
-	src/check_snmp_disk \
-	src/check_snmp_cpu \
-	src/check_snmp_load_avg \
-	src/check_snmp_memory \
-	src/check_snmp_procs
+	src/check_by_snmp_disk \
+	src/check_by_snmp_cpu \
+	src/check_by_snmp_load_avg \
+	src/check_by_snmp_memory \
+	src/check_by_snmp_procs
 
 LIBS = $(SNMPLIBS)
 COMMON_SOURCES = \
@@ -22,36 +22,36 @@ COMMON_SOURCES = \
 TAPSOURCES = $(COMMON_SOURCES) tap/tap.c
 TAPCPPFLAGS = $(ALL_CFLAGS) $(CPPFLAGS) -I$(abs_srcdir)/tap
 
-src_check_snmp_disk_SOURCES=\
-	src/check_snmp_disk.c \
+src_check_by_snmp_disk_SOURCES=\
+	src/check_by_snmp_disk.c \
 	$(COMMON_SOURCES)
 
-src_check_snmp_cpu_SOURCES=\
-	src/check_snmp_cpu.c \
+src_check_by_snmp_cpu_SOURCES=\
+	src/check_by_snmp_cpu.c \
 	$(COMMON_SOURCES)
 
-src_check_snmp_load_avg_SOURCES=\
-	src/check_snmp_load_avg.c \
+src_check_by_snmp_load_avg_SOURCES=\
+	src/check_by_snmp_load_avg.c \
 	$(COMMON_SOURCES)
 
-src_check_snmp_memory_SOURCES=\
-	src/check_snmp_memory.c \
+src_check_by_snmp_memory_SOURCES=\
+	src/check_by_snmp_memory.c \
 	$(COMMON_SOURCES)
 
-src_check_snmp_procs_SOURCES=\
-	src/check_snmp_procs.c \
+src_check_by_snmp_procs_SOURCES=\
+	src/check_by_snmp_procs.c \
 	$(COMMON_SOURCES)
 
 TESTS = \
-	src/test/check_snmp_disk \
-	src/test/check_snmp_cpu
+	src/test/check_by_snmp_disk \
+	src/test/check_by_snmp_cpu
 
 check_PROGRAMS = $(TESTS)
 
-src_test_check_snmp_cpu_SOURCES = src/test/check_snmp_cpu.c $(TAPSOURCES)
-src_test_check_snmp_cpu_CPPFLAGS = $(TAPCPPFLAGS)
-src_test_check_snmp_cpu_LDADD = $(TAPLDADD)
+src_test_check_by_snmp_cpu_SOURCES = src/test/check_by_snmp_cpu.c $(TAPSOURCES)
+src_test_check_by_snmp_cpu_CPPFLAGS = $(TAPCPPFLAGS)
+src_test_check_by_snmp_cpu_LDADD = $(TAPLDADD)
 
-src_test_check_snmp_disk_SOURCES = src/test/check_snmp_disk.c $(TAPSOURCES)
-src_test_check_snmp_disk_CPPFLAGS = $(TAPCPPFLAGS)
-src_test_check_snmp_disk_LDADD = $(TAPLDADD)
+src_test_check_by_snmp_disk_SOURCES = src/test/check_by_snmp_disk.c $(TAPSOURCES)
+src_test_check_by_snmp_disk_CPPFLAGS = $(TAPCPPFLAGS)
+src_test_check_by_snmp_disk_LDADD = $(TAPLDADD)

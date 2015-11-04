@@ -1,7 +1,7 @@
 <?php
 class Check_Snmp_Load_Avg_Test extends PHPUnit_Framework_TestCase {
 
-	private static $snmpsimroot = "/tmp/check_snmp_load_avg_test/";
+	private static $snmpsimroot = "/tmp/check_by_snmp_load_avg_test/";
 	private $snmpsimroot_current = false;
 
 	private function start_snmpsim($snmpdata) {
@@ -34,7 +34,7 @@ class Check_Snmp_Load_Avg_Test extends PHPUnit_Framework_TestCase {
 	}
 
 	public function run_command($args, &$output, &$return) {
-		$check_command = __DIR__ . "/../../../opt/plugins/check_snmp_load_avg";
+		$check_command = __DIR__ . "/../../../opt/plugins/check_by_snmp_load_avg";
 		return exec($check_command . " " . $args, $output, $return);
 	}
 
@@ -234,9 +234,9 @@ EOF;
 	public function test_no_arguments() {
 		$this->assertCommand("", array(
 		), array(
-			'check_snmp_load_avg: Could not parse arguments',
+			'check_by_snmp_load_avg: Could not parse arguments',
 			'Usage:',
-			'check_snmp_load_avg -H <ip_address> -C <snmp_community>',
+			'check_by_snmp_load_avg -H <ip_address> -C <snmp_community>',
 			'[-w<warn_range>] [-c<crit_range>] [-t <timeout>] [-T <type>]',
 			'([-P snmp version] [-N context] [-L seclevel] [-U secname]',
 			'[-a authproto] [-A authpasswd] [-x privproto] [-X privpasswd])'

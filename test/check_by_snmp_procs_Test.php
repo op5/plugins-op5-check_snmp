@@ -1,7 +1,7 @@
 <?php
 class Check_Snmp_Procs_Test extends PHPUnit_Framework_TestCase {
 
-	private static $snmpsimroot = "/tmp/check_snmp_procs_test/";
+	private static $snmpsimroot = "/tmp/check_by_snmp_procs_test/";
 	private $snmpsimroot_current = false;
 
 	private function start_snmpsim($snmpdata) {
@@ -34,7 +34,7 @@ class Check_Snmp_Procs_Test extends PHPUnit_Framework_TestCase {
 	}
 
 	public function run_command($args, &$output, &$return) {
-		$check_command = __DIR__ . "/../../../opt/plugins/check_snmp_procs";
+		$check_command = __DIR__ . "/../../../opt/plugins/check_by_snmp_procs";
 		return exec($check_command . " " . $args, $output, $return);
 	}
 
@@ -1159,9 +1159,9 @@ EOF;
 	public function test_no_arguments() {
 		$this->assertCommand("", array(
 		), array(
-			'check_snmp_procs: Could not parse arguments',
+			'check_by_snmp_procs: Could not parse arguments',
 			'Usage:',
-			'check_snmp_procs -H <ip_address> -C <snmp_community> [-i <name of process>]',
+			'check_by_snmp_procs -H <ip_address> -C <snmp_community> [-i <name of process>]',
 			'[-w <warn_range>] [-c <crit_range>] [-t <timeout>] [-T <type>]',
 			'([-P snmp version] [-N context] [-L seclevel] [-U secname]',
 			'[-a authproto] [-A authpasswd] [-x privproto] [-X privpasswd])'
@@ -1171,7 +1171,7 @@ EOF;
 		$this->assertCommand("-u", array(
 		), array(
 			'Usage:',
-			'check_snmp_procs -H <ip_address> -C <snmp_community> [-i <name of process>]',
+			'check_by_snmp_procs -H <ip_address> -C <snmp_community> [-i <name of process>]',
 			'[-w <warn_range>] [-c <crit_range>] [-t <timeout>] [-T <type>]',
 			'([-P snmp version] [-N context] [-L seclevel] [-U secname]',
 			'[-a authproto] [-A authpasswd] [-x privproto] [-X privpasswd])'

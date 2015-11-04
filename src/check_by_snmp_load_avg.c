@@ -1,8 +1,8 @@
 /**
  * Check system load average over snmp
  */
-const char *progname = "check_snmp_load_avg";
-const char *program_name = "check_snmp_load_avg"; /* for coreutils libs */
+const char *progname = "check_by_snmp_load_avg";
+const char *program_name = "check_by_snmp_load_avg"; /* for coreutils libs */
 
 #include "common.h"
 #include "utils.h"

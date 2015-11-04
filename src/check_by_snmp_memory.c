@@ -1,8 +1,8 @@
 /**
  * Check system memory over snmp
  */
-const char *progname = "check_snmp_memory";
-const char *program_name = "check_snmp_memory"; /* Needed for coreutils libs */
+const char *progname = "check_by_snmp_memory";
+const char *program_name = "check_by_snmp_memory"; /* Needed for coreutils libs */
 
 #include "common.h"
 #include "utils.h"

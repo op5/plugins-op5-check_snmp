@@ -1,6 +1,6 @@
 #include <tap.h>
 #define MP_TEST_PROGRAM 1
-#include "../check_snmp_disk.c"
+#include "../check_by_snmp_disk.c"
 
 /*
  * there is a bit of magic constants in this file, but it's all

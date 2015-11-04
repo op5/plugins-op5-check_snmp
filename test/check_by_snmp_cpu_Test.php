@@ -1,7 +1,7 @@
 <?php
 class Check_Snmp_Cpu_Test extends PHPUnit_Framework_TestCase {
 
-	private static $snmpsimroot = "/tmp/check_snmp_cpu_test/";
+	private static $snmpsimroot = "/tmp/check_by_snmp_cpu_test/";
 	private $snmpsimroot_current = false;
 	private $snmpsim_community = false;
 	private $snmpsim_recfile = false;
@@ -46,7 +46,7 @@ class Check_Snmp_Cpu_Test extends PHPUnit_Framework_TestCase {
 	}
 
 	public function run_command($args, &$output, &$return) {
-		$check_command = __DIR__ . "/../../../opt/plugins/check_snmp_cpu";
+		$check_command = __DIR__ . "/../../../opt/plugins/check_by_snmp_cpu";
 		return exec($check_command . " " . $args, $output, $return);
 	}
 
@@ -309,9 +309,9 @@ EOF;
 	public function test_no_arguments() {
 		$this->assertCommand("", array(
 		), array(
-			'check_snmp_cpu: Could not parse arguments',
+			'check_by_snmp_cpu: Could not parse arguments',
 			'Usage:',
-			'check_snmp_cpu -H <ip_address> -C <snmp_community>',
+			'check_by_snmp_cpu -H <ip_address> -C <snmp_community>',
 			'[-w <warn_range>] [-c <crit_range>] [-t <timeout>] [-T <type>]',
 			'([-P snmp version] [-N context] [-L seclevel] [-U secname]',
 			'[-a authproto] [-A authpasswd] [-x privproto] [-X privpasswd])'

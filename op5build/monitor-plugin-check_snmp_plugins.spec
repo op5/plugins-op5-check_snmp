@@ -76,41 +76,41 @@ rm -rf %buildroot
 mkdir -p %buildroot%prefix/
 %make_install
 mkdir -p %buildroot%prefix/metadata
-mkdir -p %buildroot%{_localstatedir}/check_snmp_cpu
-cp op5build/check_snmp_disk.metadata %buildroot%prefix/metadata/check_snmp_disk.metadata
-cp op5build/check_snmp_cpu.metadata %buildroot%prefix/metadata/check_snmp_cpu.metadata
-cp op5build/check_snmp_load_avg.metadata %buildroot%prefix/metadata/check_snmp_load_avg.metadata
-cp op5build/check_snmp_memory.metadata %buildroot%prefix/metadata/check_snmp_memory.metadata
-cp op5build/check_snmp_procs.metadata %buildroot%prefix/metadata/check_snmp_procs.metadata
+mkdir -p %buildroot%{_localstatedir}/check_by_snmp_cpu
+cp op5build/check_by_snmp_disk.metadata %buildroot%prefix/metadata/check_by_snmp_disk.metadata
+cp op5build/check_by_snmp_cpu.metadata %buildroot%prefix/metadata/check_by_snmp_cpu.metadata
+cp op5build/check_by_snmp_load_avg.metadata %buildroot%prefix/metadata/check_by_snmp_load_avg.metadata
+cp op5build/check_by_snmp_memory.metadata %buildroot%prefix/metadata/check_by_snmp_memory.metadata
+cp op5build/check_by_snmp_procs.metadata %buildroot%prefix/metadata/check_by_snmp_procs.metadata
 
 %clean
 rm -rf %buildroot
 
 %files -n monitor-plugin-check_snmp_disk
 %defattr(-,root,root,-)
-%attr(755,root,root) %{prefix}/check_snmp_disk
-%attr(644,root,root) %{prefix}/metadata/check_snmp_disk.metadata
+%attr(755,root,root) %{prefix}/check_by_snmp_disk
+%attr(644,root,root) %{prefix}/metadata/check_by_snmp_disk.metadata
 
 %files -n monitor-plugin-check_snmp_cpu
 %defattr(-,root,root,-)
-%attr(755,root,root) %{prefix}/check_snmp_cpu
-%attr(644,root,root) %{prefix}/metadata/check_snmp_cpu.metadata
-%dir %attr(755,%{daemon_user},%{daemon_group}) %{_localstatedir}/check_snmp_cpu
+%attr(755,root,root) %{prefix}/check_by_snmp_cpu
+%attr(644,root,root) %{prefix}/metadata/check_by_snmp_cpu.metadata
+%dir %attr(755,%{daemon_user},%{daemon_group}) %{_localstatedir}/check_by_snmp_cpu
 
 %files -n monitor-plugin-check_snmp_load_avg
 %defattr(-,root,root,-)
-%attr(755,root,root) %{prefix}/check_snmp_load_avg
-%attr(644,root,root) %{prefix}/metadata/check_snmp_load_avg.metadata
+%attr(755,root,root) %{prefix}/check_by_snmp_load_avg
+%attr(644,root,root) %{prefix}/metadata/check_by_snmp_load_avg.metadata
 
 %files -n monitor-plugin-check_snmp_memory
 %defattr(-,root,root,-)
-%attr(755,root,root) %{prefix}/check_snmp_memory
-%attr(644,root,root) %{prefix}/metadata/check_snmp_memory.metadata
+%attr(755,root,root) %{prefix}/check_by_snmp_memory
+%attr(644,root,root) %{prefix}/metadata/check_by_snmp_memory.metadata
 
 %files -n monitor-plugin-check_snmp_procs
 %defattr(-,root,root,-)
-%attr(755,root,root) %{prefix}/check_snmp_procs
-%attr(644,root,root) %{prefix}/metadata/check_snmp_procs.metadata
+%attr(755,root,root) %{prefix}/check_by_snmp_procs
+%attr(644,root,root) %{prefix}/metadata/check_by_snmp_procs.metadata
 
 %changelog
 * Fri Jul 03 2015 Robin Hagman <robin.hagman@op5.com> 0.0.1

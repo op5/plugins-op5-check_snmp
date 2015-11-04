@@ -1,8 +1,8 @@
 /**
  * Check disk/storage over snmp
  */
-const char *progname = "check_snmp_disk";
-const char *program_name = "check_snmp_disk"; /* for coreutils libs */
+const char *progname = "check_by_snmp_disk";
+const char *program_name = "check_by_snmp_disk"; /* for coreutils libs */
 
 #include "common.h"
 #include "utils.h"

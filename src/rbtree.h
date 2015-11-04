@@ -29,7 +29,7 @@
  * program.
  *
  * It has then been converted for use in naemon, to later be moved for use in
- * check_snmp_*
+ * check_by_snmp_*
  */
 
 #ifndef MP_RBTREE_H

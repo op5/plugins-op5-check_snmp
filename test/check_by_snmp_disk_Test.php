@@ -1,7 +1,7 @@
 <?php
 class Check_Snmp_Disk_Test extends PHPUnit_Framework_TestCase {
 
-	private static $snmpsimroot = "/tmp/check_snmp_disk_test/";
+	private static $snmpsimroot = "/tmp/check_by_snmp_disk_test/";
 	private $snmpsimroot_current = false;
 
 	private function start_snmpsim($snmpdata) {
@@ -34,7 +34,7 @@ class Check_Snmp_Disk_Test extends PHPUnit_Framework_TestCase {
 	}
 
 	public function run_command($args, &$output, &$return) {
-		$check_command = __DIR__ . "/../../../opt/plugins/check_snmp_disk";
+		$check_command = __DIR__ . "/../../../opt/plugins/check_by_snmp_disk";
 		return exec($check_command . " " . $args, $output, $return);
 	}
 
