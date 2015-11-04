@@ -1,7 +1,7 @@
 [commands]
 check_by_snmp_load_avg_v2=$USER1$/check_by_snmp_load_avg -H $HOSTADDRESS$ -C '$ARG1$' -P 2c -T load -w$ARG2$,$ARG3$,$ARG4$ -c$ARG5$,$ARG6$,$ARG7$
 check_by_snmp_load_avg_v3=$USER1$/check_by_snmp_load_avg -H $HOSTADDRESS$ $ARG1$ -P 3 -T load -w$ARG2$,$ARG3$,$ARG4$ -c$ARG5$,$ARG6$,$ARG7$
-check_by_snmp_load_custom=$USER1$/check_by_snmp_load_avg $ARG1$
+check_by_snmp_load_avg_custom=$USER1$/check_by_snmp_load_avg $ARG1$
 
 [name]
 check_by_snmp_load_avg
