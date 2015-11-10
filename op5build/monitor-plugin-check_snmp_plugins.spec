@@ -75,6 +75,7 @@ make V=1 check
 rm -rf %buildroot
 mkdir -p %buildroot%prefix/
 %make_install
+mkdir -p %buildroot/opt/monitor/op5/pnp/templates.dist
 mkdir -p %buildroot%prefix/metadata
 mkdir -p %buildroot%{_localstatedir}/check_by_snmp_cpu
 cp op5build/check_by_snmp_disk.metadata %buildroot%prefix/metadata/check_by_snmp_disk.metadata
@@ -82,6 +83,7 @@ cp op5build/check_by_snmp_cpu.metadata %buildroot%prefix/metadata/check_by_snmp_
 cp op5build/check_by_snmp_load_avg.metadata %buildroot%prefix/metadata/check_by_snmp_load_avg.metadata
 cp op5build/check_by_snmp_memory.metadata %buildroot%prefix/metadata/check_by_snmp_memory.metadata
 cp op5build/check_by_snmp_procs.metadata %buildroot%prefix/metadata/check_by_snmp_procs.metadata
+cp op5build/pnp/check_by_snmp_cpu.php %buildroot/opt/monitor/op5/pnp/templates.dist/check_by_snmp_cpu.php
 
 %clean
 rm -rf %buildroot
@@ -95,6 +97,7 @@ rm -rf %buildroot
 %defattr(-,root,root,-)
 %attr(755,root,root) %{prefix}/check_by_snmp_cpu
 %attr(644,root,root) %{prefix}/metadata/check_by_snmp_cpu.metadata
+%attr(644,%{daemon_user},%{daemon_group}) /opt/monitor/op5/pnp/templates.dist/check_by_snmp_cpu.php
 %dir %attr(755,%{daemon_user},%{daemon_group}) %{_localstatedir}/check_by_snmp_cpu
 
 %files -n monitor-plugin-check_snmp_load_avg
