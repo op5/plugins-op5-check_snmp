@@ -4,15 +4,13 @@
 # The rest of them except for total and idle goes into $def[2]
 #
 $color_list = array(
-	1  => "#C61F27", // Red
-	2  => "#ECECEC", // Grey
-	3  => "#000000", // Black
-	4  => "#8FCB7F", // Green
-	5  => "#3BA2C6", // Blue
-	6  => "#1A262C", // Dark grey
-	7  => "#F37A20", // Orange
+	1  => "#e382ffff", // Grey
+	2  => "#674ea7ff", // Black
+	3  => "#8FCB7F", // Green
+	4  => "#3BA2C6", // Blue
+	5  => "#1A262C", // Dark grey
+	6  => "#F37A20", // Orange
 );
-
 $opt[1] = '';
 $opt[2] = '--vertical-label Percent ' .
           '--title "CPU usage" -u 100 -l 0 ' .
@@ -36,7 +34,7 @@ for($i=1; $i <= sizeof($DS); $i++) {
 		           '--title "CPU ' . $LABEL[$i] . ' usage" -u 100 -l 0 ' .
 		           '--border 0';
 		$def[1] .=  rrd::def("var1", $RRDFILE[$i], $DS[$i], "AVERAGE");
-		$def[1] .=  rrd::gradient("var1", $color_list[3], $color_list[1],
+		$def[1] .=  rrd::gradient("var1", '#2f809c', $color_list[4],
 		            ucfirst($LABEL[$i]), 12);
 		$def[1] .=  rrd::gprint("var1", array("LAST", "MIN", "MAX", "AVERAGE"),
 		            "%4.0lf" . "%%");
@@ -48,7 +46,7 @@ for($i=1; $i <= sizeof($DS); $i++) {
 		           "%\\n");
 	}
 
-	if ((isset($LABEL[$i]) && $LABEL[$i] != "idle") ||
+	if ((isset($LABEL[$i]) && $LABEL[$i] != "idle") &&
 	    (isset($LABEL[$i]) && $LABEL[$i] != "total"))
 	{
 		$ds_name[2] .= $LABEL[$i] . " ";
