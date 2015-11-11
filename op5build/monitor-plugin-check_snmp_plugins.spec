@@ -59,6 +59,7 @@ Requires: op5-monitor-user
 %package -n monitor-plugin-check_snmp_procs
 Group: Applications/System
 Summary: Nagios compatible plugin to check procs over SNMP
+Requires: op5-monitor-user
 
 %description -n monitor-plugin-check_snmp_procs
 %{summary}
@@ -89,6 +90,7 @@ cp op5build/pnp/check_by_snmp_cpu.php %buildroot/opt/monitor/op5/pnp/templates.d
 cp op5build/pnp/check_by_snmp_memory.php %buildroot/opt/monitor/op5/pnp/templates.dist/check_by_snmp_memory.php
 cp op5build/pnp/check_by_snmp_disk.php %buildroot/opt/monitor/op5/pnp/templates.dist/check_by_snmp_disk.php
 cp op5build/pnp/check_by_snmp_load_avg.php %buildroot/opt/monitor/op5/pnp/templates.dist/check_by_snmp_load_avg.php
+cp op5build/pnp/check_by_snmp_procs.php %buildroot/opt/monitor/op5/pnp/templates.dist/check_by_snmp_procs.php
 
 %clean
 rm -rf %buildroot
@@ -122,6 +124,7 @@ rm -rf %buildroot
 %defattr(-,root,root,-)
 %attr(755,root,root) %{prefix}/check_by_snmp_procs
 %attr(644,root,root) %{prefix}/metadata/check_by_snmp_procs.metadata
+%attr(644,%{daemon_user},%{daemon_group}) /opt/monitor/op5/pnp/templates.dist/check_by_snmp_procs.php
 
 %changelog
 * Fri Jul 03 2015 Robin Hagman <robin.hagman@op5.com> 0.0.1
