@@ -142,18 +142,23 @@ struct process_state_count *check_proc_ret(mp_snmp_context *ss, int statemask)
 	return pstate_count;
 }
 
+static void debug_print_one_proc(int level, struct proc_info *p)
+{
+	mp_debug(level, "################\n");
+	mp_debug(level, "  Index: %d\n", p->Index);
+	mp_debug(level, "  Name: %s\n", p->Name);
+	mp_debug(level, "  Path: %s\n", p->Path);
+	mp_debug(level, "  Status: %s\n", pstate2str(p->Status));
+	mp_debug(level, "  Parameters: %s\n", p->Parameters);
+	mp_debug(level, "  CPU: %d\n", p->Perf.CPU);
+	mp_debug(level, "  Mem: %d\n", p->Perf.Mem);
+}
+
 static int proc_info_ret(void *p_, void *discard)
 {
 	struct proc_info *p = (struct proc_info *)p_;
 
-	mp_debug(2,"################\n");
-	mp_debug(2,"  Index: %d\n", p->Index);
-	mp_debug(2,"  Name: %s\n", p->Name);
-	mp_debug(2,"  Path: %s\n", p->Path);
-	mp_debug(2,"  Status: %s\n", pstate2str(p->Status));
-	mp_debug(2,"  Parameters: %s\n", p->Parameters);
-	mp_debug(2,"  CPU: %d\n", p->Perf.CPU);
-	mp_debug(2,"  Mem: %d\n", p->Perf.Mem);
+	debug_print_one_proc(2, p);
 
 	if (0 == strcmp(p->Name, name_filter))
 	{
@@ -289,6 +294,13 @@ void print_help (void)
 	printf ( UT_WARN_CRIT_RANGE);
 }
 
+static int list_one_process(void *a, void *discard)
+{
+	struct proc_info *p = (struct proc_info *)a;
+	debug_print_one_proc(0, p);
+	return 0;
+}
+
 int main(int argc, char **argv)
 {
 	static thresholds *thresh;
@@ -296,6 +308,7 @@ int main(int argc, char **argv)
 	int c, option;
 	int process_counter;
 	int result = STATE_UNKNOWN;
+	int list_processes = 0;
 	mp_snmp_context *ctx;
 	struct process_state_count *ptr;
 	char *optary;
@@ -313,6 +326,7 @@ int main(int argc, char **argv)
 		{"perfdata", no_argument, 0, 'f'},
 		{"type", required_argument, 0, 'T'},
 		{"indexname", required_argument, 0, 'i'},
+		{"list", no_argument, 0, 'l'},
 		MP_SNMP_LONGOPTS,
 		{NULL, 0, 0, 0},
 	};
@@ -355,6 +369,9 @@ int main(int argc, char **argv)
 			continue;
 
 		switch (c) {
+			case 'l':
+				list_processes = 1;
+				break;
 			case 'c':
 				crit_str = optarg;
 				break;
@@ -431,6 +448,10 @@ int main(int argc, char **argv)
 
 	fetch_proc_info(ctx);
 	mp_debug(2,"Traversing %d nodes\n", rbtree_num_nodes(all_procs));
+	if (list_processes) {
+		rbtree_traverse(all_procs, list_one_process, NULL, rbinorder);
+		exit(0);
+	}
 
 	switch (o_monitortype) {
 		case MONITOR_TYPE__NUMBER_OF_PROCESSES:
