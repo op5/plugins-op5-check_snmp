@@ -1,45 +1,9 @@
 <?php
-class Check_Snmp_Load_Avg_Test extends PHPUnit_Framework_TestCase {
-
-	private static $snmpsimroot = "/tmp/check_by_snmp_load_avg_test/";
-	private $snmpsimroot_current = false;
-
-	private function start_snmpsim($snmpdata) {
-		if ($this->snmpsimroot_current !== false) {
-			$this->stop_snmpsim();
-		}
-		$this->snmpsimroot_current = static::$snmpsimroot.md5(uniqid())."/";
-		@mkdir($this->snmpsimroot_current, 0777, true);
-		@mkdir($this->snmpsimroot_current."data", 0777, true);
-		file_put_contents($this->snmpsimroot_current."data/mycommunity.snmprec", $snmpdata);
-
-		$command="snmpsimd.py".
-		" --daemonize".
-		" --pid-file=".$this->snmpsimroot_current . "pidfile".
-		" --agent-udpv4-endpoint=127.0.0.1:21161".
-		" --device-dir=".$this->snmpsimroot_current . "data";
-		system($command, $returnval);
-	}
-
-	private function stop_snmpsim() {
-		if ($this->snmpsimroot_current === false) {
-			return;
-		}
-		posix_kill(intval(file_get_contents($this->snmpsimroot_current . "pidfile")), SIGINT);
-		$this->snmpsimroot_current = false;
-	}
-
-	public function tearDown() {
-		$this->stop_snmpsim();
-	}
-
-	public function run_command($args, &$output, &$return) {
-		$check_command = __DIR__ . "/../../../opt/plugins/check_by_snmp_load_avg";
-		return exec($check_command . " " . $args, $output, $return);
-	}
-
-	private function generate_snmpdata($snmpdata_diff) {
-		$snmpdata = <<<EOF
+require_once('test_helper.php');
+class Check_Snmp_Load_Avg_Test extends test_helper
+{
+	public $plugin = 'check_by_snmp_load_avg';
+	public $snmpdata = <<<EOF
 1.3.6.1.4.1.2021.10.1.5.1|2|2
 1.3.6.1.4.1.2021.10.1.5.2|2|3
 1.3.6.1.4.1.2021.10.1.5.3|2|0
@@ -83,41 +47,7 @@ class Check_Snmp_Load_Avg_Test extends PHPUnit_Framework_TestCase {
 1.3.6.1.2.1.25.3.6.1.3.1552|2|2
 1.3.6.1.2.1.25.3.6.1.3.1553|2|2
 EOF;
-		$snmpdata_arr = array();
-		foreach( explode("\n", $snmpdata) as $line) {
-			if($line == "")
-				continue;
-			list($oid, $type, $value) = explode("|", $line, 3);
-			$snmpdata_arr[$oid] = array($type, $value);
-		}
 
-		foreach($snmpdata_diff as $oid => $newval) {
-			if($newval === false)
-				unset($snmpdata_arr[$oid]);
-			else
-				$snmpdata_arr[$oid] = $newval;
-		}
-
-		$out_snmpdata = array();
-		foreach($snmpdata_arr as $oid => $valarr) {
-			list($type, $value) = $valarr;
-			$out_snmpdata[] = "$oid|$type|$value";
-		}
-		natsort($out_snmpdata);
-		return implode("\n", $out_snmpdata)."\n";
-	}
-
-	public function assertCommand($args, $snmpdata_diff, $expectedoutput, $expectedreturn){
-		$this->start_snmpsim($this->generate_snmpdata($snmpdata_diff));
-		$this->run_command(str_replace("@endpoint@","127.0.0.1:21161",$args), $output, $return);
-
-		if(is_array($expectedoutput))
-			$expectedoutput = implode("\n", $expectedoutput)."\n";
-		$output = implode("\n", $output)."\n";
-
-		$this->assertEquals($expectedoutput, $output);
-		$this->assertEquals($expectedreturn, $return);
-	}
 /**
  * Testing load default
  */
