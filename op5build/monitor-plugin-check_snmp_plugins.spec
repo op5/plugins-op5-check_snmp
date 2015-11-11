@@ -27,6 +27,7 @@ BuildRequires: net-snmp-devel
 %package -n monitor-plugin-check_snmp_disk
 Group: Applications/System
 Summary: Nagios compatible plugin to check disks over SNMP
+Requires: op5-monitor-user
 
 %description -n monitor-plugin-check_snmp_disk
 %{summary}
@@ -86,6 +87,7 @@ cp op5build/check_by_snmp_memory.metadata %buildroot%prefix/metadata/check_by_sn
 cp op5build/check_by_snmp_procs.metadata %buildroot%prefix/metadata/check_by_snmp_procs.metadata
 cp op5build/pnp/check_by_snmp_cpu.php %buildroot/opt/monitor/op5/pnp/templates.dist/check_by_snmp_cpu.php
 cp op5build/pnp/check_by_snmp_memory.php %buildroot/opt/monitor/op5/pnp/templates.dist/check_by_snmp_memory.php
+cp op5build/pnp/check_by_snmp_disk.php %buildroot/opt/monitor/op5/pnp/templates.dist/check_by_snmp_disk.php
 
 %clean
 rm -rf %buildroot
@@ -93,6 +95,7 @@ rm -rf %buildroot
 %files -n monitor-plugin-check_snmp_disk
 %defattr(-,root,root,-)
 %attr(755,root,root) %{prefix}/check_by_snmp_disk
+%attr(644,%{daemon_user},%{daemon_group}) /opt/monitor/op5/pnp/templates.dist/check_by_snmp_disk.php
 %attr(644,root,root) %{prefix}/metadata/check_by_snmp_disk.metadata
 
 %files -n monitor-plugin-check_snmp_cpu
