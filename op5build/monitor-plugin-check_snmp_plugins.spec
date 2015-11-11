@@ -88,6 +88,7 @@ cp op5build/check_by_snmp_procs.metadata %buildroot%prefix/metadata/check_by_snm
 cp op5build/pnp/check_by_snmp_cpu.php %buildroot/opt/monitor/op5/pnp/templates.dist/check_by_snmp_cpu.php
 cp op5build/pnp/check_by_snmp_memory.php %buildroot/opt/monitor/op5/pnp/templates.dist/check_by_snmp_memory.php
 cp op5build/pnp/check_by_snmp_disk.php %buildroot/opt/monitor/op5/pnp/templates.dist/check_by_snmp_disk.php
+cp op5build/pnp/check_by_snmp_load_avg.php %buildroot/opt/monitor/op5/pnp/templates.dist/check_by_snmp_load_avg.php
 
 %clean
 rm -rf %buildroot
@@ -109,6 +110,7 @@ rm -rf %buildroot
 %defattr(-,root,root,-)
 %attr(755,root,root) %{prefix}/check_by_snmp_load_avg
 %attr(644,root,root) %{prefix}/metadata/check_by_snmp_load_avg.metadata
+%attr(644,%{daemon_user},%{daemon_group}) /opt/monitor/op5/pnp/templates.dist/check_by_snmp_load_avg.php
 
 %files -n monitor-plugin-check_snmp_memory
 %defattr(-,root,root,-)
