@@ -50,6 +50,7 @@ Requires: op5-monitor-user
 %package -n monitor-plugin-check_snmp_memory
 Group: Applications/System
 Summary: Nagios compatible plugin to check memory over SNMP
+Requires: op5-monitor-user
 
 %description -n monitor-plugin-check_snmp_memory
 %{summary}
@@ -84,6 +85,7 @@ cp op5build/check_by_snmp_load_avg.metadata %buildroot%prefix/metadata/check_by_
 cp op5build/check_by_snmp_memory.metadata %buildroot%prefix/metadata/check_by_snmp_memory.metadata
 cp op5build/check_by_snmp_procs.metadata %buildroot%prefix/metadata/check_by_snmp_procs.metadata
 cp op5build/pnp/check_by_snmp_cpu.php %buildroot/opt/monitor/op5/pnp/templates.dist/check_by_snmp_cpu.php
+cp op5build/pnp/check_by_snmp_memory.php %buildroot/opt/monitor/op5/pnp/templates.dist/check_by_snmp_memory.php
 
 %clean
 rm -rf %buildroot
@@ -109,6 +111,7 @@ rm -rf %buildroot
 %defattr(-,root,root,-)
 %attr(755,root,root) %{prefix}/check_by_snmp_memory
 %attr(644,root,root) %{prefix}/metadata/check_by_snmp_memory.metadata
+%attr(644,%{daemon_user},%{daemon_group}) /opt/monitor/op5/pnp/templates.dist/check_by_snmp_memory.php
 
 %files -n monitor-plugin-check_snmp_procs
 %defattr(-,root,root,-)
