@@ -2,7 +2,8 @@
 #
 # Copyright (c) 2006-2010 Joerg Linge (http://www.pnp4nagios.org)
 # Default Template used if no other template is found.
-# Don`t delete this file ! 
+# Don`t delete this file !
+
 #
 # Define some colors ..
 #
@@ -18,10 +19,26 @@ $color_list = array(
 	5  => "#D5A15C", // Brown
 	6  => "#5CD58C", // Green
 );
+
+#
+# gprint uses a function to convert bytes to a human readable form, hrule does
+# not have this functionality so implementing that type of function here.
+# gprint uses SI units with base 1000 so use it here as well instead of 1024.
+#
+function bytes_to_string($bytes) {
+	$units = array("B", "kB", "MB", "GB", "TB", "PB");
+	$bytes = (float)$bytes;
+	$pow = 0;
+	while($bytes >= 1000.0 && isset($units[$pow+1])) {
+		$pow++;
+		$bytes /= 1000.0;
+	}
+	return sprintf("%8.3f %s",$bytes, $units[$pow]);
+}
+
 #
 # Initial Logic ...
 #
-
 foreach ($this->DS as $KEY=>$VAL) {
 
 	$maximum  = "";
@@ -63,7 +80,7 @@ foreach ($this->DS as $KEY=>$VAL) {
 		$maximum = $VAL['MAX'];
 	}
 	if ($VAL['UNIT'] == "%%") {
-		$vlabel = "%";
+		$vlabel = "Percent";
 		$upper = " --upper=101 ";
 		$lower = " --lower=0 ";
 	}
@@ -78,27 +95,26 @@ foreach ($this->DS as $KEY=>$VAL) {
 	$def[$KEY] .= rrd::cdef("var_b1", "var1,1,*");
 	$def[$KEY] .= rrd::area("var_b1", "$color_list[6]70",
 	           rrd::cut(ucfirst($ds_name[$KEY]),12), 'STACK' );
-	$def[$KEY] .= rrd::gprint  ("var1", array("LAST","MAX","AVERAGE"), "%3.4lf %S".$VAL['UNIT']);
+	$def[$KEY] .= rrd::gprint("var1", array("LAST","MAX","AVERAGE"), "%8.3lf %S".$VAL['UNIT']);
 
 	if ($warning != "") {
-		$def[$KEY] .= rrd::hrule($warning, $_WARNRULE, "Warning  $warning \\n");
+		$def[$KEY] .= rrd::hrule($warning, $_WARNRULE, sprintf("Warning  %s \\n", bytes_to_string($warning)));
 	}
 	if ($warn_min != "") {
-		$def[$KEY] .= rrd::hrule($warn_min, $_WARNRULE, "Warning  (min)  $warn_min \\n");
+		$def[$KEY] .= rrd::hrule($warn_min, $_WARNRULE, sprintf("Warning  (min) %s \\n", bytes_to_string($warn_min)));
 	}
 	if ($warn_max != "") {
-		$def[$KEY] .= rrd::hrule($warn_max, $_WARNRULE, "Warning  (max)  $warn_max \\n");
+		$def[$KEY] .= rrd::hrule($warn_max, $_WARNRULE, sprintf("Warning  (max) %s \\n", bytes_to_string($warn_max)));
 	}
 	if ($critical != "") {
-		$def[$KEY] .= rrd::hrule($critical, $_CRITRULE, "Critical $critical \\n");
+		$def[$KEY] .= rrd::hrule($critical, $_CRITRULE, sprintf("Critical %s \\n", bytes_to_string($critical)));
 	}
 	if ($crit_min != "") {
-		$def[$KEY] .= rrd::hrule($crit_min, $_CRITRULE, "Critical (min)  $crit_min \\n");
+		$def[$KEY] .= rrd::hrule($crit_min, $_CRITRULE, sprintf("Critical (min) %s \\n", bytes_to_string($crit_min)));
 	}
 	if ($crit_max != "") {
-		$def[$KEY] .= rrd::hrule($crit_max, $_CRITRULE, "Critical (max)  $crit_max MiB\\n");
+		$def[$KEY] .= rrd::hrule($crit_max, $_CRITRULE, sprintf("Critical (max) %s\\n", bytes_to_string($crit_max)));
 	}
 	$def[$KEY] .= rrd::comment("SNMP Disk Template\\r");
 	$def[$KEY] .= rrd::comment("Command " . $VAL['TEMPLATE'] . "\\r");
 }
-?>
