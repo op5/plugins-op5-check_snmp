@@ -133,15 +133,26 @@ int mp_snmp_is_valid_var(netsnmp_variable_list *v)
 	return 1;
 }
 
+/* helper to do error handling while opening a session */
+static netsnmp_session *mp_snmp_open_session(mp_snmp_context *ctx)
+{
+	netsnmp_session *ss;
+
+	if (!(ss = snmp_open(&ctx->session))) {
+		snmp_error(&ctx->session, NULL, NULL, &ctx->errstr);
+		return NULL;
+	}
+
+	return ss;
+}
+
 int mp_snmp_query(mp_snmp_context *ctx, netsnmp_pdu *pdu, netsnmp_pdu **response)
 {
 	netsnmp_session *ss;
 	int ret;
 
-	if (!(ss = snmp_open(&ctx->session))) {
-		snmp_error(&ctx->session, NULL, NULL, &ctx->errstr);
+	if (!(ss = mp_snmp_open_session(ctx)))
 		return -1;
-	}
 	ret = mp_snmp_synch_response(ctx, ss, pdu, response);
 	snmp_close(ss);
 
@@ -393,8 +404,7 @@ int mp_snmp_walk(mp_snmp_context *ctx, const char *base_oid, const char *end_oid
 	int running, status = STAT_ERROR, exitval = 0;
 	int result;
 
-	if (!(s = snmp_open(&ctx->session))) {
-		snmp_error(&ctx->session, NULL, NULL, &ctx->errstr);
+	if (!(s = mp_snmp_open_session(ctx))) {
 		return -1;
 	}
 
