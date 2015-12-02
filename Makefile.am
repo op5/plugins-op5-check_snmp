@@ -8,6 +8,7 @@ libexec_PROGRAMS=\
 	src/check_by_snmp_cpu \
 	src/check_by_snmp_load_avg \
 	src/check_by_snmp_memory \
+	src/check_by_snmp_extend \
 	src/check_by_snmp_procs
 
 LIBS = $(SNMPLIBS)
@@ -40,6 +41,10 @@ src_check_by_snmp_memory_SOURCES=\
 
 src_check_by_snmp_procs_SOURCES=\
 	src/check_by_snmp_procs.c \
+	$(COMMON_SOURCES)
+
+src_check_by_snmp_extend_SOURCES=\
+	src/check_by_snmp_extend.c \
 	$(COMMON_SOURCES)
 
 TESTS = \

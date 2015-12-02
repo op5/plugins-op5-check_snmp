@@ -64,6 +64,14 @@ Requires: op5-monitor-user
 %description -n monitor-plugin-check_snmp_procs
 %{summary}
 
+%package -n monitor-plugin-check_snmp_extend
+Group: Applications/System
+Summary: Nagios compatible plugin to run plugins over SNMP
+
+%description -n monitor-plugin-check_snmp_extend
+%{summary}
+
+
 %prep
 %setup -q
 
@@ -86,6 +94,7 @@ cp op5build/check_by_snmp_cpu.metadata %buildroot%prefix/metadata/check_by_snmp_
 cp op5build/check_by_snmp_load_avg.metadata %buildroot%prefix/metadata/check_by_snmp_load_avg.metadata
 cp op5build/check_by_snmp_memory.metadata %buildroot%prefix/metadata/check_by_snmp_memory.metadata
 cp op5build/check_by_snmp_procs.metadata %buildroot%prefix/metadata/check_by_snmp_procs.metadata
+cp op5build/check_by_snmp_extend.metadata %buildroot%prefix/metadata/check_by_snmp_extend.metadata
 cp op5build/pnp/check_by_snmp_cpu.php %buildroot/opt/monitor/op5/pnp/templates.dist/check_by_snmp_cpu.php
 cp op5build/pnp/check_by_snmp_memory.php %buildroot/opt/monitor/op5/pnp/templates.dist/check_by_snmp_memory.php
 cp op5build/pnp/check_by_snmp_disk.php %buildroot/opt/monitor/op5/pnp/templates.dist/check_by_snmp_disk.php
@@ -125,6 +134,12 @@ rm -rf %buildroot
 %attr(755,root,root) %{prefix}/check_by_snmp_procs
 %attr(644,root,root) %{prefix}/metadata/check_by_snmp_procs.metadata
 %attr(644,%{daemon_user},%{daemon_group}) /opt/monitor/op5/pnp/templates.dist/check_by_snmp_procs.php
+
+%files -n monitor-plugin-check_snmp_extend
+%defattr(-,root,root,-)
+%attr(755,root,root) %{prefix}/check_by_snmp_extend
+%attr(644,root,root) %{prefix}/metadata/check_by_snmp_extend.metadata
+
 
 %changelog
 * Fri Jul 03 2015 Robin Hagman <robin.hagman@op5.com> 0.0.1
