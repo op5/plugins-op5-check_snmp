@@ -7,6 +7,7 @@ const char *program_name = "check_by_snmp_procs";
 const char *copyright = "2015";
 const char *email = "devel@monitoring-plugins.org";
 
+#include <malloc.h> /* for ptrdiff_t */
 #include "config.h"
 #include "common.h"
 #include "utils.h"
@@ -68,6 +69,7 @@ struct proc_info {
 		int CPU;
 		int Mem;
 	} Perf;
+	char *basename_Path;
 	struct proc_info *next;
 };
 
@@ -148,6 +150,7 @@ static void debug_print_one_proc(int level, struct proc_info *p)
 	mp_debug(level, "  Index: %d\n", p->Index);
 	mp_debug(level, "  Name: %s\n", p->Name);
 	mp_debug(level, "  Path: %s\n", p->Path);
+	mp_debug(level, "  basename_Path: %s\n", p->basename_Path);
 	mp_debug(level, "  Status: %s\n", pstate2str(p->Status));
 	mp_debug(level, "  Parameters: %s\n", p->Parameters);
 	mp_debug(level, "  CPU: %d\n", p->Perf.CPU);
@@ -201,13 +204,35 @@ static int parse_state_filter(const char *str)
 
 static void destroy_proc_info(void *p_)
 {
-	struct proc_info *p = (struct proc_info *)p;
+	struct proc_info *p = (struct proc_info *)p_;
 	if (!p)
 		return;
 	free(p->Name);
 	free(p->Parameters);
 	free(p->Path);
 	free(p);
+}
+
+static char *first_word_basename(const char *in)
+{
+	char *space, *slash = NULL;
+
+	if (!in)
+		return NULL;
+
+	space = strchr(in, ' ');
+	if (space) {
+		slash = memrchr(in, '/', (ptrdiff_t)space - (ptrdiff_t)in);
+		if (slash)
+			return strndup(slash + 1, (ptrdiff_t)space - ((ptrdiff_t)slash + 1));
+		return strndup(in, (ptrdiff_t)space - (ptrdiff_t)in);
+	}
+
+	if ((slash = strrchr(in, '/')))
+		return strdup(slash + 1);
+
+	/* only case left is "no slash, no space" */
+	return strdup(in);
 }
 
 static int parse_snmp_var(netsnmp_variable_list *v, void *discard1, void *discard2)
@@ -248,6 +273,7 @@ static int parse_snmp_var(netsnmp_variable_list *v, void *discard1, void *discar
 		break;
 	case PROCESS_SUBIDX_RunPath:
 		p->Path = strndup((char *)v->val.string, v->val_len);
+		p->basename_Path = first_word_basename(p->Path);
 		break;
 	case PROCESS_SUBIDX_RunStatus:
 		p->Status = *v->val.integer;
@@ -301,7 +327,7 @@ static int list_one_process(void *a, void *discard)
 	return 0;
 }
 
-int main(int argc, char **argv)
+int check_by_snmp_procs(int argc, char **argv)
 {
 	static thresholds *thresh;
 	int i, x;
@@ -446,7 +472,14 @@ int main(int argc, char **argv)
 		die(STATE_UNKNOWN, _("Invalid state filter string: %s\n"), state_str);
 	}
 
-	fetch_proc_info(ctx);
+	/* we don't need to fetch all processes in all instances */
+	if (list_processes ||
+	    (o_monitortype != MONITOR_TYPE__NUMBER_OF_PROCESSES &&
+	     o_monitortype != MONITOR_TYPE__NUMBER_OF_ZOMBIE_PROCESSES))
+	{
+		fetch_proc_info(ctx);
+	}
+
 	mp_debug(2,"Traversing %d nodes\n", rbtree_num_nodes(all_procs));
 	if (list_processes) {
 		rbtree_traverse(all_procs, list_one_process, NULL, rbinorder);
@@ -540,3 +573,10 @@ int main(int argc, char **argv)
 
 	return result;
 }
+
+#ifndef MP_TEST_PROGRAM
+int main(int argc, char **argv)
+{
+	return check_by_snmp_procs(argc, argv);
+}
+#endif /* MP_TEST_PROGRAM */
