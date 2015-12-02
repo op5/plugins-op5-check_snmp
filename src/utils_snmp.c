@@ -197,6 +197,27 @@ int mp_snmp_query(mp_snmp_context *ctx, netsnmp_pdu *pdu, netsnmp_pdu **response
 	return ret;
 }
 
+int mp_snmp_getl(mp_snmp_context *ctx, netsnmp_pdu **response, ...)
+{
+	va_list ap;
+	struct mp_snmp_oid *o;
+	netsnmp_pdu *query;
+	int ret;
+
+	if (!ctx || !response)
+		return -1;
+
+	query = snmp_pdu_create(SNMP_MSG_GET);
+	va_start(ap, response);
+	while ((o = va_arg(ap, struct mp_snmp_oid *))) {
+		snmp_add_null_var(query, o->id, o->len);
+	}
+	ret = mp_snmp_query(ctx, query, response);
+	va_end(ap);
+
+	return ret;
+}
+
 mp_snmp_context *mp_snmp_create_context(void)
 {
 	mp_snmp_context *c;

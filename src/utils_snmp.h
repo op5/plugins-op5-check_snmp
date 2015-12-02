@@ -75,6 +75,15 @@ struct mp_snmp_oid {
 };
 
 /**
+ * Get a NULL-sentinel-terminated list of mp_snmp_oid's
+ *
+ * @param ctx mp_snmp_context
+ * @return 0 on success, < 0 on errors
+ */
+int mp_snmp_getl(mp_snmp_context *ctx, netsnmp_pdu **response, ...)
+	__attribute__((sentinel));
+
+/**
  * Convert an oid to a string
  *
  * @param o The oid. Must not be NULL
