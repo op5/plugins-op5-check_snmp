@@ -78,6 +78,44 @@ static const char *seclevel_name(int lvl)
 	return "unknown";
 }
 
+char *mp_snmp_asciioid_extract(oid *o)
+{
+	char *buf;
+	size_t i, len;
+
+	if (!o)
+		return NULL;
+
+	len = (size_t)o[0];
+
+	buf = calloc(1, len + 1);
+	if (!buf)
+		return NULL;
+
+	for (i = 1; i <= len; i++) {
+		/* AND to shut the compiler up */
+		buf[i - 1] = o[i] & 0xff;
+	}
+
+	return buf;
+}
+
+int mp_snmp_asciioid_append(struct mp_snmp_oid *o, const char *ascii)
+{
+	size_t slen, i;
+
+	if (!o || !ascii || !*ascii)
+		return -1;
+
+	slen = strlen(ascii);
+	o->id[o->len++] = slen;
+	for (i = 0; i < slen && i < MAX_OID_LEN; i++) {
+		o->id[o->len + i] = ascii[i];
+	}
+	o->len += slen;
+	return 0;
+}
+
 void mp_snmp_debug_print_ctx(FILE *fp, mp_snmp_context *ctx)
 {
 	if (!ctx)

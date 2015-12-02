@@ -45,6 +45,7 @@ src_check_by_snmp_procs_SOURCES=\
 TESTS = \
 	src/test/check_by_snmp_disk \
 	src/test/check_by_snmp_procs \
+	src/test/utils_snmp \
 	src/test/check_by_snmp_cpu
 
 check_PROGRAMS = $(TESTS)
@@ -60,3 +61,7 @@ src_test_check_by_snmp_disk_LDADD = $(TAPLDADD)
 src_test_check_by_snmp_procs_SOURCES = src/test/check_by_snmp_procs.c $(TAPSOURCES)
 src_test_check_by_snmp_procs_CPPFLAGS = $(TAPCPPFLAGS)
 src_test_check_by_snmp_procs_LDADD = $(TAPLDADD)
+
+src_test_utils_snmp_SOURCES = src/test/utils_snmp.c $(TAPSOURCES)
+src_test_utils_snmp_CPPFLAGS = $(TAPCPPFLAGS)
+src_test_utils_snmp_LDADD = $(TAPLDADD)

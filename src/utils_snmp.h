@@ -69,6 +69,11 @@ void mp_snmp_destroy_context(mp_snmp_context *ctx);
 int mp_snmp_handle_argument(mp_snmp_context *ctx, int option, const char *opt);
 int mp_snmp_is_valid_var(netsnmp_variable_list *v);
 
+struct mp_snmp_oid {
+	oid id[MAX_OID_LEN];
+	size_t len;
+};
+
 /**
  * Convert an oid to a string
  *
@@ -162,4 +167,29 @@ void mp_snmp_init(const char *name, int flags);
  * @param name The same name you passed to mp_snmp_init. Can be NULL
  */
 void mp_snmp_deinit(const char *name);
+
+
+/**
+ * Extract the ascii part of an oid and return it as a string.
+ *
+ * This is useful to extract the name part of a name-indexed oid.
+ * Note that the oid must be offset at the point where the string
+ * length starts when passed to this function.
+ *
+ * @param o The oid to extract from
+ * @return An allocated ascii string on success. NULL on errors.
+ */
+char *mp_snmp_asciioid_extract(oid *o);
+
+/**
+ * Append an ascii string to an oid
+ *
+ * This is useful when accessing name-indexed oids.
+ *
+ * @param o The mp_snmp_oid to append to
+ * @param ascii The ascii string to append to the oid
+ * @return 0 on succes, < 0 on errors
+ */
+int mp_snmp_asciioid_append(struct mp_snmp_oid *o, const char *ascii);
+
 /** @} */
