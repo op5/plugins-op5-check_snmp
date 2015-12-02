@@ -41,3 +41,7 @@ config.sub
 libtool
 m4/*.m4
 ltmain.sh
+src/test/*.trs
+src/test/*.log
+/test-suite.log
+/test-driver
