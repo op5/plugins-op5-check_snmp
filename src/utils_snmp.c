@@ -612,16 +612,13 @@ void mp_snmp_init(const char *name, int flags)
 	if (!(flags & MP_SNMP_LOAD_MIBS)) {
 		/* disable mib parsing. It takes a lot of resources */
 		netsnmp_set_mib_directory(":");
+		/* force numeric printing of oid's if not loading mibs */
+		netsnmp_ds_set_int(NETSNMP_DS_LIBRARY_ID, NETSNMP_DS_LIB_OID_OUTPUT_FORMAT, NETSNMP_OID_OUTPUT_NUMERIC);
 	}
 
 	if (!(flags & MP_SNMP_LOAD_CONFIG)) {
 		netsnmp_ds_set_boolean(NETSNMP_DS_LIBRARY_ID, NETSNMP_DS_LIB_DISABLE_CONFIG_LOAD, 1);
 	}
-#if 0
-	netsnmp_ds_set_boolean(NETSNMP_DS_LIBRARY_ID, NETSNMP_DS_LIB_PRINT_BARE_VALUE, 1);
-	netsnmp_ds_set_boolean(NETSNMP_DS_LIBRARY_ID, NETSNMP_DS_LIB_QUICKE_PRINT, 1);
-	netsnmp_ds_set_int(NETSNMP_DS_LIBRARY_ID, NETSNMP_DS_LIB_OID_OUTPUT_FORMAT, NETSNMP_OID_OUTPUT_NUMERIC);
-#endif
 	init_snmp(name ? name : "mp_snmp");
 }
 
