@@ -13,10 +13,10 @@ const char *email = "devel@monitoring-plugins.org";
 #include "utils_snmp.h"
 #include "rbtree.h"
 
-/* the oid part that decides which type of var this is */
-#define OID_TYPE_DECIDER 10
-/* oid part deciding which command this var is part of */
-#define OID_ID_DECIDER 11
+/* oid slot that decides which type of var this is */
+#define NSCONFIG_TYPE_OFFSET 12
+/* oid part where name starts (with 'len') */
+#define NSCONFIG_NAME_OFFSET 13
 
 #define DEFAULT_COMMUNITY "public" 	/* only used for help text */
 #define DEFAULT_PORT "161"			/* only used for help text */
@@ -24,16 +24,16 @@ const char *email = "devel@monitoring-plugins.org";
 
 
 #define nsExtendConfigTable ".1.3.6.1.4.1.8072.1.3.2.2.1"
+#define CONFIG_BASEOID_LEN 12
 
-#define NSEXTCFG_SUBIDX_Command 2
-#define NSEXTCFG_SUBIDX_Args 3
-#define NSEXTCFG_SUBIDX_Input 4
-#define NSEXTCFG_SUBIDX_CacheTime 5
-#define NSEXTCFG_SUBIDX_ExecType 6
-#define NSEXTCFG_SUBIDX_RunType 7
-#define NSEXTCFG_SUBIDX_Storage 20
-#define NSEXTCFG_SUBIDX_Status 21
-
+#define NSCONFIG_SUBIDX_Command 2
+#define NSCONFIG_SUBIDX_Args 3
+#define NSCONFIG_SUBIDX_Input 4
+#define NSCONFIG_SUBIDX_CacheTime 5
+#define NSCONFIG_SUBIDX_ExecType 6
+#define NSCONFIG_SUBIDX_RunType 7
+#define NSCONFIG_SUBIDX_Storage 20
+#define NSCONFIG_SUBIDX_Status 21
 
 #define NSEXTEND_TYPE_OID_OFFSET 12
 #define NSEXTEND_OUTPUT 2
@@ -41,6 +41,21 @@ const char *email = "devel@monitoring-plugins.org";
 /* these need to get \"name\" appended to them, with length */
 #define BASEOID_nsExtendOutputFull  ".1.3.6.1.4.1.8072.1.3.2.3.1.2"
 #define BASEOID_nsExtendResult ".1.3.6.1.4.1.8072.1.3.2.3.1.4"
+#define BASEOID_LEN 13
+
+
+struct extend_config {
+	char *name;
+	char *Command;
+	char *Args;
+	char *Input;
+	int CacheTime;
+	int ExecType;
+	int RunType;
+	int Storage;
+	int Status;
+};
+
 
 struct exec_info {
 	int Result;
@@ -101,6 +116,97 @@ static int fetch_result(mp_snmp_context *ctx, const char *name, struct exec_info
 	snmp_free_pdu(response);
 
 	return ret < 0 ? -1 : 0;
+}
+
+static int list_walker(netsnmp_variable_list *v, void *tree_, void *discard)
+{
+	struct rbtree *tree = (struct rbtree *)tree_;
+	char *name;
+	struct extend_config *ec, lookup;
+
+	name = lookup.name = mp_snmp_asciioid_extract(&v->name[NSCONFIG_NAME_OFFSET]);
+	mp_debug(3, "Found var %d for extension %s\n", (int)v->name[NSCONFIG_TYPE_OFFSET], name);
+	if (!(ec = rbtree_find(tree, &lookup))) {
+		ec = calloc(1, sizeof(*ec));
+		ec->name = name;
+		rbtree_insert(tree, ec);
+	} else {
+		/* avoid leaking */
+		free(name);
+		name = ec->name;
+	}
+
+	switch (v->name[NSCONFIG_TYPE_OFFSET]) {
+		case NSCONFIG_SUBIDX_Command:
+			ec->Command = strndup((char *)v->val.string, v->val_len);
+			break;
+		case NSCONFIG_SUBIDX_Args:
+			ec->Args = strndup((char *)v->val.string, v->val_len);
+			break;
+		case NSCONFIG_SUBIDX_Input:
+			ec->Input = strndup((char *)v->val.string, v->val_len);
+			break;
+		case NSCONFIG_SUBIDX_CacheTime:
+			ec->CacheTime = *v->val.integer;
+			break;
+		case NSCONFIG_SUBIDX_ExecType:
+			ec->ExecType = *v->val.integer;
+			break;
+		case NSCONFIG_SUBIDX_RunType:
+			ec->ExecType = *v->val.integer;
+			break;
+		case NSCONFIG_SUBIDX_Storage:
+			ec->Storage = *v->val.integer;
+			break;
+		case NSCONFIG_SUBIDX_Status:
+			ec->Status = *v->val.integer;
+			break;
+	}
+
+	return 0;
+}
+
+static int extend_config_cmp(const void *a_, const void *b_)
+{
+	const struct extend_config *a = (struct extend_config *)a_;
+	const struct extend_config *b = (struct extend_config *)b_;
+	return strcmp(a->name, b->name);
+}
+
+static int print_one_extend_config(void *ec_, void *discard)
+{
+	struct extend_config *ec = (struct extend_config *)ec_;
+	printf("%s %s %s\n", ec->name, ec->Command, ec->Args);
+	return 0;
+}
+
+static void destroy_extend_config(void *ec_)
+{
+	struct extend_config *ec = (struct extend_config *)ec_;
+
+	free(ec->name);
+	free(ec->Command);
+	free(ec->Args);
+	free(ec->Input);
+	free(ec);
+}
+
+static void list_all_commands(mp_snmp_context *ctx)
+{
+	struct rbtree *tree;
+
+	if (!(tree = rbtree_create(extend_config_cmp))) {
+		printf("%s: %s: %s\n", progname, state_text(STATE_UNKNOWN),
+		       _("Unable to allocate memory for extend storage"));
+		exit(STATE_UNKNOWN);
+	}
+
+	if (0 != mp_snmp_walk(ctx, nsExtendConfigTable, NULL, list_walker, tree, NULL)) {
+		printf("%s: Failed to list processes: %s\n", progname, mp_snmp_get_errstr(ctx));
+		exit(STATE_UNKNOWN);
+	}
+	rbtree_traverse(tree, print_one_extend_config, NULL, rbinorder);
+	rbtree_destroy(tree, destroy_extend_config);
 }
 
 void print_usage (void)
@@ -210,7 +316,7 @@ int main(int argc, char **argv)
 	free(optary);
 
 	if (optind != argc) {
-		printf("%s: %s: %s\n", state_text(STATE_UNKNOWN), _("%s: Unhandled arguments present"), progname);
+		printf("%s: %s: %s\n", progname, state_text(STATE_UNKNOWN), _("Unhandled arguments present"));
 		for (i = optind - 1; i < argc; i++) {
 			printf("%s%s", argv[i], i == argc - 1 ? "\n" : ", ");
 		}
@@ -231,6 +337,11 @@ int main(int argc, char **argv)
 		mp_snmp_debug_print_ctx(stdout,ctx);
 	};
 
+	if (list_commands) {
+		list_all_commands(ctx);
+		exit(STATE_OK);
+	}
+
 	/* if fetching went well, just dump the output and we're done */
 	if (!fetch_result(ctx, name, &ei)) {
 		printf("%s\n", ei.Output);
@@ -242,6 +353,7 @@ int main(int argc, char **argv)
 		result = STATE_UNKNOWN;
 	}
 
+	mp_snmp_destroy_context(ctx);
 	mp_snmp_deinit(progname);
 
 	return result;

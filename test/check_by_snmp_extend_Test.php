@@ -63,4 +63,13 @@ EOF;
 			"HALABALOO! This is output 4",
 		), 2);
 	}
+	public function test_listing() {
+		$this->assertCommand("-H @endpoint@ -P 2c -C mycommunity --list", array(
+		), array(
+			"THENAME /bin/sh /home/exon/testing.sh
+name2 /bin/sh /home/exon/testing.sh
+name3 /bin/sh /home/exon/testing.sh
+name4 /bin/sh /home/exon/testing.sh"
+		), 0);
+	}
 }
