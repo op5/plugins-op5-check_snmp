@@ -68,6 +68,7 @@ mp_snmp_context *mp_snmp_create_context(void);
 void mp_snmp_destroy_context(mp_snmp_context *ctx);
 int mp_snmp_handle_argument(mp_snmp_context *ctx, int option, const char *opt);
 int mp_snmp_is_valid_var(netsnmp_variable_list *v);
+char *mp_snmp_var_errstr(netsnmp_variable_list *v, int bare_value);
 
 struct mp_snmp_oid {
 	oid id[MAX_OID_LEN];

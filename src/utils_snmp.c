@@ -171,6 +171,24 @@ int mp_snmp_is_valid_var(netsnmp_variable_list *v)
 	return 1;
 }
 
+char *mp_snmp_var_errstr(netsnmp_variable_list *v, int bare_value)
+{
+	char *buf = NULL;
+	size_t outlen = 0, buflen = 0;
+	int orig_bare_value;
+
+	if (mp_snmp_is_valid_var(v))
+		return "valid";
+
+	/* because formatting shit should be kept simple.... */
+	orig_bare_value = netsnmp_ds_get_boolean(NETSNMP_DS_LIBRARY_ID, NETSNMP_DS_LIB_PRINT_BARE_VALUE);
+	netsnmp_ds_set_boolean(NETSNMP_DS_LIBRARY_ID, NETSNMP_DS_LIB_PRINT_BARE_VALUE, !!bare_value);
+	sprint_realloc_variable((u_char **)&buf, &buflen, &outlen, 1, v->name, v->name_length, v);
+	netsnmp_ds_set_boolean(NETSNMP_DS_LIBRARY_ID, NETSNMP_DS_LIB_PRINT_BARE_VALUE, orig_bare_value);
+
+	return buf;
+}
+
 /* helper to do error handling while opening a session */
 static netsnmp_session *mp_snmp_open_session(mp_snmp_context *ctx)
 {
