@@ -1,6 +1,7 @@
 [commands]
 check_by_snmp_extend_v2=$USER1$/check_by_snmp_extend -H $HOSTADDRESS$ -C '$ARG1$' -P 2c -i '$ARG2$'
 check_by_snmp_extend_v3=$USER1$/check_by_snmp_extend -H $HOSTADDRESS$ $ARG1$ -P 3 -i '$ARG2$'
+check_by_snmp_extend_custom=$USER1$/check_by_snmp_extend $ARG1$
 
 [name]
 check_by_snmp_extend
