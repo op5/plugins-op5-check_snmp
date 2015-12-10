@@ -1078,15 +1078,6 @@ EOF;
 			$this->snmp_usage,
 		), 3);
 	}
-	public function test_usage() {
-		$this->assertCommand("-u", array(
-		), array(
-			'Usage:',
-			'check_by_snmp_procs [--list|-i <process name>] [-T <type>]',
-			'   [-w <warn_range>] [-c <crit_range>]',
-			$this->snmp_usage,
-		), 0);
-	}
 	public function disable_test_help() {
 		$this->assertCommand("-h", array(
 		), array(

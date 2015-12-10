@@ -244,7 +244,6 @@ int main(int argc, char **argv)
 
 	static struct option longopts[] = {
 		STD_LONG_OPTS,
-		{"usage", no_argument, 0, 'u'},
 		{"indexname", required_argument, 0, 'i'},
 		{"list", no_argument, 0, 'l'},
 		MP_SNMP_LONGOPTS,
@@ -298,10 +297,6 @@ int main(int argc, char **argv)
 				exit (STATE_OK);
 			case 'v':
 				mp_verbosity++;
-				break;
-			case 'u':
-				print_usage();
-				exit(STATE_OK);
 				break;
 			case 'i':
 				name = optarg;

@@ -347,7 +347,6 @@ int check_by_snmp_procs(int argc, char **argv)
 
 	static struct option longopts[] = {
 		STD_LONG_OPTS,
-		{"usage", no_argument, 0, 'u'},
 		{"perfdata", no_argument, 0, 'f'},
 		{"type", required_argument, 0, 'T'},
 		{"indexname", required_argument, 0, 'i'},
@@ -412,10 +411,6 @@ int check_by_snmp_procs(int argc, char **argv)
 				exit (STATE_OK);
 			case 'v':
 				mp_verbosity++;
-				break;
-			case 'u':
-				print_usage();
-				exit(STATE_OK);
 				break;
 			case 's':
 				state_str = optarg;
