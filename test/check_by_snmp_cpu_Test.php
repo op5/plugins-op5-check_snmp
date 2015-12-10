@@ -210,10 +210,8 @@ EOF;
 		), array(
 			'check_by_snmp_cpu: Could not parse arguments',
 			'Usage:',
-			'check_by_snmp_cpu -H <ip_address> -C <snmp_community>',
-			'[-w <warn_range>] [-c <crit_range>] [-t <timeout>] [-T <type>]',
-			'([-P snmp version] [-N context] [-L seclevel] [-U secname]',
-			'[-a authproto] [-A authpasswd] [-x privproto] [-X privpasswd])'
+			'check_by_snmp_cpu [-w <warn_range>] [-c <crit_range>] [-T <type>]',
+			$this->snmp_usage
 		), 3);
 	}
 	public function disable_test_help() {

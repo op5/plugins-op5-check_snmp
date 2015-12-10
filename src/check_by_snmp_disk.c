@@ -455,11 +455,8 @@ static int oid2storage_type(oid *o, unsigned int len)
 void print_usage(void)
 {
 	printf ("%s\n", _("Usage:"));
-	printf ("%s -H <ip_address> [-C <snmp_community> | -U secname] [--list]\n",
-	        progname);
-	printf ("  [-w <warn_range>] [-c <crit_range>] [-t <timeout>] [-D]\n");
-	printf ("  ([-P snmp version] [-L seclevel] [-U secname]\n");
-	printf ("  [-a authproto] [-A authpasswd] [-x privproto] [-X privpasswd])\n");
+	printf ("%s [--list] [-D] [-w <warn_range>] [-c <crit_range>]\n", progname);
+	mp_snmp_argument_usage();
 }
 
 static void print_help(void)

@@ -63,6 +63,7 @@ void mp_snmp_debug_print_ctx(FILE *fp, mp_snmp_context *ctx);
 
 /** real functions */
 void mp_snmp_argument_help(void);
+void mp_snmp_argument_usage(void);
 int mp_snmp_finalize_auth(mp_snmp_context *c);
 mp_snmp_context *mp_snmp_create_context(void);
 void mp_snmp_destroy_context(mp_snmp_context *ctx);

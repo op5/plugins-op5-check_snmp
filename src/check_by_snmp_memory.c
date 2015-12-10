@@ -149,11 +149,9 @@ struct mem_info *check_mem_ret(mp_snmp_context *ss, int statemask)
 void print_usage (void)
 {
 	printf ("%s\n", _("Usage:"));
-	printf ("%s -H <ip_address> -C <snmp_community> [-T <type>]\n",progname);
-	printf ("[-m<unit_range>] [-w<warn_range>] "
-			"[-c<crit_range>] [-t <timeout>]\n");
-	printf ("([-P snmp version] [-L seclevel] [-U secname]\n");
-	printf ("[-a authproto] [-A authpasswd] [-x privproto] [-X privpasswd])\n");
+	printf ("%s [-T <type>] [-m <unit_range>]\n", progname);
+	printf ("   [-w <warn_range>] [-c <crit_range>]\n");
+	mp_snmp_argument_usage();
 }
 
 void print_help (void)

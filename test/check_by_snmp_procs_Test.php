@@ -1073,20 +1073,18 @@ EOF;
 		), array(
 			'check_by_snmp_procs: Could not parse arguments',
 			'Usage:',
-			'check_by_snmp_procs -H <ip_address> -C <snmp_community> [-i <name of process>]',
-			'[-w <warn_range>] [-c <crit_range>] [-t <timeout>] [-T <type>]',
-			'([-P snmp version] [-N context] [-L seclevel] [-U secname]',
-			'[-a authproto] [-A authpasswd] [-x privproto] [-X privpasswd])'
+			'check_by_snmp_procs [--list|-i <process name>] [-T <type>]',
+			'   [-w <warn_range>] [-c <crit_range>]',
+			$this->snmp_usage,
 		), 3);
 	}
 	public function test_usage() {
 		$this->assertCommand("-u", array(
 		), array(
 			'Usage:',
-			'check_by_snmp_procs -H <ip_address> -C <snmp_community> [-i <name of process>]',
-			'[-w <warn_range>] [-c <crit_range>] [-t <timeout>] [-T <type>]',
-			'([-P snmp version] [-N context] [-L seclevel] [-U secname]',
-			'[-a authproto] [-A authpasswd] [-x privproto] [-X privpasswd])'
+			'check_by_snmp_procs [--list|-i <process name>] [-T <type>]',
+			'   [-w <warn_range>] [-c <crit_range>]',
+			$this->snmp_usage,
 		), 0);
 	}
 	public function disable_test_help() {

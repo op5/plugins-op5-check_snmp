@@ -5,6 +5,14 @@ abstract class test_helper extends PHPUnit_Framework_TestCase
 	private $snmpsimroot = "/tmp";
 	private $snmpsimroot_current = false;
 	public $snmp_community = 'mycommunity';
+	# snmp usage arguments are the same for all plugins
+	public $snmp_usage = <<<EOF
+  -H <hostname> [-t <timeout>] [-p <port>]
+  [-P 1|2c|3] [-C <community>]
+  [-L authPriv|authNoPriv|noAuthNoPriv] [-U <secname>]
+  [-a SHA|MD5] [-A <authpass>] [-x AES|DES] [-X <privpass>]
+SNMP defaults: -p 161 -P 3 -L authPriv -a SHA -x AES
+EOF;
 
 	public function __construct()
 	{

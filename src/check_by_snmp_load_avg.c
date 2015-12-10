@@ -72,10 +72,8 @@ static struct cpu_info *check_cpu_ret(mp_snmp_context *ss, int statemask)
 void print_usage (void)
 {
 	printf ("%s\n", _("Usage:"));
-	printf ("%s -H <ip_address> -C <snmp_community>\n",progname);
-	printf ("[-w<warn_range>] [-c<crit_range>] [-t <timeout>] [-T <type>]\n");
-	printf ("([-P snmp version] [-N context] [-L seclevel] [-U secname]\n");
-	printf ("[-a authproto] [-A authpasswd] [-x privproto] [-X privpasswd])\n");
+	printf ("%s [-w <warn_range>] [-c <crit_range>] [-T <type>]\n", progname);
+	mp_snmp_argument_usage();
 }
 
 void print_help (void)

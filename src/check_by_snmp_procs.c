@@ -293,10 +293,9 @@ static void fetch_proc_info(mp_snmp_context *ctx)
 void print_usage (void)
 {
 	printf ("%s\n", _("Usage:"));
-	printf ("%s -H <ip_address> -C <snmp_community> [-i <name of process>]\n",progname);
-	printf ("[-w <warn_range>] [-c <crit_range>] [-t <timeout>] [-T <type>]\n");
-	printf ("([-P snmp version] [-N context] [-L seclevel] [-U secname]\n");
-	printf ("[-a authproto] [-A authpasswd] [-x privproto] [-X privpasswd])\n");
+	printf ("%s [--list|-i <process name>] [-T <type>]\n", progname);
+	printf ("   [-w <warn_range>] [-c <crit_range>]\n");
+	mp_snmp_argument_usage();
 }
 
 void print_help (void)

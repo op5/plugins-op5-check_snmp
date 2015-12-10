@@ -175,10 +175,9 @@ EOF;
 		), array(
 			'check_by_snmp_memory: Could not parse arguments',
 			'Usage:',
-			'check_by_snmp_memory -H <ip_address> -C <snmp_community> [-T <type>]',
-			'[-m<unit_range>] [-w<warn_range>] [-c<crit_range>] [-t <timeout>]',
-			'([-P snmp version] [-L seclevel] [-U secname]',
-			'[-a authproto] [-A authpasswd] [-x privproto] [-X privpasswd])'
+			'check_by_snmp_memory [-T <type>] [-m <unit_range>]',
+			'   [-w <warn_range>] [-c <crit_range>]',
+			$this->snmp_usage,
 		), 3);
 	}
 	public function test_wrong_T_argument() {

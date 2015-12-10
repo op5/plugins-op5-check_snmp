@@ -377,6 +377,15 @@ void mp_snmp_argument_help(void)
 	printf("    %s\n", _("SNMPv3 privacy password"));
 }
 
+void mp_snmp_argument_usage(void)
+{
+	printf ("  -H <hostname> [-t <timeout>] [-p <port>]\n");
+	printf ("  [-P 1|2c|3] [-C <community>]\n");
+	printf ("  [-L authPriv|authNoPriv|noAuthNoPriv] [-U <secname>]\n");
+	printf ("  [-a SHA|MD5] [-A <authpass>] [-x AES|DES] [-X <privpass>]\n");
+	printf ("SNMP defaults: -p 161 -P 3 -L authPriv -a SHA -x AES\n");
+}
+
 int mp_snmp_handle_argument(mp_snmp_context *ctx, int option, const char *opt)
 {
 	char *str;

@@ -211,11 +211,9 @@ static void list_all_commands(mp_snmp_context *ctx)
 
 void print_usage (void)
 {
-	printf ("%s\n", _("Usage:"));
-	printf ("%s -H <ip_address> -C <snmp_community> [-i <name of command>]\n",progname);
-	printf ("([-P snmp version] [-N context] [-L seclevel] [-U secname]\n");
-	printf ("[-a authproto] [-A authpasswd] [-x privproto] [-X privpasswd])\n");
-	printf ("[-t <timeout>]\n");
+	printf("%s\n", _("Usage:"));
+	printf("%s [-i <name of command>|--list]\n", progname);
+	mp_snmp_argument_usage();
 }
 
 void print_help (void)
