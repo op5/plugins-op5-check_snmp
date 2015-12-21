@@ -5,6 +5,7 @@ ALL_CFLAGS = $(AM_CFLAGS) $(AM_CPPFLAGS)
 
 libexec_PROGRAMS=\
 	src/check_by_snmp_disk \
+	src/check_by_snmp_disk_io \
 	src/check_by_snmp_cpu \
 	src/check_by_snmp_load_avg \
 	src/check_by_snmp_memory \
@@ -25,6 +26,10 @@ TAPCPPFLAGS = $(ALL_CFLAGS) $(CPPFLAGS) -I$(abs_srcdir)/tap
 
 src_check_by_snmp_disk_SOURCES=\
 	src/check_by_snmp_disk.c \
+	$(COMMON_SOURCES)
+
+src_check_by_snmp_disk_io_SOURCES=\
+	src/check_by_snmp_disk_io.c \
 	$(COMMON_SOURCES)
 
 src_check_by_snmp_cpu_SOURCES=\
@@ -49,6 +54,7 @@ src_check_by_snmp_extend_SOURCES=\
 
 TESTS = \
 	src/test/check_by_snmp_disk \
+	src/test/check_by_snmp_disk_io \
 	src/test/check_by_snmp_procs \
 	src/test/utils_snmp \
 	src/test/check_by_snmp_cpu
@@ -62,6 +68,10 @@ src_test_check_by_snmp_cpu_LDADD = $(TAPLDADD)
 src_test_check_by_snmp_disk_SOURCES = src/test/check_by_snmp_disk.c $(TAPSOURCES)
 src_test_check_by_snmp_disk_CPPFLAGS = $(TAPCPPFLAGS)
 src_test_check_by_snmp_disk_LDADD = $(TAPLDADD)
+
+src_test_check_by_snmp_disk_io_SOURCES = src/test/check_by_snmp_disk_io.c $(TAPSOURCES)
+src_test_check_by_snmp_disk_io_CPPFLAGS = $(TAPCPPFLAGS)
+src_test_check_by_snmp_disk_io_LDADD = $(TAPLDADD)
 
 src_test_check_by_snmp_procs_SOURCES = src/test/check_by_snmp_procs.c $(TAPSOURCES)
 src_test_check_by_snmp_procs_CPPFLAGS = $(TAPCPPFLAGS)

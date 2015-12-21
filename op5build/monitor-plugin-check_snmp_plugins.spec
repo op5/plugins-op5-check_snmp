@@ -32,6 +32,14 @@ Requires: op5-monitor-user
 %description -n monitor-plugin-check_snmp_disk
 %{summary}
 
+%package -n monitor-plugin-check_snmp_disk_io
+Group: Applications/System
+Summary: Nagios compatible plugin to check disks read/write over SNMP
+Requires: op5-monitor-user
+
+%description -n monitor-plugin-check_snmp_disk_io
+%{summary}
+
 %package -n monitor-plugin-check_snmp_cpu
 Group: Applications/System
 Summary: Nagios compatible plugin to check cpu over SNMP
@@ -89,7 +97,9 @@ mkdir -p %buildroot%prefix/
 mkdir -p %buildroot/opt/monitor/op5/pnp/templates.dist
 mkdir -p %buildroot%prefix/metadata
 mkdir -p %buildroot%{_localstatedir}/check_by_snmp_cpu
+mkdir -p %buildroot%{_localstatedir}/check_by_snmp_disk_io
 cp op5build/check_by_snmp_disk.metadata %buildroot%prefix/metadata/check_by_snmp_disk.metadata
+cp op5build/check_by_snmp_disk_io.metadata %buildroot%prefix/metadata/check_by_snmp_disk_io.metadata
 cp op5build/check_by_snmp_cpu.metadata %buildroot%prefix/metadata/check_by_snmp_cpu.metadata
 cp op5build/check_by_snmp_load_avg.metadata %buildroot%prefix/metadata/check_by_snmp_load_avg.metadata
 cp op5build/check_by_snmp_memory.metadata %buildroot%prefix/metadata/check_by_snmp_memory.metadata
@@ -109,6 +119,12 @@ rm -rf %buildroot
 %attr(755,root,root) %{prefix}/check_by_snmp_disk
 %attr(644,%{daemon_user},%{daemon_group}) /opt/monitor/op5/pnp/templates.dist/check_by_snmp_disk.php
 %attr(644,root,root) %{prefix}/metadata/check_by_snmp_disk.metadata
+
+%files -n monitor-plugin-check_snmp_disk_io
+%defattr(-,root,root,-)
+%attr(755,root,root) %{prefix}/check_by_snmp_disk_io
+%attr(644,root,root) %{prefix}/metadata/check_by_snmp_disk_io.metadata
+%dir %attr(755,%{daemon_user},%{daemon_group}) %{_localstatedir}/check_by_snmp_disk_io
 
 %files -n monitor-plugin-check_snmp_cpu
 %defattr(-,root,root,-)

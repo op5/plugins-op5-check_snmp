@@ -24,6 +24,7 @@ missing
 src/check_by_snmp_cpu
 src/check_by_snmp_load_avg
 src/check_by_snmp_disk
+src/check_by_snmp_disk_io
 src/check_by_snmp_memory
 src/check_by_snmp_procs
 src/check_by_snmp_extend
@@ -34,6 +35,7 @@ session.
 src/.metadata/
 src/test/check_by_snmp_cpu
 src/test/check_by_snmp_disk
+src/test/check_by_snmp_disk_io
 src/test/check_by_snmp_procs
 src/test/utils_snmp
 tap/libtap.la

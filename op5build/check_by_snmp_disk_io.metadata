@@ -1,0 +1,26 @@
+[commands]
+check_by_snmp_disk_io_list_v2=$USER1$/check_by_snmp_disk_io -H $HOSTADDRESS$ -C '$ARG1$' -P 2c --list
+
+[name]
+check_by_snmp_disk_io
+
+[info]
+Checks disk information on harddrives using SNMP.
+
+[why]
+This can be usefull to monitor disk usage on hosts where you are not able to install any agents.
+
+[how]
+The plugin collects the monitored data over SNMP.
+
+[platforms]
+Unix/Linux
+
+[categories]
+SNMP, File System
+
+[support]
+5
+
+[tags]
+unix, linux, snmp, net-snmp, storage, disk, hardware
