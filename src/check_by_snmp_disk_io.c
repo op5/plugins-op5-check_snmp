@@ -1070,7 +1070,7 @@ int main_as_in_test_program(int argc, char *argv[])
 	 * with a timestamp to a file
 	 */
 	np_enable_state(NULL, 1);
-	initialize_db = load_state(previous_tree);
+	initialize_db = load_state();
 	save_state(interesting);
 
 	if (initialize_db == -1) {
@@ -1142,8 +1142,8 @@ int main_as_in_test_program(int argc, char *argv[])
 	/* Now make valgrind shut up. Helpful during development */
 	rbtree_destroy(filter_tree,   (void (*)(void *))destroy_disk_filter);
 	rbtree_destroy(all_disks,     (void (*)(void *))disk_info_destroy);
-	rbtree_destroy(interesting,   (void (*)(void *))disk_info_destroy);
 	rbtree_destroy(previous_tree, (void (*)(void *))disk_info_destroy);
+	rbtree_destroy(interesting,     NULL);
 	rbtree_destroy(result.critical, NULL);
 	rbtree_destroy(result.warning,  NULL);
 	if (result.thresh) {

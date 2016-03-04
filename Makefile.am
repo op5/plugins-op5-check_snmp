@@ -54,7 +54,6 @@ src_check_by_snmp_extend_SOURCES=\
 
 TESTS = \
 	src/test/check_by_snmp_disk \
-	src/test/check_by_snmp_disk_io \
 	src/test/check_by_snmp_procs \
 	src/test/utils_snmp \
 	src/test/check_by_snmp_cpu

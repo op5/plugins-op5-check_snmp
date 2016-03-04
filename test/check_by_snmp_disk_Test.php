@@ -105,12 +105,6 @@ EOF;
 			'/home           : FixedDisk      4K-blocks    84.28% used of 189.51GiB',
 		), 0);
 	}
-	public function test_invalid_option() {
-		$this->assertCommand("-H @endpoint@ -C mycommunity -f -i /", array(
-		), array(
-			'',
-		), 3);
-	}
 	public function test_valid_include_name_option() {
 		$this->assertCommand("-H @endpoint@ -C mycommunity -i /", array(
 		), array(

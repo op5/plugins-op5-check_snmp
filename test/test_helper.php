@@ -83,10 +83,28 @@ EOF;
 		$this->stop_snmpsim();
 	}
 
-	public function run_command($args, &$output, &$return)
+	public function run_command($args, &$output, &$error, &$return)
 	{
 		$cmd = $this->plugin . " " . $args;
-		return exec($cmd, $output, $return);
+		$descriptorspec = array(
+			0 => array("pipe", "r"), // stdin
+			1 => array("pipe", "w"), // stdout
+			2 => array("pipe", "w") // stderr
+		);
+		$process = proc_open($cmd, $descriptorspec, $pipes);
+		if(!is_resource($process)) {
+			return -1;
+		}
+
+		fclose($pipes[0]); // Nothing for stdin
+
+		$output = stream_get_contents($pipes[1]);
+		fclose($pipes[1]);
+
+		$error = stream_get_contents($pipes[2]);
+		fclose($pipes[2]);
+
+		$return = proc_close($process);
 	}
 
 	private function generate_incorrect_snmpdata()
@@ -128,12 +146,13 @@ EOF;
 		$this->start_snmpsim($this->generate_incorrect_snmpdata());
 		$args = str_replace("@endpoint@","127.0.0.1:21161",$args);
 		$args = str_replace("@community@",$this->snmp_community, $args);
-		$this->run_command($args, $output, $return);
+		$this->run_command($args, $output, $error, $return);
 
 		if(is_array($expectedoutput))
-			$expectedoutput = implode("\n", $expectedoutput)."\n";
-		$output = implode("\n", $output)."\n";
+			$expectedoutput = implode("\n", $expectedoutput);
+		$output = trim($output);
 
+		$this->assertEquals("", $error);
 		$this->assertEquals($expectedoutput, $output);
 		$this->assertEquals($expectedreturn, $return);
 	}
@@ -143,12 +162,13 @@ EOF;
 		$this->start_snmpsim($this->generate_snmpdata($snmpdata_diff));
 		$args = str_replace("@endpoint@", "127.0.0.1:21161", $args);
 		$args = str_replace("@community@", $this->snmp_community, $args);
-		$this->run_command($args, $output, $return);
+		$this->run_command($args, $output, $error, $return);
 
 		if(is_array($expectedoutput))
-			$expectedoutput = implode("\n", $expectedoutput)."\n";
-		$output = implode("\n", $output)."\n";
+			$expectedoutput = implode("\n", $expectedoutput);
+		$output = trim($output);
 
+		$this->assertEquals("", $error);
 		$this->assertEquals($expectedoutput, $output);
 		$this->assertEquals($expectedreturn, $return);
 	}
@@ -159,21 +179,28 @@ EOF;
 	#
 	public function test_version_has_op5()
 	{
-		$this->run_command("-V", $output, $return);
-		$this->run_command("--version", $output2, $return2);
+		$this->run_command("-V", $output, $error, $return);
+		$this->run_command("--version", $output2, $error2, $return2);
 		$this->assertEquals($output, $output2);
 		$this->assertEquals($return, $return2);
 		$this->assertEquals($return, 0);
-		$in_str = strstr(implode("\n", $output), "op5") !== False;
+		$in_str = strstr($output, "op5") !== False;
 		$this->assertEquals($in_str, True);
 	}
 
 	public function test_help_works()
 	{
-		$this->run_command("--help", $output, $return);
-		$this->run_command("-h", $output2, $return2);
+		$this->run_command("--help", $output, $error, $return);
+		$this->run_command("-h", $output2, $error2, $return2);
 		$this->assertEquals($output, $output2);
 		$this->assertEquals($return, $return2);
 		$this->assertEquals($return, 0);
+	}
+
+	public function test_invalid_option()
+	{
+		$this->run_command("-f", $output, $error, $return);
+		$this->assertStringEndsWith("invalid option -- 'f'", trim($error));
+		$this->assertEquals($return, 3);
 	}
 }

@@ -375,13 +375,6 @@ EOF;
 			'sdb1',
 		), 0);
 	}
-	public function test_invalid_option() {
-		// First run, no inital database
-		$this->assertCommand("-H @endpoint@ -C @community@ -f -i / -q 1 -Q 2", array(
-		), array(
-			'',
-		), 3);
-	}
 	public function test_valid_include_name_option() {
 		// First run, no inital database
 		$this->assertCommand("-H @endpoint@ -C @community@ -i sda -q 1 -Q 2", array(
@@ -414,6 +407,23 @@ EOF;
 		), array(
 			"OK: 1/1 OK (sdb1: nread=0.00byte/s nwritten=0.00byte/s reads=0/s writes=0/s )",
 			"|'sdb1_nread'=0B;0:;0: 'sdb1_nwritten'=0B;0:;0: 'sdb1_reads'=0;0:;0: 'sdb1_writes'=0;0:;0:",
+		), 0);
+	}
+	public function test_include_regex_option_tree_freeing() {
+		// First run, no inital database
+		$this->assertCommand("-H @endpoint@ -C @community@ -e '^sda.$' -q 1 -Q 2", array(
+		), array(
+			"UNKNOWN: No previous state, initializing database. Re-run the plugin"
+		), 3);
+
+		$this->assertCommand("-H @endpoint@ -C @community@ -e '^sda.$' -q 1 -Q 2", array(
+			"1.3.6.1.4.1.2021.13.15.1.1.3.27" => array(65,28614656 + 10),
+			"1.3.6.1.4.1.2021.13.15.1.1.4.27" => array(65,63111168 + 30),
+			"1.3.6.1.4.1.2021.13.15.1.1.5.27" => array(65,1675 + 50),
+			"1.3.6.1.4.1.2021.13.15.1.1.6.27" => array(65,596 + 10)
+		), array(
+			"OK: 1/1 OK (sda1: nread=0.00byte/s nwritten=0.00byte/s reads=0/s writes=0/s )",
+			"|'sda1_nread'=0B;0:;0: 'sda1_nwritten'=0B;0:;0: 'sda1_reads'=0;0:;0: 'sda1_writes'=0;0:;0:",
 		), 0);
 	}
 	public function test_invalid_include_regex_option() {
