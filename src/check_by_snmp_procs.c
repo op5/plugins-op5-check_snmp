@@ -39,7 +39,6 @@ enum o_monitortype_t {
 };
 
 static enum o_monitortype_t o_monitortype = MONITOR_TYPE__NUMBER_OF_PROCESSES;
-static int o_perfdata = 1; /* perfdata on per default */
 static int counter[] = {0,0,0};
 static int proc_found = FALSE;
 static const char *name_filter = "";
@@ -347,7 +346,6 @@ int check_by_snmp_procs(int argc, char **argv)
 
 	static struct option longopts[] = {
 		STD_LONG_OPTS,
-		{"perfdata", no_argument, 0, 'f'},
 		{"type", required_argument, 0, 'T'},
 		{"indexname", required_argument, 0, 'i'},
 		{"list", no_argument, 0, 'l'},
@@ -418,9 +416,6 @@ int check_by_snmp_procs(int argc, char **argv)
 			case 'i':
 				name_filter = optarg;
 				break;
-			case 'f':
-				o_perfdata = 0;
-				break;
 			case 'T':
 				if (0==strcmp(optarg, "total_number_of_processes")) {
 					o_monitortype = MONITOR_TYPE__NUMBER_OF_PROCESSES;
@@ -486,26 +481,20 @@ int check_by_snmp_procs(int argc, char **argv)
 			process_counter = ptr->runnable + ptr->running + ptr->notrunnable + ptr->invalid;
 			result = get_status(process_counter, thresh);
 			printf("%s: %d process(es) ", state_text(result), process_counter);
-			if (o_perfdata == 1) {
-				printf("|'Processes'=%d;%s;%s", process_counter, warn_str, crit_str);
-			}
+			printf("|'Processes'=%d;%s;%s", process_counter, warn_str, crit_str);
 			break;
 		case MONITOR_TYPE__NUMBER_OF_ZOMBIE_PROCESSES:
 			ptr = check_proc_ret(ctx, ~0);
 			result = get_status(ptr->invalid, thresh);
 			printf("%s: %d zombie process(es) ", state_text(result), ptr->invalid);
-			if (o_perfdata == 1) {
-				printf("|'Zombie processes'=%d;%s;%s", ptr->invalid, warn_str, crit_str);
-			}
+			printf("|'Zombie processes'=%d;%s;%s", ptr->invalid, warn_str, crit_str);
 			break;
 		case MONITOR_TYPE__PROCESSES_BY_NAME:
 			rbtree_traverse(all_procs, proc_info_ret, NULL, rbinorder);
 			rbtree_destroy(all_procs, destroy_proc_info);
 			result = get_status(counter[0], thresh);
 			printf("%s: %d %s process(es) ", state_text(result), counter[0], name_filter);
-			if (o_perfdata == 1) {
-				printf("|'%s'=%d;%s;%s", name_filter, counter[0], warn_str, crit_str);
-			}
+			printf("|'%s'=%d;%s;%s", name_filter, counter[0], warn_str, crit_str);
 			break;
 		case MONITOR_TYPE__NUMBER_OF_PROCESSES_WITH_MEM_AND_CPU:
 			rbtree_traverse(all_procs, proc_info_ret, NULL, rbinorder);
@@ -549,12 +538,10 @@ int check_by_snmp_procs(int argc, char **argv)
 			result = max_state(legacy_temp_result, result);
 
 			printf("%s: %d %s process(es) ", state_text(result), counter[0], name_filter);
-			if (o_perfdata == 1) {
 				printf("|'%s'=%d;%s;%s '%s'=%d;%s;%s '%s'=%d;%s;%s",
-						name_filter, counter[0], legacy_warn1, legacy_crit1,
-						"Memory", counter[1], legacy_warn5, legacy_crit5,
-						"CPU", counter[2], legacy_warn15, legacy_crit15);
-			}
+				       name_filter, counter[0], legacy_warn1, legacy_crit1,
+				       "Memory", counter[1], legacy_warn5, legacy_crit5,
+				       "CPU", counter[2], legacy_warn15, legacy_crit15);
 			break;
 		default:
 			usage4 (_("Could not parse arguments for -T"));
