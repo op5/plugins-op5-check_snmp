@@ -54,17 +54,23 @@ class Check_Snmp_Extend_Test extends test_helper
 1.3.6.1.4.1.8072.1.3.2.3.1.4.7.84.72.69.78.65.77.69|2|2
 EOF;
 
-/**
- * Number of processes
- */
-	public function test_running_THENAME() {
-		$this->assertCommand("-H @endpoint@ -C mycommunity -i THENAME", array(
+	/**
+	 * Number of processes
+	 *
+	 * @dataProvider snmpArgsProvider
+	 */
+	public function test_running_THENAME($conn_args) {
+		$this->assertCommand($conn_args, "-i THENAME", array(
 		), array(
 			"HALABALOO! This is output 4",
 		), 2);
 	}
-	public function test_listing() {
-		$this->assertCommand("-H @endpoint@ -P 2c -C mycommunity --list", array(
+
+	/**
+	 * @dataProvider snmpArgsProvider
+	 */
+	public function test_listing($conn_args) {
+		$this->assertCommand($conn_args, "--list", array(
 		), array(
 			"THENAME /bin/sh /home/exon/testing.sh
 name2 /bin/sh /home/exon/testing.sh

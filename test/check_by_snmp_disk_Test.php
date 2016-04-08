@@ -84,11 +84,13 @@ class Check_Snmp_Disk_Test extends test_helper
 1.3.6.1.2.1.25.2.3.1.6.54|2|41870371
 EOF;
 
-/**
- * Storage testing
- */
-	public function test_list_storage_units() {
-		$this->assertCommand("-H @endpoint@ -C mycommunity -D --list", array(
+	/**
+	 * Storage testing
+	 *
+	 * @dataProvider snmpArgsProvider
+	 */
+	public function test_list_storage_units($conn_args) {
+		$this->assertCommand($conn_args, "-D --list", array(
 		), array(
 			'Physical memory : Ram            1K-blocks    67.39% used of 7.51GiB',
 			'Virtual memory  : VirtualMemory  1K-blocks    33.42% used of 15.13GiB',
@@ -105,100 +107,146 @@ EOF;
 			'/home           : FixedDisk      4K-blocks    84.28% used of 189.51GiB',
 		), 0);
 	}
-	public function test_valid_include_name_option() {
-		$this->assertCommand("-H @endpoint@ -C mycommunity -i /", array(
+
+	/**
+	 * @dataProvider snmpArgsProvider
+	 */
+	public function test_valid_include_name_option($conn_args) {
+		$this->assertCommand($conn_args, "-i /", array(
 		), array(
 			"OK: 1/1 OK (/: 44.46% used of 22.79GiB)",
 			"|'/_used'=10879410176B;0:;0:;0;24472580096",
 		), 0);
 	}
-	public function test_valid_include_regex_option() {
-		$this->assertCommand("-H @endpoint@ -C mycommunity --include-regex '^/$'", array(
+
+	/**
+	 * @dataProvider snmpArgsProvider
+	 */
+	public function test_valid_include_regex_option($conn_args) {
+		$this->assertCommand($conn_args, "--include-regex '^/$'", array(
 		), array(
 			"OK: 1/1 OK (/: 44.46% used of 22.79GiB)",
 			"|'/_used'=10879410176B;0:;0:;0;24472580096",
 		), 0);
 	}
-	public function test_invalid_include_regex_option() {
-		$this->assertCommand("-H @endpoint@ -C mycommunity -e '^/(asd$'", array(
+
+	/**
+	 * @dataProvider snmpArgsProvider
+	 */
+	public function test_invalid_include_regex_option($conn_args) {
+		$this->assertCommand($conn_args, "-e '^/(asd$'", array(
 		), array(
 			"Failed to compile regular expression: Unmatched ( or \\(",
 		), 3);
 	}
-	public function test_invalid_I_option() {
-		$this->assertCommand("-H @endpoint@ -C mycommunity -i invalid", array(
+
+	/**
+	 * @dataProvider snmpArgsProvider
+	 */
+	public function test_invalid_I_option($conn_args) {
+		$this->assertCommand($conn_args, "-i invalid", array(
 		), array(
 			"No storage units match your filters."
 		), 3);
 	}
-	public function test_invalid_T_option() {
-		$this->assertCommand("-H @endpoint@ -C mycommunity -i /dev/shm -T this_doesnt_exist", array(
+
+	/**
+	 * @dataProvider snmpArgsProvider
+	 */
+	public function test_invalid_T_option($conn_args) {
+		$this->assertCommand($conn_args, "-i /dev/shm -T this_doesnt_exist", array(
 		), array(
 			"Invalid type filter: this_doesnt_exist"
 		), 3);
 	}
 
-/**
- * Storage percent used controlled by warning and critical values
- */
-	public function test_percent_storage_used_OK() {
-		$this->assertCommand("-H @endpoint@ -C mycommunity -i / -w50 -c75 -m %", array(
+	/**
+	 * Storage percent used controlled by warning and critical values
+	 *
+	 * @dataProvider snmpArgsProvider
+	 */
+	public function test_percent_storage_used_OK($conn_args) {
+		$this->assertCommand($conn_args, "-i / -w50 -c75 -m %", array(
 		), array(
 			"OK: 1/1 OK (/: 44.46% used of 22.79GiB)",
 			"|'/_used'=10879410176B;0:12236290048;0:18354435072;0;24472580096",
 		), 0);
 	}
-	public function test_percent_storage_used_WARNING() {
-		$this->assertCommand("-H @endpoint@ -C mycommunity -i / -m % -w25 -c75", array(
+
+	/**
+	 * @dataProvider snmpArgsProvider
+	 */
+	public function test_percent_storage_used_WARNING($conn_args) {
+		$this->assertCommand($conn_args, "-i / -m % -w25 -c75", array(
 		), array(
 			"WARNING: 1/1 warning (/: 44.46% used of 22.79GiB)",
 			"|'/_used'=10879410176B;0:6118145024;0:18354435072;0;24472580096",
 		), 1);
 	}
-	public function test_percent_storage_used_CRITICAL() {
-		$this->assertCommand("-H @endpoint@ -C mycommunity -i / -w25:26 -c30:31", array(
+
+	/**
+	 * @dataProvider snmpArgsProvider
+	 */
+	public function test_percent_storage_used_CRITICAL($conn_args) {
+		$this->assertCommand($conn_args, "-i / -w25:26 -c30:31", array(
 		), array(
 			"CRITICAL: 1/1 critical (/: 44.46% used of 22.79GiB)",
 			"|'/_used'=10879410176B;6118145024:6362870825;7341774029:7586499830;0;24472580096",
 		), 2);
 	}
-	public function test_sum_storage_used_CRITICAL() {
-		$this->assertCommand("-H @endpoint@ -C mycommunity -D -S -w 25:26 -c30:31", array(
+
+	/**
+	 * @dataProvider snmpArgsProvider
+	 */
+	public function test_sum_storage_used_CRITICAL($conn_args) {
+		$this->assertCommand($conn_args, "-D -S -w 25:26 -c30:31", array(
 		), array(
 			"CRITICAL: 13 storage units selected. Sum total: 71.08% used of 257.70GiB",
 			"|'total_used'=196682547200B;69175566336:71942588989;83010679603:85777702257;0;276702265344",
 		), 2);
 	}
 
-/**
- * Storage prefixedbytes used controlled by warning and critical values
- */
-	public function test_gb_prefix_OK() {
-		$this->assertCommand("-H @endpoint@ -C mycommunity -i / -m gib -w30 -c40", array(
+	/**
+	 * Storage prefixedbytes used controlled by warning and critical values
+	 *
+	 * @dataProvider snmpArgsProvider
+	 */
+	public function test_gb_prefix_OK($conn_args) {
+		$this->assertCommand($conn_args, "-i / -m gib -w30 -c40", array(
 		), array(
 			"OK: 1/1 OK (/: 44.46% used of 22.79GiB)",
 			"|'/_used'=10879410176B;0:32212254720;0:42949672960;0;24472580096",
 		), 0);
 	}
-/**
- * Could not fetch the values
- */
-	public function test_disk_could_not_fetch_the_value_for_size() {
-		$this->assertCommand("-H @endpoint@ -C mycommunity -i /", array(
+	/**
+	 * Could not fetch the values
+	 *
+	 * @dataProvider snmpArgsProvider
+	 */
+	public function test_disk_could_not_fetch_the_value_for_size($conn_args) {
+		$this->assertCommand($conn_args, "-i /", array(
 			"1.3.6.1.2.1.25.2.3.1.5.31" => array(2,"")
 		), array(
 			"Failed to read data for storage unit 31 (/). Please check your SNMP configuration",
 		), 3);
 	}
-	public function test_disk_could_not_fetch_the_value_for_used() {
-		$this->assertCommand("-H @endpoint@ -C mycommunity -i /", array(
+
+	/**
+	 * @dataProvider snmpArgsProvider
+	 */
+	public function test_disk_could_not_fetch_the_value_for_used($conn_args) {
+		$this->assertCommand($conn_args, "-i /", array(
 			"1.3.6.1.2.1.25.2.3.1.6.31" => array(2,"")
 		), array(
 			"Failed to read data for storage unit 31 (/). Please check your SNMP configuration",
 		), 3);
 	}
-	public function test_disk_could_not_fetch_the_value_for_descr() {
-		$this->assertCommand("-H @endpoint@ -C mycommunity -i /", array(
+
+	/**
+	 * @dataProvider snmpArgsProvider
+	 */
+	public function test_disk_could_not_fetch_the_value_for_descr($conn_args) {
+		$this->assertCommand($conn_args, "-i /", array(
 			"1.3.6.1.2.1.25.2.3.1.3.31" => array(2,"")
 		), array(
 			"Failed to read description for storage unit with index 31. Please check your SNMP configuration"

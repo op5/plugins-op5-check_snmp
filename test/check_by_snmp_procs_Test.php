@@ -962,57 +962,86 @@ class Check_Snmp_Procs_Test extends test_helper
 1.3.6.1.2.1.25.5.1.1.2.18191|2|28288
 EOF;
 
-/**
- * Number of processes
- */
-	public function test_total_number_of_processes() {
-		$this->assertCommand("-H @endpoint@ -C mycommunity -T total_number_of_processes", array(
+	/**
+	 * Number of processes
+	 *
+	 * @dataProvider snmpArgsProvider
+	 */
+	public function test_total_number_of_processes($conn_args) {
+		$this->assertCommand($conn_args, "-T total_number_of_processes", array(
 		), array(
 			"OK: 106 process(es) |'Processes'=106;;"
 		), 0);
 	}
-	public function test_processes_total_number_of_processes_with_warning_and_critical_OK() {
-		$this->assertCommand("-H @endpoint@ -C mycommunity -T total_number_of_processes -w 110 -c 120", array(
+
+	/**
+	 * @dataProvider snmpArgsProvider
+	 */
+	public function test_processes_total_number_of_processes_with_warning_and_critical_OK($conn_args) {
+		$this->assertCommand($conn_args, "-T total_number_of_processes -w 110 -c 120", array(
 		), array(
 			"OK: 106 process(es) |'Processes'=106;110;120"
 		), 0);
 	}
-	public function test_processes_total_number_of_processes_with_warning_and_critical_WAARNING() {
-		$this->assertCommand("-H @endpoint@ -C mycommunity -T total_number_of_processes -w 100 -c 120", array(
+
+	/**
+	 * @dataProvider snmpArgsProvider
+	 */
+	public function test_processes_total_number_of_processes_with_warning_and_critical_WAARNING($conn_args) {
+		$this->assertCommand($conn_args, "-T total_number_of_processes -w 100 -c 120", array(
 		), array(
 			"WARNING: 106 process(es) |'Processes'=106;100;120"
 		), 1);
 	}
-	public function test_processes_total_number_of_processes_with_warning_and_critical_CRITICAL() {
-		$this->assertCommand("-H @endpoint@ -C mycommunity -T total_number_of_processes -w 100 -c 105", array(
+
+	/**
+	 * @dataProvider snmpArgsProvider
+	 */
+	public function test_processes_total_number_of_processes_with_warning_and_critical_CRITICAL($conn_args) {
+		$this->assertCommand($conn_args, "-T total_number_of_processes -w 100 -c 105", array(
 		), array(
 			"CRITICAL: 106 process(es) |'Processes'=106;100;105"
 		), 2);
 	}
-	public function test_processes_total_number_of_processes_wrong_parameters() {
-		$this->assertCommand("-H @endpoint@ -C mycommunity -T total_number_of_processes -i abcd -w 100 -c 105", array(
+
+	/**
+	 * @dataProvider snmpArgsProvider
+	 */
+	public function test_processes_total_number_of_processes_wrong_parameters($conn_args) {
+		$this->assertCommand($conn_args, "-T total_number_of_processes -i abcd -w 100 -c 105", array(
 		), array(
 			"CRITICAL: 106 process(es) |'Processes'=106;100;105"
 		), 2);
 	}
-/**
- * Zombie processes
- */
-	public function test_zombie_processes_OK() {
-		$this->assertCommand("-H @endpoint@ -C mycommunity -T total_number_of_zombie_processes", array(
+
+	/**
+	 * Zombie processes
+	 *
+	 * @dataProvider snmpArgsProvider
+	 */
+	public function test_zombie_processes_OK($conn_args) {
+		$this->assertCommand($conn_args, "-T total_number_of_zombie_processes", array(
 		), array(
 			"OK: 0 zombie process(es) |'Zombie processes'=0;;"
 		), 0);
 	}
-	public function test_zombie_processes_WARNING() {
-		$this->assertCommand("-H @endpoint@ -C mycommunity -T total_number_of_zombie_processes -w @0:10 -c 20", array(
+
+	/**
+	 * @dataProvider snmpArgsProvider
+	 */
+	public function test_zombie_processes_WARNING($conn_args) {
+		$this->assertCommand($conn_args, "-T total_number_of_zombie_processes -w @0:10 -c 20", array(
 			"1.3.6.1.2.1.25.4.2.1.7.1100" => array(2,4)
 		), array(
 			"WARNING: 1 zombie process(es) |'Zombie processes'=1;@0:10;20"
 		), 1);
 	}
-	public function test_zombie_processes_CRITICAL() {
-		$this->assertCommand("-H @endpoint@ -C mycommunity -T total_number_of_zombie_processes -w 1 -c 2", array(
+
+	/**
+	 * @dataProvider snmpArgsProvider
+	 */
+	public function test_zombie_processes_CRITICAL($conn_args) {
+		$this->assertCommand($conn_args, "-T total_number_of_zombie_processes -w 1 -c 2", array(
 		"1.3.6.1.2.1.25.4.2.1.7.1100" => array(2,4),
 		"1.3.6.1.2.1.25.4.2.1.7.1801" => array(2,4),
 		"1.3.6.1.2.1.25.4.2.1.7.2783" => array(2,4),
@@ -1020,56 +1049,71 @@ EOF;
 			"CRITICAL: 3 zombie process(es) |'Zombie processes'=3;1;2"
 		), 2);
 	}
-/**
- * Process name as argument
- */
-	public function test_process_by_name() {
-		$this->assertCommand("-H @endpoint@ -C mycommunity -T process_by_name -i smsd -w 1:5 -c 20", array(
+
+	/**
+	 * Process name as argument
+	 *
+	 * @dataProvider snmpArgsProvider
+	 */
+	public function test_process_by_name($conn_args) {
+		$this->assertCommand($conn_args, "-T process_by_name -i smsd -w 1:5 -c 20", array(
 		), array(
 			"OK: 2 smsd process(es) |'smsd'=2;1:5;20"
 		), 0);
 	}
-/**
- * cron uses process_by_name
- */
-	public function test_cron() {
-		$this->assertCommand("-H @endpoint@ -C mycommunity -T process_by_name -i crond -w @5:10 -c 20", array(
+
+	/**
+	 * cron uses process_by_name
+	 *
+	 * @dataProvider snmpArgsProvider
+	 */
+	public function test_cron($conn_args) {
+		$this->assertCommand($conn_args, "-T process_by_name -i crond -w @5:10 -c 20", array(
 		), array(
 			"OK: 1 crond process(es) |'crond'=1;@5:10;20"
 		), 0);
 	}
-/**
- * syslog uses process_by_name
- */
-	public function test_syslog() {
-		$this->assertCommand("-H @endpoint@ -C mycommunity -T process_by_name -i syslog-ng -w \~:10 -c 20", array(
+
+	/**
+	 * syslog uses process_by_name
+	 *
+	 * @dataProvider snmpArgsProvider
+	 */
+	public function test_syslog($conn_args) {
+		$this->assertCommand($conn_args, "-T process_by_name -i syslog-ng -w \~:10 -c 20", array(
 		), array(
 			"OK: 2 syslog-ng process(es) |'syslog-ng'=2;~:10;20"
 		), 0);
 	}
-	
-/**
- * Testing extra, same as basic but with the following format
- */
-	public function test_processes_running_with_memory_and_cpu() {
-		$this->assertCommand("-H @endpoint@ -C mycommunity -T running_processes_with_average_memory_and_cpu -i smsd -w 1,2,3 -c 11,22,33", array(
+
+	/**
+	 * Testing extra, same as basic but with the following format
+	 *
+	 * @dataProvider snmpArgsProvider
+	 */
+	public function test_processes_running_with_memory_and_cpu($conn_args) {
+		$this->assertCommand($conn_args, "-T running_processes_with_average_memory_and_cpu -i smsd -w 1,2,3 -c 11,22,33", array(
 		), array(
 			"CRITICAL: 2 smsd process(es) |'smsd'=2;1;11 'Memory'=60736;2;22 'CPU'=7862;3;33"
 		), 2);
 	}
-/**
- * Could not fetch the values
- */
-	public function test_processes_could_not_fetch_the_value_for_load1_UNKNOWN() {
-		$this->assertCommandIncorrectSnmp("-H @endpoint@ -C mycommunity -T total_number_of_zombie_processes", array(
+
+	/**
+	 * Could not fetch the values
+	 *
+	 * @dataProvider snmpArgsProvider
+	 */
+	public function test_processes_could_not_fetch_the_value_for_load1_UNKNOWN($conn_args) {
+		$this->assertCommandIncorrectSnmp($conn_args, "-T total_number_of_zombie_processes", array(
 			"UNKNOWN: Could not fetch the values at 1.3.6.1.2.1.25.4.2.1. Please check your config file for SNMP and make sure you have access"
 		), 3);
 	}
-/**
- * No arguments, usage and help
- */
+
+	/**
+	 * No arguments, usage and help
+	 */
 	public function test_no_arguments() {
-		$this->assertCommand("", array(
+		$this->assertCommand("", "", array(
 		), array(
 			'check_by_snmp_procs: Could not parse arguments',
 			'Usage:',
@@ -1077,11 +1121,5 @@ EOF;
 			'   [-w <warn_range>] [-c <crit_range>]',
 			$this->snmp_usage,
 		), 3);
-	}
-	public function disable_test_help() {
-		$this->assertCommand("-h", array(
-		), array(
-			''
-		), 0);
 	}
 }

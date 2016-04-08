@@ -314,21 +314,18 @@ class Check_Snmp_Disk_Io_Test extends test_helper
 1.3.6.1.4.1.2021.13.15.1.1.13.28|70|63111168
 EOF;
 
-	public function setUp() {
-		$this->snmp_community = md5(uniqid());
-	}
-
-/**
- * Storage testing
- */
-	public function test_list_storage_units() {
+	/**
+	 * Storage testing
+	 *
+	 * @dataProvider snmpArgsProvider
+	 */
+	public function test_list_storage_units($conn_args) {
 		// First run, no inital database
-		$this->assertCommand("-H @endpoint@ -C @community@ -D --list -q 1 -Q 2", array(
+		$this->assertCommand($conn_args, "-D --list -q 1 -Q 2", array(
 		), array(
 			"UNKNOWN: No previous state, initializing database. Re-run the plugin"
 		), 3);
-
-		$this->assertCommand("-H @endpoint@ -C @community@ -D --list -q 1 -Q 2", array(
+		$this->assertCommand($conn_args, "-D --list -q 1 -Q 2", array(
 		), array(
 			'ram0',
 			'ram1',
@@ -360,14 +357,17 @@ EOF;
 			'sdb1',
 		), 0);
 	}
-	public function test_list_with_default_filter_storage_units() {
+
+	/**
+	 * @dataProvider snmpArgsProvider
+	 */
+	public function test_list_with_default_filter_storage_units($conn_args) {
 		// First run, no inital database
-		$this->assertCommand("-H @endpoint@ -C @community@ --list -q 1 -Q 2", array(
+		$this->assertCommand($conn_args, "--list -q 1 -Q 2", array(
 		), array(
 			"UNKNOWN: No previous state, initializing database. Re-run the plugin"
 		), 3);
-
-		$this->assertCommand("-H @endpoint@ -C @community@ --list -q 1 -Q 2", array(
+		$this->assertCommand($conn_args, "--list -q 1 -Q 2", array(
 		), array(
 			'sda',
 			'sda1',
@@ -375,14 +375,17 @@ EOF;
 			'sdb1',
 		), 0);
 	}
-	public function test_valid_include_name_option() {
+
+	/**
+	 * @dataProvider snmpArgsProvider
+	 */
+	public function test_valid_include_name_option($conn_args) {
 		// First run, no inital database
-		$this->assertCommand("-H @endpoint@ -C @community@ -i sda -q 1 -Q 2", array(
+		$this->assertCommand($conn_args, "-i sda -q 1 -Q 2", array(
 		), array(
 			"UNKNOWN: No previous state, initializing database. Re-run the plugin"
 		), 3);
-
-		$this->assertCommand("-H @endpoint@ -C @community@ -i sda -q 1 -Q 2", array(
+		$this->assertCommand($conn_args, "-i sda -q 1 -Q 2", array(
 			"1.3.6.1.4.1.2021.13.15.1.1.3.25" => array(65,1330127872 + 10),
 			"1.3.6.1.4.1.2021.13.15.1.1.4.25" => array(65,1815023616 + 30),
 			"1.3.6.1.4.1.2021.13.15.1.1.5.25" => array(65,110664 + 50),
@@ -392,14 +395,17 @@ EOF;
 			"|'sda_nread'=10B;0:;0: 'sda_nwritten'=30B;0:;0: 'sda_reads'=50;0:;0: 'sda_writes'=10;0:;0:",
 		), 0);
 	}
-	public function test_valid_include_regex_option() {
+
+	/**
+	 * @dataProvider snmpArgsProvider
+	 */
+	public function test_valid_include_regex_option($conn_args) {
 		// First run, no inital database
-		$this->assertCommand("-H @endpoint@ -C @community@ --include-regex '^sdb1$' -q 1 -Q 2", array(
+		$this->assertCommand($conn_args, "--include-regex '^sdb1$' -q 1 -Q 2", array(
 		), array(
 			"UNKNOWN: No previous state, initializing database. Re-run the plugin"
 		), 3);
-
-		$this->assertCommand("-H @endpoint@ -C @community@ --include-regex '^sdb1$' -q 1 -Q 2", array(
+		$this->assertCommand($conn_args, "--include-regex '^sdb1$' -q 1 -Q 2", array(
 			"1.3.6.1.4.1.2021.13.15.1.1.3.27" => array(65,28614656 + 10),
 			"1.3.6.1.4.1.2021.13.15.1.1.4.27" => array(65,63111168 + 30),
 			"1.3.6.1.4.1.2021.13.15.1.1.5.27" => array(65,1675 + 50),
@@ -409,14 +415,17 @@ EOF;
 			"|'sdb1_nread'=0B;0:;0: 'sdb1_nwritten'=0B;0:;0: 'sdb1_reads'=0;0:;0: 'sdb1_writes'=0;0:;0:",
 		), 0);
 	}
-	public function test_include_regex_option_tree_freeing() {
+
+	/**
+	 * @dataProvider snmpArgsProvider
+	 */
+	public function test_include_regex_option_tree_freeing($conn_args) {
 		// First run, no inital database
-		$this->assertCommand("-H @endpoint@ -C @community@ -e '^sda.$' -q 1 -Q 2", array(
+		$this->assertCommand($conn_args, "-e '^sda.$' -q 1 -Q 2", array(
 		), array(
 			"UNKNOWN: No previous state, initializing database. Re-run the plugin"
 		), 3);
-
-		$this->assertCommand("-H @endpoint@ -C @community@ -e '^sda.$' -q 1 -Q 2", array(
+		$this->assertCommand($conn_args, "-e '^sda.$' -q 1 -Q 2", array(
 			"1.3.6.1.4.1.2021.13.15.1.1.3.27" => array(65,28614656 + 10),
 			"1.3.6.1.4.1.2021.13.15.1.1.4.27" => array(65,63111168 + 30),
 			"1.3.6.1.4.1.2021.13.15.1.1.5.27" => array(65,1675 + 50),
@@ -426,40 +435,54 @@ EOF;
 			"|'sda1_nread'=0B;0:;0: 'sda1_nwritten'=0B;0:;0: 'sda1_reads'=0;0:;0: 'sda1_writes'=0;0:;0:",
 		), 0);
 	}
-	public function test_invalid_include_regex_option() {
+
+	/**
+	 * @dataProvider snmpArgsProvider
+	 */
+	public function test_invalid_include_regex_option($conn_args) {
 		// First run, no inital database
-		$this->assertCommand("-H @endpoint@ -C @community@ -e '^/(asd$' -q 1 -Q 2", array(
+		$this->assertCommand($conn_args, "-e '^/(asd$' -q 1 -Q 2", array(
 		), array(
 			"Failed to compile regular expression: Unmatched ( or \\(",
 		), 3);
 	}
-	public function test_invalid_I_option() {
+
+	/**
+	 * @dataProvider snmpArgsProvider
+	 */
+	public function test_invalid_I_option($conn_args) {
 		// First run, no inital database
-		$this->assertCommand("-H @endpoint@ -C @community@ -i invalid -q 1 -Q 2", array(
+		$this->assertCommand($conn_args, "-i invalid -q 1 -Q 2", array(
 		), array(
 			"No storage units match your filters."
 		), 3);
 	}
-	public function test_invalid_time_zero() {
+
+	/**
+	 * @dataProvider snmpArgsProvider
+	 */
+	public function test_invalid_time_zero($conn_args) {
 		// First run, no inital database
-		$this->assertCommand("-H @endpoint@ -C @community@ -q 1 -Q 1", array(
+		$this->assertCommand($conn_args, "-q 1 -Q 1", array(
 		), array(
 			"UNKNOWN: No previous state, initializing database. Re-run the plugin"
 		), 3);
-
-		$this->assertCommand("-H @endpoint@ -C @community@ -q 1 -Q 1", array(
+		$this->assertCommand($conn_args, "-q 1 -Q 1", array(
 		), array(
 			"Time error, wait at least 1 second between checks"
 		), 3);
 	}
-	public function test_invalid_time_negative() {
+
+	/**
+	 * @dataProvider snmpArgsProvider
+	 */
+	public function test_invalid_time_negative($conn_args) {
 		// First run, no inital database
-		$this->assertCommand("-H @endpoint@ -C @community@ -q 2 -Q 1", array(
+		$this->assertCommand($conn_args, "-q 2 -Q 1", array(
 		), array(
 			"UNKNOWN: No previous state, initializing database. Re-run the plugin"
 		), 3);
-
-		$this->assertCommand("-H @endpoint@ -C @community@ -q 2 -Q 1", array(
+		$this->assertCommand($conn_args, "-q 2 -Q 1", array(
 		), array(
 			"Time error, wait at least 1 second between checks"
 		), 3);
@@ -467,22 +490,27 @@ EOF;
 
 	/**
 	 * Test output and performance data
+	 *
+	 * @dataProvider snmpArgsProvider
 	 */
-	public function test_incorrect_thresholds_for_load_average() {
+	public function test_incorrect_thresholds_for_load_average($conn_args) {
 		// First run, no inital database
-		$this->assertCommand("-H @endpoint@ -C @community@ -T load -w 1,2,3,7 -c 4,5,6 -q 1 -Q 2", array(
+		$this->assertCommand($conn_args, "-T load -w 1,2,3,7 -c 4,5,6 -q 1 -Q 2", array(
 		), array(
 			"Too many threshold arguments"
 		), 3);
 	}
-	public function test_output_for_load_average() {
+
+	/**
+	 * @dataProvider snmpArgsProvider
+	 */
+	public function test_output_for_load_average($conn_args) {
 		// First run, no inital database
-		$this->assertCommand("-H @endpoint@ -C @community@ -T load -q 1 -Q 2", array(
+		$this->assertCommand($conn_args, "-T load -q 1 -Q 2", array(
 		), array(
 			"UNKNOWN: No previous state, initializing database. Re-run the plugin"
 		), 3);
-
-		$this->assertCommand("-H @endpoint@ -C @community@ -T load -q 1 -Q 2", array(
+		$this->assertCommand($conn_args, "-T load -q 1 -Q 2", array(
 			"1.3.6.1.4.1.2021.13.15.1.1.3.25" => array(65,1330127872 + 10),
 			"1.3.6.1.4.1.2021.13.15.1.1.4.25" => array(65,1815023616 + 30),
 			"1.3.6.1.4.1.2021.13.15.1.1.5.25" => array(65,110664 + 50),
@@ -496,40 +524,49 @@ EOF;
 			"|'sda_nread'=10B;0:;0: 'sda_nwritten'=30B;0:;0: 'sda_reads'=50;0:;0: 'sda_writes'=10;0:;0: 'sda_load1'=0%;0:;0: 'sda_load5'=0%;0:;0: 'sda_load15'=0%;0:;0: 'sda1_nread'=0B;0:;0: 'sda1_nwritten'=0B;0:;0: 'sda1_reads'=0;0:;0: 'sda1_writes'=0;0:;0: 'sda1_load1'=1%;0:;0: 'sda1_load5'=2%;0:;0: 'sda1_load15'=3%;0:;0: 'sdb_nread'=100B;0:;0: 'sdb_nwritten'=300B;0:;0: 'sdb_reads'=500;0:;0: 'sdb_writes'=100;0:;0: 'sdb_load1'=0%;0:;0: 'sdb_load5'=0%;0:;0: 'sdb_load15'=0%;0:;0: 'sdb1_nread'=0B;0:;0: 'sdb1_nwritten'=0B;0:;0: 'sdb1_reads'=0;0:;0: 'sdb1_writes'=0;0:;0: 'sdb1_load1'=0%;0:;0: 'sdb1_load5'=0%;0:;0: 'sdb1_load15'=0%;0:;0:",
 		), 0);
 	}
-	public function test_output_for_load_average_with_thresholds() {
+
+	/**
+	 * @dataProvider snmpArgsProvider
+	 */
+	public function test_output_for_load_average_with_thresholds($conn_args) {
 		// First run, no inital database
-		$this->assertCommand("-H @endpoint@ -C @community@ -w 1,2,3 -c 4,5,6 -T load -q 1 -Q 2", array(
+		$this->assertCommand($conn_args, "-w 1,2,3 -c 4,5,6 -T load -q 1 -Q 2", array(
 		), array(
 			"UNKNOWN: No previous state, initializing database. Re-run the plugin"
 		), 3);
-
-		$this->assertCommand("-H @endpoint@ -C @community@ -w 1,2,3 -c 4,5,6 -T load -q 1 -Q 2", array(
+		$this->assertCommand($conn_args, "-w 1,2,3 -c 4,5,6 -T load -q 1 -Q 2", array(
 		), array(
 			"OK: 4/4 OK (sda: nread=0.00byte/s nwritten=0.00byte/s reads=0/s writes=0/s load1=0% load5=0% load15=0%, sda1: nread=0.00byte/s nwritten=0.00byte/s reads=0/s writes=0/s load1=1% load5=2% load15=3%, sdb: nread=0.00byte/s nwritten=0.00byte/s reads=0/s writes=0/s load1=0% load5=0% load15=0%, sdb1: nread=0.00byte/s nwritten=0.00byte/s reads=0/s writes=0/s load1=0% load5=0% load15=0%)",
 			"|'sda_nread'=0B;0:1;0:4 'sda_nwritten'=0B;0:1;0:4 'sda_reads'=0;0:1;0:4 'sda_writes'=0;0:1;0:4 'sda_load1'=0%;0:1;0:4 'sda_load5'=0%;0:2;0:5 'sda_load15'=0%;0:3;0:6 'sda1_nread'=0B;0:1;0:4 'sda1_nwritten'=0B;0:1;0:4 'sda1_reads'=0;0:1;0:4 'sda1_writes'=0;0:1;0:4 'sda1_load1'=1%;0:1;0:4 'sda1_load5'=2%;0:2;0:5 'sda1_load15'=3%;0:3;0:6 'sdb_nread'=0B;0:1;0:4 'sdb_nwritten'=0B;0:1;0:4 'sdb_reads'=0;0:1;0:4 'sdb_writes'=0;0:1;0:4 'sdb_load1'=0%;0:1;0:4 'sdb_load5'=0%;0:2;0:5 'sdb_load15'=0%;0:3;0:6 'sdb1_nread'=0B;0:1;0:4 'sdb1_nwritten'=0B;0:1;0:4 'sdb1_reads'=0;0:1;0:4 'sdb1_writes'=0;0:1;0:4 'sdb1_load1'=0%;0:1;0:4 'sdb1_load5'=0%;0:2;0:5 'sdb1_load15'=0%;0:3;0:6",
 		), 0);
 	}
-	public function test_output_for_load_average_warning() {
+
+	/**
+	 * @dataProvider snmpArgsProvider
+	 */
+	public function test_output_for_load_average_warning($conn_args) {
 		// First run, no inital database
-		$this->assertCommand("-H @endpoint@ -C @community@ -w 1,1,1 -c 4,5,6 -T load -q 1 -Q 2", array(
+		$this->assertCommand($conn_args, "-w 1,1,1 -c 4,5,6 -T load -q 1 -Q 2", array(
 		), array(
 			"UNKNOWN: No previous state, initializing database. Re-run the plugin"
 		), 3);
-
-		$this->assertCommand("-H @endpoint@ -C @community@ -w 1,2,3 -c 4,5,6 -T load -q 1 -Q 2", array(
+		$this->assertCommand($conn_args, "-w 1,1,1 -c 4,5,6 -T load -q 1 -Q 2", array(
 		), array(
-			"OK: 4/4 OK (sda: nread=0.00byte/s nwritten=0.00byte/s reads=0/s writes=0/s load1=0% load5=0% load15=0%, sda1: nread=0.00byte/s nwritten=0.00byte/s reads=0/s writes=0/s load1=1% load5=2% load15=3%, sdb: nread=0.00byte/s nwritten=0.00byte/s reads=0/s writes=0/s load1=0% load5=0% load15=0%, sdb1: nread=0.00byte/s nwritten=0.00byte/s reads=0/s writes=0/s load1=0% load5=0% load15=0%)",
-			"|'sda_nread'=0B;0:1;0:4 'sda_nwritten'=0B;0:1;0:4 'sda_reads'=0;0:1;0:4 'sda_writes'=0;0:1;0:4 'sda_load1'=0%;0:1;0:4 'sda_load5'=0%;0:2;0:5 'sda_load15'=0%;0:3;0:6 'sda1_nread'=0B;0:1;0:4 'sda1_nwritten'=0B;0:1;0:4 'sda1_reads'=0;0:1;0:4 'sda1_writes'=0;0:1;0:4 'sda1_load1'=1%;0:1;0:4 'sda1_load5'=2%;0:2;0:5 'sda1_load15'=3%;0:3;0:6 'sdb_nread'=0B;0:1;0:4 'sdb_nwritten'=0B;0:1;0:4 'sdb_reads'=0;0:1;0:4 'sdb_writes'=0;0:1;0:4 'sdb_load1'=0%;0:1;0:4 'sdb_load5'=0%;0:2;0:5 'sdb_load15'=0%;0:3;0:6 'sdb1_nread'=0B;0:1;0:4 'sdb1_nwritten'=0B;0:1;0:4 'sdb1_reads'=0;0:1;0:4 'sdb1_writes'=0;0:1;0:4 'sdb1_load1'=0%;0:1;0:4 'sdb1_load5'=0%;0:2;0:5 'sdb1_load15'=0%;0:3;0:6",
-		), 0);
+			"WARNING: 1/4 warning (sda1: nread=0.00byte/s nwritten=0.00byte/s reads=0/s writes=0/s load1=1% load5=2% load15=3%)",
+			"|'sda_nread'=0B;0:1;0:4 'sda_nwritten'=0B;0:1;0:4 'sda_reads'=0;0:1;0:4 'sda_writes'=0;0:1;0:4 'sda_load1'=0%;0:1;0:4 'sda_load5'=0%;0:1;0:5 'sda_load15'=0%;0:1;0:6 'sda1_nread'=0B;0:1;0:4 'sda1_nwritten'=0B;0:1;0:4 'sda1_reads'=0;0:1;0:4 'sda1_writes'=0;0:1;0:4 'sda1_load1'=1%;0:1;0:4 'sda1_load5'=2%;0:1;0:5 'sda1_load15'=3%;0:1;0:6 'sdb_nread'=0B;0:1;0:4 'sdb_nwritten'=0B;0:1;0:4 'sdb_reads'=0;0:1;0:4 'sdb_writes'=0;0:1;0:4 'sdb_load1'=0%;0:1;0:4 'sdb_load5'=0%;0:1;0:5 'sdb_load15'=0%;0:1;0:6 'sdb1_nread'=0B;0:1;0:4 'sdb1_nwritten'=0B;0:1;0:4 'sdb1_reads'=0;0:1;0:4 'sdb1_writes'=0;0:1;0:4 'sdb1_load1'=0%;0:1;0:4 'sdb1_load5'=0%;0:1;0:5 'sdb1_load15'=0%;0:1;0:6",
+		), 1);
 	}
-	public function test_output_for_load_average_critical() {
+
+	/**
+	 * @dataProvider snmpArgsProvider
+	 */
+	public function test_output_for_load_average_critical($conn_args) {
 		// First run, no inital database
-		$this->assertCommand("-H @endpoint@ -C @community@ -w 1,1,1 -c 2,2,2 -T load -q 1 -Q 2", array(
+		$this->assertCommand($conn_args, "-w 1,1,1 -c 2,2,2 -T load -q 1 -Q 2", array(
 		), array(
 			"UNKNOWN: No previous state, initializing database. Re-run the plugin"
 		), 3);
-
-		$this->assertCommand("-H @endpoint@ -C @community@ -w 1,1,1 -c 2,2,2 -T load -q 1 -Q 2", array(
+		$this->assertCommand($conn_args, "-w 1,1,1 -c 2,2,2 -T load -q 1 -Q 2", array(
 		), array(
 			"CRITICAL: 1/4 critical (sda1: nread=0.00byte/s nwritten=0.00byte/s reads=0/s writes=0/s load1=1% load5=2% load15=3%)",
 			"|'sda_nread'=0B;0:1;0:2 'sda_nwritten'=0B;0:1;0:2 'sda_reads'=0;0:1;0:2 'sda_writes'=0;0:1;0:2 'sda_load1'=0%;0:1;0:2 'sda_load5'=0%;0:1;0:2 'sda_load15'=0%;0:1;0:2 'sda1_nread'=0B;0:1;0:2 'sda1_nwritten'=0B;0:1;0:2 'sda1_reads'=0;0:1;0:2 'sda1_writes'=0;0:1;0:2 'sda1_load1'=1%;0:1;0:2 'sda1_load5'=2%;0:1;0:2 'sda1_load15'=3%;0:1;0:2 'sdb_nread'=0B;0:1;0:2 'sdb_nwritten'=0B;0:1;0:2 'sdb_reads'=0;0:1;0:2 'sdb_writes'=0;0:1;0:2 'sdb_load1'=0%;0:1;0:2 'sdb_load5'=0%;0:1;0:2 'sdb_load15'=0%;0:1;0:2 'sdb1_nread'=0B;0:1;0:2 'sdb1_nwritten'=0B;0:1;0:2 'sdb1_reads'=0;0:1;0:2 'sdb1_writes'=0;0:1;0:2 'sdb1_load1'=0%;0:1;0:2 'sdb1_load5'=0%;0:1;0:2 'sdb1_load15'=0%;0:1;0:2",
@@ -537,15 +574,16 @@ EOF;
 	}
 	/**
 	 * Counters
+	 *
+	 * @dataProvider snmpArgsProvider
 	 */
-	public function test_output_for_counter_with_thresholds_and_uom() {
+	public function test_output_for_counter_with_thresholds_and_uom($conn_args) {
 		// First run, no inital database
-		$this->assertCommand("-H @endpoint@ -C @community@ -m kib -w 1 -c 2 -q 1 -Q 2", array(
+		$this->assertCommand($conn_args, "-m kib -w 1 -c 2 -q 1 -Q 2", array(
 		), array(
 			"UNKNOWN: No previous state, initializing database. Re-run the plugin"
 		), 3);
-
-		$this->assertCommand("-H @endpoint@ -C @community@ -m kib -w 1 -c 2 -q 1 -Q 2", array(
+		$this->assertCommand($conn_args, "-m kib -w 1 -c 2 -q 1 -Q 2", array(
 			"1.3.6.1.4.1.2021.13.15.1.1.3.25" => array(65,1330127872 + 10),
 			"1.3.6.1.4.1.2021.13.15.1.1.4.25" => array(65,1815023616 + 30),
 			"1.3.6.1.4.1.2021.13.15.1.1.5.25" => array(65,110664 + 50),
@@ -559,14 +597,17 @@ EOF;
 			"|'sda_nread'=10B;0:1024;0:2048 'sda_nwritten'=30B;0:1024;0:2048 'sda_reads'=50;0:1024;0:2048 'sda_writes'=10;0:1024;0:2048 'sda1_nread'=0B;0:1024;0:2048 'sda1_nwritten'=0B;0:1024;0:2048 'sda1_reads'=0;0:1024;0:2048 'sda1_writes'=0;0:1024;0:2048 'sdb_nread'=100B;0:1024;0:2048 'sdb_nwritten'=300B;0:1024;0:2048 'sdb_reads'=500;0:1024;0:2048 'sdb_writes'=100;0:1024;0:2048 'sdb1_nread'=0B;0:1024;0:2048 'sdb1_nwritten'=0B;0:1024;0:2048 'sdb1_reads'=0;0:1024;0:2048 'sdb1_writes'=0;0:1024;0:2048",
 		), 0);
 	}
-	public function test_output_for_counter_with_incorrect_thresholds() {
+
+	/**
+	 * @dataProvider snmpArgsProvider
+	 */
+	public function test_output_for_counter_with_incorrect_thresholds($conn_args) {
 		// First run, no inital database
-		$this->assertCommand("-H @endpoint@ -C @community@ -m kib -w 1,2 -c 2 -q 1 -Q 2", array(
+		$this->assertCommand($conn_args, "-m kib -w 1,2 -c 2 -q 1 -Q 2", array(
 		), array(
 			"UNKNOWN: No previous state, initializing database. Re-run the plugin"
 		), 3);
-
-		$this->assertCommand("-H @endpoint@ -C @community@ -m kib -w 1,2 -c 2 -q 1 -Q 2", array(
+		$this->assertCommand($conn_args, "-m kib -w 1,2 -c 2 -q 1 -Q 2", array(
 			"1.3.6.1.4.1.2021.13.15.1.1.3.25" => array(65,1330127872 + 10),
 			"1.3.6.1.4.1.2021.13.15.1.1.4.25" => array(65,1815023616 + 30),
 			"1.3.6.1.4.1.2021.13.15.1.1.5.25" => array(65,110664 + 50),
@@ -580,14 +621,17 @@ EOF;
 			"|'sda_nread'=10B;0:1024;0:2048 'sda_nwritten'=30B;0:1024;0:2048 'sda_reads'=50;0:1024;0:2048 'sda_writes'=10;0:1024;0:2048 'sda1_nread'=0B;0:1024;0:2048 'sda1_nwritten'=0B;0:1024;0:2048 'sda1_reads'=0;0:1024;0:2048 'sda1_writes'=0;0:1024;0:2048 'sdb_nread'=100B;0:1024;0:2048 'sdb_nwritten'=300B;0:1024;0:2048 'sdb_reads'=500;0:1024;0:2048 'sdb_writes'=100;0:1024;0:2048 'sdb1_nread'=0B;0:1024;0:2048 'sdb1_nwritten'=0B;0:1024;0:2048 'sdb1_reads'=0;0:1024;0:2048 'sdb1_writes'=0;0:1024;0:2048",
 		), 0);
 	}
-	public function test_output_for_counter_warning() {
+
+	/**
+	 * @dataProvider snmpArgsProvider
+	 */
+	public function test_output_for_counter_warning($conn_args) {
 		// First run, no inital database
-		$this->assertCommand("-H @endpoint@ -C @community@ -w 5 -c 200 -q 1 -Q 2", array(
+		$this->assertCommand($conn_args, "-w 5 -c 200 -q 1 -Q 2", array(
 		), array(
 			"UNKNOWN: No previous state, initializing database. Re-run the plugin"
 		), 3);
-
-		$this->assertCommand("-H @endpoint@ -C @community@ -w 5 -c 200 -q 1 -Q 2", array(
+		$this->assertCommand($conn_args, "-w 5 -c 200 -q 1 -Q 2", array(
 			"1.3.6.1.4.1.2021.13.15.1.1.3.25" => array(65,1330127872 + 10),
 			"1.3.6.1.4.1.2021.13.15.1.1.4.25" => array(65,1815023616 + 30),
 			"1.3.6.1.4.1.2021.13.15.1.1.5.25" => array(65,110664 + 50),
@@ -601,14 +645,17 @@ EOF;
 			"|'sda_nread'=10B;0:5;0:200 'sda_nwritten'=30B;0:5;0:200 'sda_reads'=50;0:5;0:200 'sda_writes'=10;0:5;0:200 'sda1_nread'=0B;0:5;0:200 'sda1_nwritten'=0B;0:5;0:200 'sda1_reads'=0;0:5;0:200 'sda1_writes'=0;0:5;0:200 'sdb_nread'=100B;0:5;0:200 'sdb_nwritten'=300B;0:5;0:200 'sdb_reads'=500;0:5;0:200 'sdb_writes'=100;0:5;0:200 'sdb1_nread'=0B;0:5;0:200 'sdb1_nwritten'=0B;0:5;0:200 'sdb1_reads'=0;0:5;0:200 'sdb1_writes'=0;0:5;0:200",
 		), 1);
 	}
-	public function test_output_for_counter_critical() {
+
+	/**
+	 * @dataProvider snmpArgsProvider
+	 */
+	public function test_output_for_counter_critical($conn_args) {
 		// First run, no inital database
-		$this->assertCommand("-H @endpoint@ -C @community@ -T nwritten -w 5 -c 20 -q 1 -Q 2", array(
+		$this->assertCommand($conn_args, "-T nwritten -w 5 -c 20 -q 1 -Q 2", array(
 		), array(
 			"UNKNOWN: No previous state, initializing database. Re-run the plugin"
 		), 3);
-
-		$this->assertCommand("-H @endpoint@ -C @community@ -T nwritten -w 5 -c 20 -q 1 -Q 2", array(
+		$this->assertCommand($conn_args, "-T nwritten -w 5 -c 20 -q 1 -Q 2", array(
 			"1.3.6.1.4.1.2021.13.15.1.1.3.25" => array(65,1330127872 + 10),
 			"1.3.6.1.4.1.2021.13.15.1.1.4.25" => array(65,1815023616 + 30),
 			"1.3.6.1.4.1.2021.13.15.1.1.5.25" => array(65,110664 + 50),

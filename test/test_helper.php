@@ -4,6 +4,7 @@ abstract class test_helper extends PHPUnit_Framework_TestCase
 {
 	private $snmpsimroot = "/tmp";
 	private $snmpsimroot_current = false;
+	private $snmpv3 = false;
 	public $snmp_community = 'mycommunity';
 	# snmp usage arguments are the same for all plugins
 	public $snmp_usage = <<<EOF
@@ -14,20 +15,30 @@ abstract class test_helper extends PHPUnit_Framework_TestCase
 SNMP defaults: -p 161 -P 3 -L authPriv -a SHA -x AES
 EOF;
 
-	public function __construct()
+	/*
+	 * Since we use a dataProvider for our tests the __construct needs to take
+	 * $name, $data, $dataName and send it to the parent constructur. If this
+	 * isn't done the dataProvider will break and you will get the error
+	 * message: Missing argument 1
+	 */
+	public function __construct(
+		$name = NULL, array $data = array(), $dataName = ''
+	)
 	{
+		putenv("MP_STATE_PATH=/tmp/test_dir_for_check_by_snmp");
 		$plugin = __DIR__ . "/../src/" . $this->plugin;
 		if (!file_exists($plugin)) {
 			$plugin =  __DIR__ . "/../../../opt/plugins/" . $this->plugin;
 		}
 		$this->snmpsimd = $this->find_in_path(array('snmpsimd', 'snmpsimd.py'));
 		$this->plugin = $plugin;
-		$this->snmpsimroot = $this->snmpsimroot . "/" . basename($this->plugin) . "_test/";
+		$this->snmpsimroot =
+			$this->snmpsimroot . "/" . basename($this->plugin) . "_test/";
 		if (!$this->snmpdata) {
 			echo "\$this->snmpdata not set in test. exiting\n";
 			exit(1);
 		}
-		parent::__construct();
+		parent::__construct($name, $data, $dataName);
 	}
 
 	private function find_in_path($names = array())
@@ -44,27 +55,55 @@ EOF;
 		return False;
 	}
 
-	private function snmpsim_recfile()
-	{
-		return $this->snmpsimroot_current . "/data/" . $this->snmp_community;
-	}
-
+	/*
+	 * Each time we start snmpsim we also create a folder with a uniqe name
+	 * which contains a .snmprec file containing the SNMP data. For SNMPv3 we
+	 * use a small workaround since the check_by_snmp_* plugins can't send the
+	 * context name. The name of the file and folder will be the same and is
+	 * hardcoded until we can change it to use the context instead.
+	 */
 	private function start_snmpsim($snmpdata)
 	{
 		if ($this->snmpsimroot_current !== false) {
 			$this->stop_snmpsim();
 		}
 		$this->snmpsimroot_current = $this->snmpsimroot.md5(uniqid())."/";
-		$recfile = $this->snmpsimroot_current . "/data/" . $this->snmp_community . ".snmprec";
 		@mkdir($this->snmpsimroot_current, 0777, true);
 		@mkdir($this->snmpsimroot_current."data", 0777, true);
+		if ($this->snmpv3 === true) {
+			$recfile = $this->snmpsimroot_current .
+				"data/1.3.6.1.6.1.1.0/127.0.0.1.snmprec"; // workaround
+			@mkdir($this->snmpsimroot_current.
+				"data/1.3.6.1.6.1.1.0", 0777, true);
+		}
+		else {
+			$recfile = $this->snmpsimroot_current .
+				"data/" . $this->snmp_community . ".snmprec";
+		}
 		file_put_contents($recfile, $snmpdata);
 
 		$command = $this->snmpsimd .
 			" --daemonize".
 			" --pid-file=".$this->snmpsimroot_current . "pidfile".
 			" --agent-udpv4-endpoint=127.0.0.1:21161".
-			" --device-dir=".$this->snmpsimroot_current . "data";
+			" --v3-user=auth_none".
+			" --v3-user=auth_md5 --v3-auth-key=md5_pass".
+			" --v3-auth-proto=MD5".
+			" --v3-user=auth_md5_des".
+			" --v3-auth-key=md5_pass --v3-priv-key=des_crypt".
+			" --v3-auth-proto=MD5 --v3-priv-proto=DES".
+			" --v3-user=auth_md5_aes".
+			" --v3-auth-key=md5_pass --v3-priv-key=aes_crypt".
+			" --v3-auth-proto=MD5 --v3-priv-proto=AES".
+			" --v3-user=auth_sha --v3-auth-key=sha_pass".
+			" --v3-auth-proto=SHA".
+			" --v3-user=auth_sha_des".
+			" --v3-auth-key=sha_pass --v3-priv-key=des_crypt".
+			" --v3-auth-proto=SHA --v3-priv-proto=DES".
+			" --v3-user=auth_sha_aes".
+			" --v3-auth-key=sha_pass --v3-priv-key=aes_crypt".
+			" --v3-auth-proto=SHA --v3-priv-proto=AES".
+			" --data-dir=".$this->snmpsimroot_current . "data/";
 		system($command, $returnval);
 	}
 
@@ -73,14 +112,22 @@ EOF;
 		if ($this->snmpsimroot_current === false) {
 			return;
 		}
-		posix_kill(intval(file_get_contents($this->snmpsimroot_current . "pidfile")), SIGINT);
-		exec("rm -rf " . $this->snmpsimroot_current);
+		posix_kill(intval(file_get_contents(
+			$this->snmpsimroot_current . "pidfile")
+		), SIGINT);
 		$this->snmpsimroot_current = false;
+	}
+
+	public function setUp()
+	{
+		$this->snmp_community = md5(uniqid());
 	}
 
 	public function tearDown()
 	{
 		$this->stop_snmpsim();
+		exec("rm -rf " . $this->snmpsimroot_current);
+		exec("rm -rf " . getenv('MP_STATE_PATH'));
 	}
 
 	public function run_command($args, &$output, &$error, &$return)
@@ -89,7 +136,7 @@ EOF;
 		$descriptorspec = array(
 			0 => array("pipe", "r"), // stdin
 			1 => array("pipe", "w"), // stdout
-			2 => array("pipe", "w") // stderr
+			2 => array("pipe", "w")  // stderr
 		);
 		$process = proc_open($cmd, $descriptorspec, $pipes);
 		if(!is_resource($process)) {
@@ -112,6 +159,31 @@ EOF;
 		$incorrect = <<<EOF
 1.
 EOF;
+	}
+
+	/*
+	 * Run most tests with SNMPv2c and SNMPv3, we use this function to provide
+	 * the dataProvider with data.
+	 */
+	public function snmpArgsProvider()
+	{
+		return array(
+			'SNMPv2c'        => array("-H @endpoint@ @community@"),
+			'SNMPv3_none'        => array("-H @endpoint@ @context@ -L noAuthNoPriv".
+				" -U auth_none"),
+			'SNMPv3_md5'     => array("-H @endpoint@ @context@ -L authNoPriv".
+				" -U auth_md5     -a MD5 -A md5_pass"),
+			'SNMPv3_md5_des' => array("-H @endpoint@ @context@ -L authPriv".
+				" -U auth_md5_des -a MD5 -A md5_pass -x DES -X des_crypt"),
+			'SNMPv3_md5_aes' => array("-H @endpoint@ @context@ -L authPriv".
+				" -U auth_md5_aes -a MD5 -A md5_pass -x AES -X aes_crypt"),
+			'SNMPv3_sha'     => array("-H @endpoint@ @context@ -L authNoPriv".
+				" -U auth_sha     -a SHA -A sha_pass"),
+			'SNMPv3_sha_des' => array("-H @endpoint@ @context@ -L authPriv".
+				" -U auth_sha_des -a SHA -A sha_pass -x DES -X des_crypt"),
+			'SNMPv3_sha_aes' => array("-H @endpoint@ @context@ -L authPriv".
+				" -U auth_sha_aes -a SHA -A sha_pass -x AES -X aes_crypt")
+		);
 	}
 
 	private function generate_snmpdata($snmpdata_diff)
@@ -141,11 +213,20 @@ EOF;
 		return implode("\n", $out_snmpdata)."\n";
 	}
 
-	public function assertCommandIncorrectSnmp($args, $expectedoutput, $expectedreturn)
-	{
+	public function assertCommandIncorrectSnmp(
+		$conn_args, $args, $expectedoutput, $expectedreturn
+	) {
+		$args = $conn_args . " " . $args;
+		if (strpos($args, "@context@")) {
+			$this->snmpv3 = true;
+		}
+		else {
+			$this->snmpv3 = false;
+		}
+		$args = str_replace("@context@", "", $args);
+		$args = str_replace("@endpoint@", "127.0.0.1:21161", $args);
+		$args = str_replace("@community@", "-C ".$this->snmp_community, $args);
 		$this->start_snmpsim($this->generate_incorrect_snmpdata());
-		$args = str_replace("@endpoint@","127.0.0.1:21161",$args);
-		$args = str_replace("@community@",$this->snmp_community, $args);
 		$this->run_command($args, $output, $error, $return);
 
 		if(is_array($expectedoutput))
@@ -157,11 +238,20 @@ EOF;
 		$this->assertEquals($expectedreturn, $return);
 	}
 
-	public function assertCommand($args, $snmpdata_diff, $expectedoutput, $expectedreturn)
-	{
-		$this->start_snmpsim($this->generate_snmpdata($snmpdata_diff));
+	public function assertCommand(
+		$conn_args, $args, $snmpdata_diff, $expectedoutput, $expectedreturn
+	) {
+		$args = $conn_args . " " . $args;
+		if (strpos($args, "@context@")) {
+			$this->snmpv3 = true;
+		}
+		else {
+			$this->snmpv3 = false;
+		}
+		$args = str_replace("@context@", "", $args);
 		$args = str_replace("@endpoint@", "127.0.0.1:21161", $args);
-		$args = str_replace("@community@", $this->snmp_community, $args);
+		$args = str_replace("@community@", "-C ".$this->snmp_community, $args);
+		$this->start_snmpsim($this->generate_snmpdata($snmpdata_diff));
 		$this->run_command($args, $output, $error, $return);
 
 		if(is_array($expectedoutput))
