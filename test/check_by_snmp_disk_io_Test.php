@@ -677,12 +677,12 @@ EOF;
 	 */
 	public function test_do_not_depend_on_unused_data($conn_args) {
 		// First run, no inital database
-		$this->assertCommandMissingUnusedData($conn_args, "-T nread -w 5 -c 20 -q 1 -Q 2", array(
+		$this->assertCommandMissingUnusedData($conn_args, "-T nread -m gib -w5 -c6 -e 'sda?b?\d+?' -q 1 -Q 2", array(
 			"UNKNOWN: No previous state, initializing database. Re-run the plugin"
 		), 3);
-		$this->assertCommandMissingUnusedData($conn_args, "-T nread -w 5 -c 20 -q 1 -Q 2", array(
-			"CRITICAL: 2/4 critical (sda: nread=10.00byte/s nwritten=30.00byte/s reads=50/s writes=10/s sdb: nread=100.00byte/s nwritten=300.00byte/s reads=500/s writes=100/s )",
-			"|'sda_nread'=10B;0:5;0:20 'sda_nwritten'=30B;0:5;0:20 'sda_reads'=50;0:5;0:20 'sda_writes'=10;0:5;0:20 'sda1_nread'=0B;0:5;0:20 'sda1_nwritten'=0B;0:5;0:20 'sda1_reads'=0;0:5;0:20 'sda1_writes'=0;0:5;0:20 'sdb_nread'=100B;0:5;0:20 'sdb_nwritten'=300B;0:5;0:20 'sdb_reads'=500;0:5;0:20 'sdb_writes'=100;0:5;0:20 'sdb1_nread'=0B;0:5;0:20 'sdb1_nwritten'=0B;0:5;0:20 'sdb1_reads'=0;0:5;0:20 'sdb1_writes'=0;0:5;0:20",
-		), 2);
+		$this->assertCommandMissingUnusedData($conn_args, "-T nread -m gib -w5 -c6 -e 'sda?b?\d+?' -q 1 -Q 2", array(
+			"OK: 6/6 OK (sda: nread=0.00byte/s nwritten=0.00byte/s reads=0/s writes=0/s sda1: nread=0.00byte/s nwritten=0.00byte/s reads=0/s writes=0/s sda2: nread=0.00byte/s nwritten=0.00byte/s reads=0/s writes=0/s sda3: nread=0.00byte/s nwritten=0.00byte/s reads=0/s writes=0/s sdb: nread=0.00byte/s nwritten=0.00byte/s reads=0/s writes=0/s sdb1: nread=0.00byte/s nwritten=0.00byte/s reads=0/s writes=0/s )",
+			"|'sda_nread'=0B;0:5368709120;0:6442450944 'sda_nwritten'=0B;0:5368709120;0:6442450944 'sda_reads'=0;0:5368709120;0:6442450944 'sda_writes'=0;0:5368709120;0:6442450944 'sda1_nread'=0B;0:5368709120;0:6442450944 'sda1_nwritten'=0B;0:5368709120;0:6442450944 'sda1_reads'=0;0:5368709120;0:6442450944 'sda1_writes'=0;0:5368709120;0:6442450944 'sda2_nread'=0B;0:5368709120;0:6442450944 'sda2_nwritten'=0B;0:5368709120;0:6442450944 'sda2_reads'=0;0:5368709120;0:6442450944 'sda2_writes'=0;0:5368709120;0:6442450944 'sda3_nread'=0B;0:5368709120;0:6442450944 'sda3_nwritten'=0B;0:5368709120;0:6442450944 'sda3_reads'=0;0:5368709120;0:6442450944 'sda3_writes'=0;0:5368709120;0:6442450944 'sdb_nread'=0B;0:5368709120;0:6442450944 'sdb_nwritten'=0B;0:5368709120;0:6442450944 'sdb_reads'=0;0:5368709120;0:6442450944 'sdb_writes'=0;0:5368709120;0:6442450944 'sdb1_nread'=0B;0:5368709120;0:6442450944 'sdb1_nwritten'=0B;0:5368709120;0:6442450944 'sdb1_reads'=0;0:5368709120;0:6442450944 'sdb1_writes'=0;0:5368709120;0:6442450944",
+		), 0);
 	}
 }

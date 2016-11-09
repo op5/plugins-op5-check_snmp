@@ -34,10 +34,10 @@ const char *program_name = "check_by_snmp_disk_io"; /* for coreutils libs */
 	(1 << DISKIO_NRead) | \
 	(1 << DISKIO_NWritten) | \
 	(1 << DISKIO_Reads) | \
-	(1 << DISKIO_Writes) | \
-	(1 << DISKIO_LA1) | \
-	(1 << DISKIO_LA5) | \
-	(1 << DISKIO_LA15))
+	(1 << DISKIO_Writes))// | \
+//	(1 << DISKIO_LA1) | \
+//	(1 << DISKIO_LA5) | \
+//	(1 << DISKIO_LA15))
 
 enum {
 	COUNTER_nread = 0,
