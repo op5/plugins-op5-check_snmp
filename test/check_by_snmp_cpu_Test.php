@@ -227,7 +227,12 @@ class Check_Snmp_Cpu_Test extends test_helper
 	 * @dataProvider snmpArgsProvider
 	 */
 	public function test_cpu_could_not_fetch_the_value_UNKNOWN($conn_args) {
-		$this->assertCommandIncorrectSnmp($conn_args, "", array(
+		// First run, no inital database
+		$this->assertCommand($conn_args, "", array(
+			// Remove all data
+			"/1.*/" => false
+		),
+		array(
 			"UNKNOWN: Could not fetch the values at .1.3.6.1.4.1.2021.11. " .
 			"Please check your config file for SNMP and make sure you have access"
 		), 3);

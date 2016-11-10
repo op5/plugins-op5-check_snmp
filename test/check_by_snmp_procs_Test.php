@@ -1105,7 +1105,12 @@ class Check_Snmp_Procs_Test extends test_helper
 	 * @dataProvider snmpArgsProvider
 	 */
 	public function test_processes_could_not_fetch_the_value_for_load1_UNKNOWN($conn_args) {
-		$this->assertCommandIncorrectSnmp($conn_args, "-T total_number_of_zombie_processes", array(
+		// First run, no inital database
+		$this->assertCommand($conn_args, "-T total_number_of_zombie_processes", array(
+			// Remove all data
+			"/1.*/" => false
+		),
+		array(
 			"UNKNOWN: Could not fetch the values at 1.3.6.1.2.1.25.4.2.1. Please check your config file for SNMP and make sure you have access"
 		), 3);
 	}

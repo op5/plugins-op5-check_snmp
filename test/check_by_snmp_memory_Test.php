@@ -174,16 +174,28 @@ class Check_Snmp_Memory_Test extends test_helper
 	 * @dataProvider snmpArgsProvider
 	 */
 	public function test_memory_could_not_fetch_the_value_for_ram_used_UNKNOWN($conn_args) {
-		$this->assertCommandIncorrectSnmp($conn_args, "-T ram_used", array(
+		// First run, no inital database
+		$this->assertCommand($conn_args, "-T ram_used", array(
+			// Remove all data
+			"/1.*/" => false
+		),
+		array(
 			"UNKNOWN: Could not fetch the values at 1.3.6.1.4.1.2021.4. Please check your config file for SNMP and make sure you have access"
 		), 3);
 	}
 
 	/**
+	 * Could not fetch the values
+	 *
 	 * @dataProvider snmpArgsProvider
 	 */
 	public function test_memory_could_not_fetch_the_value_for_swap_used_UNKNOWN($conn_args) {
-		$this->assertCommandIncorrectSnmp($conn_args, "-T swap_used", array(
+		// First run, no inital database
+		$this->assertCommand($conn_args, "-T swap_used", array(
+			// Remove all data
+			"/1.*/" => false
+		),
+		array(
 			"UNKNOWN: Could not fetch the values at 1.3.6.1.4.1.2021.4. Please check your config file for SNMP and make sure you have access"
 		), 3);
 	}

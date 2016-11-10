@@ -154,12 +154,6 @@ EOF;
 		$return = proc_close($process);
 	}
 
-	private function generate_incorrect_snmpdata()
-	{
-		$incorrect = "1.3.6.1.4.1.2021.13.15.1.1.1.1|2|1";
-		return $incorrect;
-	}
-
 	/*
 	 * Run most tests with SNMPv2c and SNMPv3, we use this function to provide
 	 * the dataProvider with data.
@@ -224,30 +218,6 @@ EOF;
 		}
 		natsort($out_snmpdata);
 		return implode("\n", $out_snmpdata)."\n";
-	}
-
-	public function assertCommandIncorrectSnmp($conn_args, $args, $expectedoutput,
-	$expectedreturn) {
-		$args = $conn_args . " " . $args;
-		if (strpos($args, "@context@")) {
-			$this->snmpv3 = true;
-		}
-		else {
-			$this->snmpv3 = false;
-		}
-		$args = str_replace("@context@", "", $args);
-		$args = str_replace("@endpoint@", "127.0.0.1:21161", $args);
-		$args = str_replace("@community@", "-C ".$this->snmp_community, $args);
-		$this->start_snmpsim($this->generate_incorrect_snmpdata());
-		$this->run_command($args, $output, $error, $return);
-
-		if(is_array($expectedoutput))
-			$expectedoutput = implode("\n", $expectedoutput);
-		$output = trim($output);
-
-		$this->assertEquals("", $error);
-		$this->assertEquals($expectedoutput, $output);
-		$this->assertEquals($expectedreturn, $return);
 	}
 
 	public function assertCommand(
