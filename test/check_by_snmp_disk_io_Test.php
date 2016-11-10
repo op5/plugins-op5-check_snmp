@@ -672,18 +672,77 @@ class Check_Snmp_Disk_Io_Test extends test_helper
 	}
 
 	/**
-	 * @group unusedData
-	 *
+	 * @group MON-9656
 	 * @dataProvider snmpArgsProvider
 	 */
-	public function test_do_not_depend_on_unused_data($conn_args) {
+	public function test_do_not_depend_on_load_average_data($conn_args) {
 		// First run, no inital database
-		$this->assertCommandMissingUnusedData($conn_args, "-T nread -m gib -w5 -c6 -e 'sda?b?\d+?' -q 1 -Q 2", array(
+		$this->assertCommand($conn_args, "-T nread -m gib -w5 -c6 -e 'sda?b?\d+?' -q 1 -Q 2", array(
+			"/1.3.6.1.4.1.2021.13.15.1.1.(9|10|11).\d+/" => false
+		),
+		array(
 			"UNKNOWN: No previous state, initializing database. Re-run the plugin"
 		), 3);
-		$this->assertCommandMissingUnusedData($conn_args, "-T nread -m gib -w5 -c6 -e 'sda?b?\d+?' -q 1 -Q 2", array(
-			"OK: 6/6 OK (sda: nread=0.00byte/s nwritten=0.00byte/s reads=0/s writes=0/s sda1: nread=0.00byte/s nwritten=0.00byte/s reads=0/s writes=0/s sda2: nread=0.00byte/s nwritten=0.00byte/s reads=0/s writes=0/s sda3: nread=0.00byte/s nwritten=0.00byte/s reads=0/s writes=0/s sdb: nread=0.00byte/s nwritten=0.00byte/s reads=0/s writes=0/s sdb1: nread=0.00byte/s nwritten=0.00byte/s reads=0/s writes=0/s )",
-			"|'sda_nread'=0B;0:5368709120;0:6442450944 'sda_nwritten'=0B;0:5368709120;0:6442450944 'sda_reads'=0;0:5368709120;0:6442450944 'sda_writes'=0;0:5368709120;0:6442450944 'sda1_nread'=0B;0:5368709120;0:6442450944 'sda1_nwritten'=0B;0:5368709120;0:6442450944 'sda1_reads'=0;0:5368709120;0:6442450944 'sda1_writes'=0;0:5368709120;0:6442450944 'sda2_nread'=0B;0:5368709120;0:6442450944 'sda2_nwritten'=0B;0:5368709120;0:6442450944 'sda2_reads'=0;0:5368709120;0:6442450944 'sda2_writes'=0;0:5368709120;0:6442450944 'sda3_nread'=0B;0:5368709120;0:6442450944 'sda3_nwritten'=0B;0:5368709120;0:6442450944 'sda3_reads'=0;0:5368709120;0:6442450944 'sda3_writes'=0;0:5368709120;0:6442450944 'sdb_nread'=0B;0:5368709120;0:6442450944 'sdb_nwritten'=0B;0:5368709120;0:6442450944 'sdb_reads'=0;0:5368709120;0:6442450944 'sdb_writes'=0;0:5368709120;0:6442450944 'sdb1_nread'=0B;0:5368709120;0:6442450944 'sdb1_nwritten'=0B;0:5368709120;0:6442450944 'sdb1_reads'=0;0:5368709120;0:6442450944 'sdb1_writes'=0;0:5368709120;0:6442450944",
+		$this->assertCommand($conn_args, "-T nread -m gib -w5 -c6 -e 'sda?b?\d+?' -q 1 -Q 2", array(
+			"/1.3.6.1.4.1.2021.13.15.1.1.(9|10|11).\d+/" => false
+		),array(
+			"OK: 4/4 OK (sda: nread=0.00byte/s nwritten=0.00byte/s reads=0/s writes=0/s sda1: nread=0.00byte/s nwritten=0.00byte/s reads=0/s writes=0/s sdb: nread=0.00byte/s nwritten=0.00byte/s reads=0/s writes=0/s sdb1: nread=0.00byte/s nwritten=0.00byte/s reads=0/s writes=0/s )",
+			"|'sda_nread'=0B;0:5368709120;0:6442450944 'sda_nwritten'=0B;0:5368709120;0:6442450944 'sda_reads'=0;0:5368709120;0:6442450944 'sda_writes'=0;0:5368709120;0:6442450944 'sda1_nread'=0B;0:5368709120;0:6442450944 'sda1_nwritten'=0B;0:5368709120;0:6442450944 'sda1_reads'=0;0:5368709120;0:6442450944 'sda1_writes'=0;0:5368709120;0:6442450944 'sdb_nread'=0B;0:5368709120;0:6442450944 'sdb_nwritten'=0B;0:5368709120;0:6442450944 'sdb_reads'=0;0:5368709120;0:6442450944 'sdb_writes'=0;0:5368709120;0:6442450944 'sdb1_nread'=0B;0:5368709120;0:6442450944 'sdb1_nwritten'=0B;0:5368709120;0:6442450944 'sdb1_reads'=0;0:5368709120;0:6442450944 'sdb1_writes'=0;0:5368709120;0:6442450944",
 		), 0);
+	}
+
+	/**
+	 * @group MON-9656
+	 * @dataProvider snmpArgsProvider
+	 */
+	public function test_not_finding_entries_that_were_found_the_previous_time_for_counters($conn_args) {
+		// First run, no inital database
+		$this->assertCommand($conn_args, "-T nread -m gib -w5 -c6 -e 'sda?b?\d+?' -q 1 -Q 2", array(
+		), array(
+			"UNKNOWN: No previous state, initializing database. Re-run the plugin"
+		), 3);
+
+		$this->assertCommand($conn_args, "-T nread -m gib -w5 -c6 -e 'sda?b?\d+?' -q 1 -Q 2", array(
+			"1.3.6.1.4.1.2021.13.15.1.1.6.25" => false
+		), array(
+			"Failed to read counter data for storage unit 25 (sda). Please check your SNMP configuration",
+		), 3);
+	}
+	/**
+	 * @group MON-9656
+	 * @dataProvider snmpArgsProvider
+	 */
+	public function test_do_not_depend_on_unused_counter_data($conn_args) {
+		// First run, no inital database
+		$this->assertCommand($conn_args, "-T load -m gib -w5 -c6 -e 'sda?b?\d+?' -q 1 -Q 2", array(
+			"/1.3.6.1.4.1.2021.13.15.1.1.(3|4|5|6).\d+/" => false
+		),
+		array(
+			"UNKNOWN: No previous state, initializing database. Re-run the plugin"
+		), 3);
+		$this->assertCommand($conn_args, "-T load -m gib -w5 -c6 -e 'sda?b?\d+?' -q 1 -Q 2", array(
+			"/1.3.6.1.4.1.2021.13.15.1.1.(3|4|5|6).\d+/" => false
+		),array(
+			"OK: 4/4 OK (sda: nread=0.00byte/s nwritten=0.00byte/s reads=0/s writes=0/s load1=0% load5=0% load15=0%, sda1: nread=0.00byte/s nwritten=0.00byte/s reads=0/s writes=0/s load1=1% load5=2% load15=3%, sdb: nread=0.00byte/s nwritten=0.00byte/s reads=0/s writes=0/s load1=0% load5=0% load15=0%, sdb1: nread=0.00byte/s nwritten=0.00byte/s reads=0/s writes=0/s load1=0% load5=0% load15=0%)",
+			"|'sda_nread'=0B;0:5368709120;0:6442450944 'sda_nwritten'=0B;0:5368709120;0:6442450944 'sda_reads'=0;0:5368709120;0:6442450944 'sda_writes'=0;0:5368709120;0:6442450944 'sda_load1'=0%;0:5;0:6 'sda_load5'=0%;0:;0: 'sda_load15'=0%;0:;0: 'sda1_nread'=0B;0:5368709120;0:6442450944 'sda1_nwritten'=0B;0:5368709120;0:6442450944 'sda1_reads'=0;0:5368709120;0:6442450944 'sda1_writes'=0;0:5368709120;0:6442450944 'sda1_load1'=1%;0:5;0:6 'sda1_load5'=2%;0:;0: 'sda1_load15'=3%;0:;0: 'sdb_nread'=0B;0:5368709120;0:6442450944 'sdb_nwritten'=0B;0:5368709120;0:6442450944 'sdb_reads'=0;0:5368709120;0:6442450944 'sdb_writes'=0;0:5368709120;0:6442450944 'sdb_load1'=0%;0:5;0:6 'sdb_load5'=0%;0:;0: 'sdb_load15'=0%;0:;0: 'sdb1_nread'=0B;0:5368709120;0:6442450944 'sdb1_nwritten'=0B;0:5368709120;0:6442450944 'sdb1_reads'=0;0:5368709120;0:6442450944 'sdb1_writes'=0;0:5368709120;0:6442450944 'sdb1_load1'=0%;0:5;0:6 'sdb1_load5'=0%;0:;0: 'sdb1_load15'=0%;0:;0:",
+		), 0);
+	}
+
+	/**
+	 * @group MON-9656
+	 * @dataProvider snmpArgsProvider
+	 */
+	public function test_not_finding_entries_that_were_found_the_previous_time_for_load_average($conn_args) {
+		// First run, no inital database
+		$this->assertCommand($conn_args, "-T load -m gib -w5 -c6 -e 'sda?b?\d+?' -q 1 -Q 2", array(
+		), array(
+			"UNKNOWN: No previous state, initializing database. Re-run the plugin"
+		), 3);
+
+		$this->assertCommand($conn_args, "-T load -m gib -w5 -c6 -e 'sda?b?\d+?' -q 1 -Q 2", array(
+			"1.3.6.1.4.1.2021.13.15.1.1.9.25" => false
+		), array(
+			"Failed to read load average data for storage unit 25 (sda). Please check your SNMP configuration",
+		), 3);
 	}
 }

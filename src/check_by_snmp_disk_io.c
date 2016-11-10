@@ -887,7 +887,7 @@ static int di2perfdata(void *di_ptr, void *dr_ptr)
  * Loads the disk_info struct from previous check and inserts them into the
  * tree previous_tree for later comparison with the current check.
  */
-static int load_state()
+static int load_state(void)
 {
 	struct disk_info *di;
 	state_data *previous_state;
