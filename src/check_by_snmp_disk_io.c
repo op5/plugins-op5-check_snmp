@@ -29,6 +29,9 @@ const char *program_name = "check_by_snmp_disk_io"; /* for coreutils libs */
 #define DISKIO_LA5      10
 #define DISKIO_LA15     11
 
+/**
+ * Data fields needed for the counter checks
+ */
 #define DISKIO_COUNTER ( \
 	(1 << DISKIO_Device) | \
 	(1 << DISKIO_NRead) | \
@@ -36,6 +39,9 @@ const char *program_name = "check_by_snmp_disk_io"; /* for coreutils libs */
 	(1 << DISKIO_Reads) | \
 	(1 << DISKIO_Writes))
 
+/**
+ * Data fields needed for the load average checks
+ */
 #define DISKIO_LA ( \
 	(1 << DISKIO_Device) | \
 	(1 << DISKIO_LA1) | \
