@@ -29,12 +29,21 @@ const char *program_name = "check_by_snmp_disk_io"; /* for coreutils libs */
 #define DISKIO_LA5      10
 #define DISKIO_LA15     11
 
-#define DISKIO_ALL ( \
+/**
+ * Data fields needed for the counter checks
+ */
+#define DISKIO_COUNTER ( \
 	(1 << DISKIO_Device) | \
 	(1 << DISKIO_NRead) | \
 	(1 << DISKIO_NWritten) | \
 	(1 << DISKIO_Reads) | \
-	(1 << DISKIO_Writes) | \
+	(1 << DISKIO_Writes))
+
+/**
+ * Data fields needed for the load average checks
+ */
+#define DISKIO_LA ( \
+	(1 << DISKIO_Device) | \
 	(1 << DISKIO_LA1) | \
 	(1 << DISKIO_LA5) | \
 	(1 << DISKIO_LA15))
@@ -342,17 +351,28 @@ static int filter_disks(void *di_ptr, void *to_tree)
 
 	mp_debug(3, "Checking disk '%s' against filters\n",
 		di->Device ? di->Device : "(noname; will be skipped)");
+
 	if (!di->Device) {
 		debugprint_disk_info("From filter disk", di_ptr, 3);
 		die(STATE_UNKNOWN, _("Failed to read description for storage unit with"
 			" index %d. Please check your SNMP configuration\n"), di->Index);
 	}
-	if (!di->filter_out && (di->have_vars & DISKIO_ALL) != DISKIO_ALL) {
-		mp_debug(3, "have_vars: %u; HRSTORAGE_ALL: %u; delta: %u\n",
-			di->have_vars, DISKIO_ALL, di->have_vars ^ DISKIO_ALL);
-		die(STATE_UNKNOWN, _("Failed to read data for storage unit %d (%s). "
-			"Please check your SNMP configuration\n"),
-		    di->Index, di->Device ? di->Device : "NULL");
+
+	if (checktype == load) {
+		if (!di->filter_out && (di->have_vars & DISKIO_LA) != DISKIO_LA) {
+			mp_debug(3, "have_vars: %u; HRSTORAGE_ALL: %u; delta: %u\n",
+				di->have_vars, DISKIO_LA, di->have_vars ^ DISKIO_LA);
+			die(STATE_UNKNOWN, _("Failed to read load average data for storage "
+				"unit %d (%s). Please check your SNMP configuration\n"),
+			    di->Index, di->Device ? di->Device : "NULL");
+		}
+	}
+	else if (!di->filter_out && (di->have_vars & DISKIO_COUNTER) != DISKIO_COUNTER) {
+			mp_debug(3, "have_vars: %u; HRSTORAGE_ALL: %u; delta: %u\n",
+				di->have_vars, DISKIO_COUNTER, di->have_vars ^ DISKIO_COUNTER);
+			die(STATE_UNKNOWN, _("Failed to read counter data for storage "
+				"unit %d (%s). Please check your SNMP configuration\n"),
+					di->Index, di->Device ? di->Device : "NULL");
 	}
 
 	if (!di->filter_out && filter_tree && rbtree_num_nodes(filter_tree)) {
@@ -873,7 +893,7 @@ static int di2perfdata(void *di_ptr, void *dr_ptr)
  * Loads the disk_info struct from previous check and inserts them into the
  * tree previous_tree for later comparison with the current check.
  */
-static int load_state()
+static int load_state(void)
 {
 	struct disk_info *di;
 	state_data *previous_state;

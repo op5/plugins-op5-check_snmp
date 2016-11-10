@@ -1,0 +1,17 @@
+# Development environment
+Install net-snmp-devel
+
+Run the tap tests:
+$ make check
+
+For the integration tests you need to install php-phpunit-PHPUnit and pip install snmpsim.
+
+Run the integration tests:
+$ phpunit test/
+
+# How to setup snmp and snmpsim
+Start snmpsim with a .recfile
+$ snmpsimd.py --agent-udpv4-endpoint=127.0.0.1:1161 --agent-udpv6-endpoint='[::1]:1161' --data-dir=/srv/repos/plugins/check_by_snmp/ --daemonize --pid-file=/srv/repos/plugins/check_by_snmp/pidfile
+
+Now you can run a snmpwalk on the simulated device
+$ snmpwalk -v 2c -c 20066-snmp-output 127.0.0.1:1161 .1

@@ -34,8 +34,8 @@ EOF;
 		$this->plugin = $plugin;
 		$this->snmpsimroot =
 			$this->snmpsimroot . "/" . basename($this->plugin) . "_test/";
-		if (!$this->snmpdata) {
-			echo "\$this->snmpdata not set in test. exiting\n";
+		if (!$this->get_snmp_data()) {
+			echo "\$this->get_snmp_data() not set in test. exiting\n";
 			exit(1);
 		}
 		parent::__construct($name, $data, $dataName);
@@ -154,13 +154,6 @@ EOF;
 		$return = proc_close($process);
 	}
 
-	private function generate_incorrect_snmpdata()
-	{
-		$incorrect = <<<EOF
-1.
-EOF;
-	}
-
 	/*
 	 * Run most tests with SNMPv2c and SNMPv3, we use this function to provide
 	 * the dataProvider with data.
@@ -169,7 +162,7 @@ EOF;
 	{
 		return array(
 			'SNMPv2c'        => array("-H @endpoint@ @community@"),
-			'SNMPv3_none'        => array("-H @endpoint@ @context@ -L noAuthNoPriv".
+			'SNMPv3_none'    => array("-H @endpoint@ @context@ -L noAuthNoPriv".
 				" -U auth_none"),
 			'SNMPv3_md5'     => array("-H @endpoint@ @context@ -L authNoPriv".
 				" -U auth_md5     -a MD5 -A md5_pass"),
@@ -188,17 +181,31 @@ EOF;
 
 	private function generate_snmpdata($snmpdata_diff)
 	{
-		$snmpdata = $this->snmpdata;
+		$snmpdata = $this->get_snmp_data();
 		$snmpdata_arr = array();
 		foreach( explode("\n", $snmpdata) as $line) {
+			$line = preg_replace("#^\s+#", "", $line);
 			if($line == "")
 				continue;
 			list($oid, $type, $value) = explode("|", $line, 3);
 			$snmpdata_arr[$oid] = array($type, $value);
 		}
 
+		$this->assertNotEmpty($snmpdata_arr);
+
 		foreach($snmpdata_diff as $oid => $newval) {
-			if($newval === false)
+			// detect regex in a dumb but fast way
+			if($oid[0] == "/"){
+					foreach($snmpdata_arr as $old_oid => $old_val) {
+						if(!preg_match($oid, $old_oid))
+							continue;
+						if($newval === false)
+							unset($snmpdata_arr[$old_oid]);
+						else
+							$snmpdata_arr[$old_oid] = $newval;
+					}
+			}
+			elseif($newval === false)
 				unset($snmpdata_arr[$oid]);
 			else
 				$snmpdata_arr[$oid] = $newval;
@@ -211,31 +218,6 @@ EOF;
 		}
 		natsort($out_snmpdata);
 		return implode("\n", $out_snmpdata)."\n";
-	}
-
-	public function assertCommandIncorrectSnmp(
-		$conn_args, $args, $expectedoutput, $expectedreturn
-	) {
-		$args = $conn_args . " " . $args;
-		if (strpos($args, "@context@")) {
-			$this->snmpv3 = true;
-		}
-		else {
-			$this->snmpv3 = false;
-		}
-		$args = str_replace("@context@", "", $args);
-		$args = str_replace("@endpoint@", "127.0.0.1:21161", $args);
-		$args = str_replace("@community@", "-C ".$this->snmp_community, $args);
-		$this->start_snmpsim($this->generate_incorrect_snmpdata());
-		$this->run_command($args, $output, $error, $return);
-
-		if(is_array($expectedoutput))
-			$expectedoutput = implode("\n", $expectedoutput);
-		$output = trim($output);
-
-		$this->assertEquals("", $error);
-		$this->assertEquals($expectedoutput, $output);
-		$this->assertEquals($expectedreturn, $return);
 	}
 
 	public function assertCommand(

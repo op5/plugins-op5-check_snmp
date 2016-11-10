@@ -3,20 +3,21 @@ require_once('test_helper.php');
 class Check_Snmp_Memory_Test extends test_helper
 {
 	public $plugin = 'check_by_snmp_memory';
-	public $snmpdata = <<<EOF
-1.3.6.1.4.1.2021.4.1.0|2|0
-1.3.6.1.4.1.2021.4.2.0|4|swap
-1.3.6.1.4.1.2021.4.3.0|2|1254392
-1.3.6.1.4.1.2021.4.4.0|2|1188148
-1.3.6.1.4.1.2021.4.5.0|2|603576
-1.3.6.1.4.1.2021.4.6.0|2|93204
-1.3.6.1.4.1.2021.4.11.0|2|1281352
-1.3.6.1.4.1.2021.4.12.0|2|16000
-1.3.6.1.4.1.2021.4.14.0|2|52856
-1.3.6.1.4.1.2021.4.15.0|2|280968
-1.3.6.1.4.1.2021.4.100.0|2|0
-1.3.6.1.4.1.2021.4.101.0|4|
-EOF;
+	public function get_snmp_data() {
+		$snmpdata = "1.3.6.1.4.1.2021.4.1.0|2|0
+			1.3.6.1.4.1.2021.4.2.0|4|swap
+			1.3.6.1.4.1.2021.4.3.0|2|1254392
+			1.3.6.1.4.1.2021.4.4.0|2|1188148
+			1.3.6.1.4.1.2021.4.5.0|2|603576
+			1.3.6.1.4.1.2021.4.6.0|2|93204
+			1.3.6.1.4.1.2021.4.11.0|2|1281352
+			1.3.6.1.4.1.2021.4.12.0|2|16000
+			1.3.6.1.4.1.2021.4.14.0|2|52856
+			1.3.6.1.4.1.2021.4.15.0|2|280968
+			1.3.6.1.4.1.2021.4.100.0|2|0
+			1.3.6.1.4.1.2021.4.101.0|4|";
+		return $snmpdata;
+	}
 
 	/**
 	 * Memory testing
@@ -173,16 +174,28 @@ EOF;
 	 * @dataProvider snmpArgsProvider
 	 */
 	public function test_memory_could_not_fetch_the_value_for_ram_used_UNKNOWN($conn_args) {
-		$this->assertCommandIncorrectSnmp($conn_args, "-T ram_used", array(
+		// First run, no inital database
+		$this->assertCommand($conn_args, "-T ram_used", array(
+			// Remove all data
+			"/1.*/" => false
+		),
+		array(
 			"UNKNOWN: Could not fetch the values at 1.3.6.1.4.1.2021.4. Please check your config file for SNMP and make sure you have access"
 		), 3);
 	}
 
 	/**
+	 * Could not fetch the values
+	 *
 	 * @dataProvider snmpArgsProvider
 	 */
 	public function test_memory_could_not_fetch_the_value_for_swap_used_UNKNOWN($conn_args) {
-		$this->assertCommandIncorrectSnmp($conn_args, "-T swap_used", array(
+		// First run, no inital database
+		$this->assertCommand($conn_args, "-T swap_used", array(
+			// Remove all data
+			"/1.*/" => false
+		),
+		array(
 			"UNKNOWN: Could not fetch the values at 1.3.6.1.4.1.2021.4. Please check your config file for SNMP and make sure you have access"
 		), 3);
 	}
