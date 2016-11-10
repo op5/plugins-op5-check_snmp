@@ -82,7 +82,6 @@ class Check_Snmp_Disk_Test extends test_helper
 			1.3.6.1.2.1.25.2.3.1.6.42|2|18019
 			1.3.6.1.2.1.25.2.3.1.6.43|2|6
 			1.3.6.1.2.1.25.2.3.1.6.54|2|41870371";
-		$snmpdata = preg_replace("#^\s+#", "", $snmpdata);
 		return $snmpdata;
 	}
 

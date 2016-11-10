@@ -44,7 +44,6 @@ class Check_Snmp_Cpu_Test extends test_helper
 			1.3.6.1.2.1.25.3.6.1.2.1553|2|2
 			1.3.6.1.2.1.25.3.6.1.3.1552|2|2
 			1.3.6.1.2.1.25.3.6.1.3.1553|2|2";
-		$snmpdata = preg_replace("#^\s+#", "", $snmpdata);
 		return $snmpdata;
 	}
 

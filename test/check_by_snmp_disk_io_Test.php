@@ -312,7 +312,6 @@ class Check_Snmp_Disk_Io_Test extends test_helper
 			1.3.6.1.4.1.2021.13.15.1.1.13.26|70|66239533056
 			1.3.6.1.4.1.2021.13.15.1.1.13.27|70|63111168
 			1.3.6.1.4.1.2021.13.15.1.1.13.28|70|63111168";
-		$snmpdata = preg_replace("#^\s+#", "", $snmpdata);
 		return $snmpdata;
 	}
 

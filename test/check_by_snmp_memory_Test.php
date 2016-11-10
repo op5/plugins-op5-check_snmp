@@ -16,7 +16,6 @@ class Check_Snmp_Memory_Test extends test_helper
 			1.3.6.1.4.1.2021.4.15.0|2|280968
 			1.3.6.1.4.1.2021.4.100.0|2|0
 			1.3.6.1.4.1.2021.4.101.0|4|";
-		$snmpdata = preg_replace("#^\s+#", "", $snmpdata);
 		return $snmpdata;
 	}
 

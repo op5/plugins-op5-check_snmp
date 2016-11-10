@@ -960,7 +960,6 @@ class Check_Snmp_Procs_Test extends test_helper
 			1.3.6.1.2.1.25.5.1.1.2.18182|2|3820
 			1.3.6.1.2.1.25.5.1.1.2.18185|2|4040
 			1.3.6.1.2.1.25.5.1.1.2.18191|2|28288";
-		$snmpdata = preg_replace("#^\s+#", "", $snmpdata);
 		return $snmpdata;
 	}
 

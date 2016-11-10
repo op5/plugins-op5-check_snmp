@@ -388,14 +388,27 @@ EOF;
 		$snmpdata = $this->get_snmp_data();
 		$snmpdata_arr = array();
 		foreach( explode("\n", $snmpdata) as $line) {
+			$line = preg_replace("#^\s+#", "", $line);
 			if($line == "")
 				continue;
 			list($oid, $type, $value) = explode("|", $line, 3);
 			$snmpdata_arr[$oid] = array($type, $value);
 		}
 
+		$this->assertNotEmpty($snmpdata_arr);
+
 		foreach($snmpdata_diff as $oid => $newval) {
-			if($newval === false)
+			if($oid[0] == "/"){
+					foreach($snmpdata_arr as $old_oid => $old_val) {
+						if(!preg_match($oid, $old_oid))
+							continue;
+						if($newval === false)
+							unset($snmpdata_arr[$old_oid]);
+						else
+							$snmpdata_arr[$old_oid] = $newval;
+					}
+			}
+			elseif($newval === false)
 				unset($snmpdata_arr[$oid]);
 			else
 				$snmpdata_arr[$oid] = $newval;
