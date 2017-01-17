@@ -46,7 +46,7 @@ foreach ($this->DS as $KEY=>$VAL) {
 		$warn_min = $VAL['WARN_MIN'];
 	}
 	if ( $VAL['CRIT'] != "" && is_numeric($VAL['CRIT']) ) {
-		$upper = " --upper=" . ($VAL['CRIT'] + 1);
+		$upper = " --upper-limit=" . ($VAL['CRIT'] + 1);
 		$critical = $VAL['CRIT'];
 	}
 	if ( $VAL['CRIT_MAX'] != "" && is_numeric($VAL['CRIT_MAX']) ) {
@@ -56,7 +56,7 @@ foreach ($this->DS as $KEY=>$VAL) {
 		$crit_min = $VAL['CRIT_MIN'];
 	}
 	if ( $VAL['MIN'] != "" && is_numeric($VAL['MIN']) ) {
-		$lower = " --lower=" . $VAL['MIN'];
+		$lower = " --lower-limit=" . $VAL['MIN'];
 		$minimum = $VAL['MIN'];
 	}
 	if ( $VAL['MAX'] != "" && is_numeric($VAL['MAX']) ) {
@@ -64,8 +64,8 @@ foreach ($this->DS as $KEY=>$VAL) {
 	}
 	if ($VAL['UNIT'] == "%%") {
 		$vlabel = "%";
-		$upper = " --upper=101 ";
-		$lower = " --lower=0 ";
+		$upper = " --upper-limit=101 ";
+		$lower = " --lower-limit=0 ";
 	}
 	else {
 		$vlabel = $VAL['UNIT'];
