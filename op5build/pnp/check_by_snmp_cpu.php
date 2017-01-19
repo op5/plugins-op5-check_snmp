@@ -1,8 +1,11 @@
 <?php
 #
-# The graph showing thresholds goes into $def[1]
-# The rest of them except for total and idle goes into $def[2]
+# Copyright (c) 2006-2010 Joerg Linge (http://www.pnp4nagios.org)
 #
+# Define some colors ..
+#
+$_WARNRULE = '#FFFF00';
+$_CRITRULE = '#FF0000';
 $color_list = array(
 	1  => "#e382ffff", // Grey
 	2  => "#674ea7ff", // Black
@@ -11,6 +14,10 @@ $color_list = array(
 	5  => "#1A262C", // Dark grey
 	6  => "#F37A20", // Orange
 );
+#
+# The graph showing thresholds goes into $def[1]
+# The rest of them except for total and idle goes into $def[2]
+#
 $opt[1] = '';
 $opt[2] = '--vertical-label Percent ' .
           '--title "CPU usage" -u 100 -l 0 ' .
@@ -21,6 +28,40 @@ $def[1] = '';
 $def[2] = '';
 $coloridx = 1;
 for($i=1; $i <= sizeof($DS); $i++) {
+	$maximum  = "";
+	$minimum  = "";
+	$critical = "";
+	$crit_min = "";
+	$crit_max = "";
+	$warning  = "";
+	$warn_max = "";
+	$warn_min = "";
+
+	if (is_numeric($WARN[$i]) ){
+		$warning = $WARN[$i];
+	}
+	if (is_numeric($WARN_MAX[$i]) ) {
+		$warn_max = $WARN_MAX[$i];
+	}
+	if (is_numeric($WARN_MIN[$i]) ) {
+		$warn_min = $WARN_MIN[$i];
+	}
+	if (is_numeric($CRIT[$i]) ) {
+		$critical = $CRIT[$i];
+	}
+	if (is_numeric($CRIT_MAX[$i]) ) {
+		$crit_max = $CRIT_MAX[$i];
+	}
+	if (is_numeric($CRIT_MIN[$i]) ) {
+		$crit_min = $CRIT_MIN[$i];
+	}
+	if (is_numeric($MIN[$i]) ) {
+		$minimum = $MIN[$i];
+	}
+	if (is_numeric($MAX[$i]) ) {
+		$maximum = $MAX[$i];
+	}
+
 	if ($coloridx == count($color_list)) {
 		$coloridx = 1;
 	} else {
@@ -40,10 +81,24 @@ for($i=1; $i <= sizeof($DS); $i++) {
 		            "%4.0lf" . "%%");
 		$def[1] .=  rrd::line1("var1", "#000000");
 
-		$def[1] .= rrd::hrule($WARN[$i], "#FFFF00", "Warning  " . $WARN[$i] .
-		           "%\\n");
-		$def[1] .= rrd::hrule($CRIT[$i], "#FF0000", "Critical " . $CRIT[$i] .
-		           "%\\n");
+		if ($warning != "") {
+			$def[1] .= rrd::hrule($warning, $_WARNRULE, "Warning  $warning \\n");
+		}
+		if ($warn_min != "") {
+			$def[1] .= rrd::hrule($warn_min, $_WARNRULE, "Warning  (min)  $warn_min \\n");
+		}
+		if ($warn_max != "") {
+			$def[1] .= rrd::hrule($warn_max, $_WARNRULE, "Warning  (max)  $warn_max \\n");
+		}
+		if ($critical != "") {
+			$def[1] .= rrd::hrule($critical, $_CRITRULE, "Critical $critical \\n");
+		}
+		if ($crit_min != "") {
+			$def[1] .= rrd::hrule($crit_min, $_CRITRULE, "Critical (min)  $crit_min \\n");
+		}
+		if ($crit_max != "") {
+			$def[1] .= rrd::hrule($crit_max, $_CRITRULE, "Critical (max)  $crit_max MiB\\n");
+		}
 	}
 
 	if ((isset($LABEL[$i]) && $LABEL[$i] != "idle") &&
