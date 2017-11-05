@@ -63,6 +63,7 @@ enum {
 static int disk_mask;
 static int list_disks;
 static char *warn_str = "", *crit_str = "";
+static int print_double_perfdata;
 static char thresholdunit = '%';
 static struct rbtree *filter_tree;
 static int discard_default_filters;
@@ -512,6 +513,8 @@ static void print_help(void)
 	printf (" %s\n", "-u, --exclude-used <numcomparison>");
 	printf ("    %s\n", _("Exclude units where used does not match <numcomparison>"));
 
+	printf (" %s\n", " --print-double-perfdata   (no short option available)");
+	printf ("    %s\n", _("Causes the plugin to print performance data in both percent and bytes\n"));
 	mp_snmp_argument_help();
 	printf ("Notes on filters:\n");
 	printf ("  * The type filter trumps all other filters\n");
@@ -548,6 +551,7 @@ static int process_arguments(mp_snmp_context *ctx, int argc, char **argv)
 		{ "exclude-blocksize", required_argument, 0, 'B' },
 		{ "exclude-used", required_argument, 0, 'u' },
 		{ "types", required_argument, 0, 'T' },
+		{ "print-double-perfdata", no_argument, 0, 4 },
 		MP_SNMP_LONGOPTS,
 		{NULL, 0, 0, 0},
 	};
@@ -588,6 +592,9 @@ static int process_arguments(mp_snmp_context *ctx, int argc, char **argv)
 			continue;
 
 		switch (c) {
+			case 4:
+				print_double_perfdata = 1;
+				break;
 			case 'S':
 				sum_all_disks = 1;
 				break;
@@ -903,6 +910,22 @@ static int di2perfdata(void *di_ptr, void *thresh_ptr)
 	       di->Descr, di->used_bytes,
 	       threshold_range2str(di, thresh->warning), threshold_range2str(di, thresh->critical),
 	       di->size_bytes);
+	if (print_double_perfdata) {
+		double warn_pct_start, crit_pct_start, warn_pct_end, crit_pct_end;
+		if (thresholdunit != '%') {
+			warn_pct_start = 100 * (thresh->warning->start / di->size_bytes);
+			crit_pct_start = 100 * (thresh->critical->start / di->size_bytes);
+			warn_pct_end = 100 * (thresh->warning->end / di->size_bytes);
+			crit_pct_end = 100 * (thresh->critical->end / di->size_bytes);
+		} else {
+			warn_pct_start = thresh->warning->start;
+			warn_pct_end = thresh->warning->end;
+			crit_pct_start = thresh->critical->start;
+			crit_pct_end = thresh->critical->end;
+		}
+		printf("'%s_upct'=%0.2lf%%;%0.2lf:%0.2lf;%0.2lf:%0.2lf; ",
+		       di->Descr, di->pct_used, warn_pct_start, warn_pct_end, crit_pct_start, crit_pct_end);
+	}
 
 	return 0;
 }
