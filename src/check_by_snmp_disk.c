@@ -114,6 +114,7 @@ struct disk_filter {
 #define FILTER_Size 3
 #define FILTER_AllocationUnits 4
 #define FILTER_Used 5
+#define FILTER_BLOCKS 6
 
 #define FILTER_EQ '='
 #define FILTER_GT '>'
@@ -218,6 +219,8 @@ static int filter_what(const char *str)
 		return FILTER_Type;
 	if (!strcasecmp("blocksize", str))
 		return FILTER_AllocationUnits;
+	if (!strcasecmp("blocks", str))
+		return FILTER_BLOCKS;
 
 	return -1;
 }
@@ -264,6 +267,7 @@ static struct disk_filter *parse_filter(char *what_str, int flags, const char *o
 	 case FILTER_Size:
 	 case FILTER_AllocationUnits:
 	 case FILTER_Used:
+	 case FILTER_BLOCKS:
 		f->value = parse_bytes(orig_str, &err);
 		if (err) {
 			die(STATE_UNKNOWN, _("Failed to parse %s to bytes\n"), orig_str);
@@ -340,6 +344,9 @@ static int filter_one_disk(void *a_, void *b_)
 	 case FILTER_AllocationUnits:
 		value = di->AllocationUnits;
 		break;
+	 case FILTER_BLOCKS:
+		value = di->Size;
+		break;
 	 case FILTER_Size:
 		value = di->size_bytes;
 		break;
@@ -347,6 +354,7 @@ static int filter_one_disk(void *a_, void *b_)
 	 	value = di->used_bytes;
 		break;
 	 case FILTER_Name:
+		value_filter = 0;
 		if (FILTER_HOW(f->how) == FILTER_REGEX) {
 			int ret = regexec(&f->preg, di->Descr, 0, NULL, 0);
 			if (!ret) {
