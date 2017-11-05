@@ -91,6 +91,22 @@ class Check_Snmp_Disk_Test extends test_helper
 	/**
 	 * @dataProvider snmpArgsProvider
 	 */
+	public function test_list_storage_clean_description($conn_args) {
+		$this->assertCommand($conn_args, "-D --list --cleanup-descriptions", array(
+		), array(
+			'A:              : RemovableDisk  0K-blocks     -nan% used of 0.00bytes. 0.00bytes free',
+			'C:_Label:_Serial_Number_3ec33a66: FixedDisk      4K-blocks    41.69% used of 79.21GiB. 46.19GiB free',
+			'D:              : CompactDisc    0K-blocks     -nan% used of 0.00bytes. 0.00bytes free',
+			'E:_Label:verep002_Serial_Number_d4c1ea4e: FixedDisk      64K-blocks    92.40% used of 27.28TiB. 2.07TiB free',
+			'F:_Label:verepmon002_Serial_Number_2c0bbb0d: FixedDisk      64K-blocks    79.95% used of 27.28TiB. 5.47TiB free',
+			'Virtual_Memory  : VirtualMemory  64K-blocks     7.03% used of 45.75GiB. 42.54GiB free',
+			'Physical_Memory : Ram            64K-blocks     8.28% used of 40.00GiB. 36.69GiB free',
+		), 0);
+	}
+
+	/**
+	 * @dataProvider snmpArgsProvider
+	 */
 	public function test_windows_data($conn_args) {
 		$this->assertCommand($conn_args,
 			"-m gib --strip-descr : -w 0:50 -c 0:50 --free-bytes-cutoff 150gib --free-bytes-warning 60gib --free-bytes-critical 50gib --print-double-perfdata",

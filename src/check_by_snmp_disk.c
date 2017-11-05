@@ -73,6 +73,7 @@ static int sum_all_disks;
 static int include_filters, exclude_filters;
 static char filter_charmap_magic[255];
 static char *strip_descr_from;
+static int cleanup_descriptions;
 #define num_filters (include_filters + exclude_filters)
 
 struct di_result {
@@ -129,6 +130,35 @@ struct disk_filter {
 #define FILTER_EXCLUDE 1024
 #define FILTER_HOW(t) (t & 0xff)
 #define FILTER_ACTION(t) (t & 1024)
+
+static char *cleanup_string(const char *str, int len)
+{
+	int i;
+	char *ret;
+	int in_unprintables = 0;
+	int idx = 0;
+
+	if (!(ret = calloc(len + 1, 1))) {
+		return NULL;
+	}
+
+	for (idx = i = 0; i < len; i++) {
+		const char c = str[i];
+		if(isalnum(c) || c == ':' || c == '/' || c == '_' || c == '-') {
+			if (in_unprintables) {
+				ret[idx++] = '_';
+				in_unprintables = 0;
+			}
+			ret[idx++] = c;
+			continue;
+		}
+		in_unprintables = 1;
+	}
+
+	mp_debug(1, "pnpized '%s' to '%s'\n", str, ret);
+
+	return ret;
+}
 
 /* parse a string with an optional SSI-y suffix to bytes */
 static double parse_bytes(const char *str, int *err)
@@ -526,6 +556,8 @@ static void print_help(void)
 	printf ("    %s\n", _("Causes the plugin to print performance data in both percent and bytes\n"));
 	printf (" %s\n", _(" --strip-descr-from  (no short option available)"));
 	printf ("    %s\n", _("Strip disk descriptions from the start of the given string.\n"));
+	printf (" %s\n", _(" --cleanup-descriptions  (no short option available)"));
+	printf ("    %s\n", _("Clean characters from disk descriptions that can interfere with scripting"));
 
 	mp_snmp_argument_help();
 	printf ("Notes on filters:\n");
@@ -569,6 +601,7 @@ static int process_arguments(mp_snmp_context *ctx, int argc, char **argv)
 		{ "free-bytes-cutoff", required_argument, 0, 3 },
 		{ "print-double-perfdata", no_argument, 0, 4 },
 		{ "strip-descr-from", required_argument, 0, 5 },
+		{ "cleanup-descriptions", no_argument, 0, 6 },
 		MP_SNMP_LONGOPTS,
 		{NULL, 0, 0, 0},
 	};
@@ -623,6 +656,9 @@ static int process_arguments(mp_snmp_context *ctx, int argc, char **argv)
 				break;
 			case 5:
 				strip_descr_from = optarg;
+				break;
+			case 6:
+				cleanup_descriptions = 1;
 				break;
 			case 'S':
 				sum_all_disks = 1;
@@ -823,8 +859,10 @@ static int store_hrStorageTable(netsnmp_variable_list *v, void *the_tree, void *
 				len = (unsigned long long)substr - (unsigned long long)v->val.string;
 			}
 		}
-		di->Descr = strndup((char *)v->val.string, len);
-		di->Descr = strndup((char *)v->val.string, v->val_len);
+		if (cleanup_descriptions)
+			di->Descr = cleanup_string((char *)v->val.string, len);
+		else
+			di->Descr = strndup((char *)v->val.string, len);
 		break;
 	 case HRSTORAGE_SUBIDX_AllocationUnits:
 		di->AllocationUnits = *v->val.integer;
