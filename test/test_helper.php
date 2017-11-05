@@ -44,7 +44,7 @@ EOF;
 	private function find_in_path($names = array())
 	{
 		$path = getenv('PATH');
-		$path_entries = split(':', $path);
+		$path_entries = explode(':', $path);
 		foreach ($path_entries as $p) {
 			foreach ($names as $n) {
 				if (file_exists("$p/$n")) {
@@ -196,14 +196,14 @@ EOF;
 		foreach($snmpdata_diff as $oid => $newval) {
 			// detect regex in a dumb but fast way
 			if($oid[0] == "/"){
-					foreach($snmpdata_arr as $old_oid => $old_val) {
-						if(!preg_match($oid, $old_oid))
-							continue;
-						if($newval === false)
-							unset($snmpdata_arr[$old_oid]);
-						else
-							$snmpdata_arr[$old_oid] = $newval;
-					}
+				foreach($snmpdata_arr as $old_oid => $old_val) {
+					if(!preg_match($oid, $old_oid))
+						continue;
+					if($newval === false)
+						unset($snmpdata_arr[$old_oid]);
+					else
+						$snmpdata_arr[$old_oid] = $newval;
+				}
 			}
 			elseif($newval === false)
 				unset($snmpdata_arr[$oid]);
