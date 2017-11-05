@@ -60,9 +60,11 @@ enum {
 	(1 << STORAGE_TYPE_Ram) | \
 	(1 << STORAGE_TYPE_VirtualMemory)
 
+static double free_bytes_cutoff, free_warning, free_critical;
 static int disk_mask;
 static int list_disks;
 static char *warn_str = "", *crit_str = "";
+static char *free_warn_str, *free_crit_str, *free_limit_str;
 static int print_double_perfdata;
 static char thresholdunit = '%';
 static struct rbtree *filter_tree;
@@ -514,6 +516,12 @@ static void print_help(void)
 	printf (" %s\n", "-u, --exclude-used <numcomparison>");
 	printf ("    %s\n", _("Exclude units where used does not match <numcomparison>"));
 
+	printf (" %s\n", " --free-bytes-warning=BYTES   (no short option available)");
+	printf ("    %s\n", _("Min bytes free to not trigger a warning state. SSI suffixes can be used"));
+	printf (" %s\n", " --free-bytes-critical=RANGE   (no short option available)");
+	printf ("    %s\n", _("Min bytes free to not trigger a critical state. SSI suffixes can be used"));
+	printf (" %s\n", _(" --free-bytes-cutoff   (no short option available)"));
+	printf ("    %s\n", _("Max disksize where free bytes should be used instead of %%. SSI suffixes can be used"));
 	printf (" %s\n", " --print-double-perfdata   (no short option available)");
 	printf ("    %s\n", _("Causes the plugin to print performance data in both percent and bytes\n"));
 	printf (" %s\n", _(" --strip-descr-from  (no short option available)"));
@@ -537,6 +545,7 @@ static void print_help(void)
 /* process command-line arguments */
 static int process_arguments(mp_snmp_context *ctx, int argc, char **argv)
 {
+	int err;
 	int c, option, parsed = 0;
 	int i, x;
 	char *optary;
@@ -555,6 +564,9 @@ static int process_arguments(mp_snmp_context *ctx, int argc, char **argv)
 		{ "exclude-blocksize", required_argument, 0, 'B' },
 		{ "exclude-used", required_argument, 0, 'u' },
 		{ "types", required_argument, 0, 'T' },
+		{ "free-bytes-warning", required_argument, 0, 1 },
+		{ "free-bytes-critical", required_argument, 0, 2 },
+		{ "free-bytes-cutoff", required_argument, 0, 3 },
 		{ "print-double-perfdata", no_argument, 0, 4 },
 		{ "strip-descr-from", required_argument, 0, 5 },
 		MP_SNMP_LONGOPTS,
@@ -597,6 +609,15 @@ static int process_arguments(mp_snmp_context *ctx, int argc, char **argv)
 			continue;
 
 		switch (c) {
+			case 1:
+				free_warn_str = optarg;
+				break;
+			case 2:
+				free_crit_str = optarg;
+				break;
+			case 3:
+				free_limit_str = optarg;
+				break;
 			case 4:
 				print_double_perfdata = 1;
 				break;
@@ -698,6 +719,28 @@ static int process_arguments(mp_snmp_context *ctx, int argc, char **argv)
 		}
 	}
 	free(optary);
+
+	if (free_limit_str) {
+		free_bytes_cutoff = parse_bytes(free_limit_str, &err);
+		if (!free_bytes_cutoff && err) {
+			printf("Bad format for free-bytes cutoff string\n");
+			exit(STATE_UNKNOWN);
+		}
+	}
+	if (free_warn_str) {
+		free_warning = parse_bytes(free_warn_str, &err);
+		if (!free_warning && err) {
+			printf("Bad format for free-bytes warning threshold\n");
+			exit(STATE_UNKNOWN);
+		}
+	}
+	if (free_crit_str) {
+		free_critical = parse_bytes(free_crit_str, &err);
+		if (!free_critical && err) {
+			printf("Bad format for free-bytes critical threshold\n");
+			exit(STATE_UNKNOWN);
+		}
+	}
 
 	if (optind != argc) {
 		printf("%s: %s: ", state_text(STATE_UNKNOWN), _("Unhandled arguments present"));
@@ -862,6 +905,20 @@ static int match_used_bytes(void *di_ptr, void *result_ptr)
 	struct di_result *r = (struct di_result *)result_ptr;
 	double value;
 
+	/*
+	 * if we have the "special" thresholds, check to see if the
+	 * disk is within the specified range
+	 */
+	if (free_bytes_cutoff && di->size_bytes > free_bytes_cutoff) {
+		if (di->free_bytes < free_critical) {
+			rbtree_insert(r->critical, di);
+		} else if (di->free_bytes < free_warning) {
+			rbtree_insert(r->warning, di);
+		}
+		return 0;
+	}
+
+	/* either no special range, or disk is not within the range */
 	value = '%' == thresholdunit ? di->pct_used : di->used_bytes;
 
 	if (check_range(value, r->thresh->critical)) {

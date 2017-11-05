@@ -87,4 +87,17 @@ class Check_Snmp_Disk_Test extends test_helper
 			'Physical Memory : Ram            64K-blocks     8.28% used of 40.00GiB. 36.69GiB free',
 		), 0);
 	}
+
+	/**
+	 * @dataProvider snmpArgsProvider
+	 */
+	public function test_windows_data($conn_args) {
+		$this->assertCommand($conn_args,
+			"-m gib --strip-descr : -w 0:50 -c 0:50 --free-bytes-cutoff 150gib --free-bytes-warning 60gib --free-bytes-critical 50gib --print-double-perfdata",
+			array(),
+		array(
+			"OK: 3/3 OK (C: 41.69% used of 79.21GiB, 46.19GiB free.  E: 92.40% used of 27.28TiB, 2.07TiB free.  F: 79.95% used of 27.28TiB, 5.47TiB free)",
+			"|'C_used'=35455823872B;0:53687091200;0:53687091200;0;85056286720 'C_upct'=41.69%;0.00:63.12;0.00:63.12; 'E_used'=27717524193280B;0:53687091200;0:53687091200;0;29995881660416 'E_upct'=92.40%;0.00:0.18;0.00:0.18; 'F_used'=23981184385024B;0:53687091200;0:53687091200;0;29995881660416 'F_upct'=79.95%;0.00:0.18;0.00:0.18;",
+		), 0);
+	}
 }
