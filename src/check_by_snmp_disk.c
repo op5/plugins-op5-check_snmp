@@ -330,6 +330,7 @@ static int filter_one_disk(void *a_, void *b_)
 	struct disk_filter *f = (struct disk_filter *)a_;
 	struct disk_info *di = (struct disk_info *)b_;
 	int match = 0;
+	int value_filter = 1;
 	double value = 0.0;
 
 	mp_debug(2, "   checking %sclude filter '%s%c%s' against %s\n",
@@ -357,7 +358,11 @@ static int filter_one_disk(void *a_, void *b_)
 		break;
 	}
 
-	if (value) {
+	/*
+	 * must use value_filter instead of value, or we can't ever match 0
+	 * against 0
+	 */
+	if (value_filter) {
 		match = match_filter_value(f->how, value, f->value);
 	}
 
