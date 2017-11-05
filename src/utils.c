@@ -518,7 +518,7 @@ const char *humanize_bytes(double bytes)
 	static char buf[32][16];
 	static int buf_i = 0;
 	char *p;
-	const char *suffix[] = { "byte", "KiB", "MiB", "GiB", "TiB", "PiB", "EiB", "ZiB", "YiB" };
+	const char *suffix[] = { "bytes", "KiB", "MiB", "GiB", "TiB", "PiB", "EiB", "ZiB", "YiB" };
 	unsigned int suff_i = 0;
 
 	while (suff_i < ARRAY_SIZE(suffix) && bytes > 1024) {
