@@ -806,10 +806,10 @@ static int print_disk_entry(void *di_ptr, void *discard)
 {
 	struct disk_info *di = (struct disk_info *)di_ptr;
 
-	printf("%-16s: %-14s %dK-blocks   %6.2f%% used of %s\n",
+	printf("%-16s: %-14s %dK-blocks   %6.2f%% used of %s. %s free\n",
 	       di->Descr, storage_type_name(di->Type),
 	       di->AllocationUnits >> 10,
-	       di->pct_used, humanize_bytes(di->size_bytes));
+	       di->pct_used, humanize_bytes(di->size_bytes), humanize_bytes(di->free_bytes));
 	return 0;
 }
 
@@ -855,8 +855,10 @@ static int di2output(void *di_ptr, void *num_left_ptr)
 	int *num_left = (int *)num_left_ptr;
 
 	(*num_left)--;
-	printf("%s: %.2f%% used of %s%s", di->Descr, di->pct_used,
-	       humanize_bytes(di->size_bytes), *num_left ? ", " : "");
+	printf("%s: %.2f%% used of %s, %s free%s", di->Descr, di->pct_used,
+	       humanize_bytes(di->size_bytes),
+	       humanize_bytes(di->free_bytes),
+	       *num_left ? ".  " : "");
 	return 0;
 }
 
@@ -1038,7 +1040,7 @@ int main_as_in_test_program(int argc, char *argv[])
 			counter = num_critical;
 			printf("%d/%d critical (", num_critical, num_interesting);
 			rbtree_traverse(result.critical, di2output, &counter, rbinorder);
-			printf(")");
+			printf(")%s", num_warning ? " " : "");
 		}
 		if (num_warning) {
 			counter = num_warning;

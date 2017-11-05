@@ -93,19 +93,19 @@ class Check_Snmp_Disk_Test extends test_helper
 	public function test_list_storage_units($conn_args) {
 		$this->assertCommand($conn_args, "-D --list", array(
 		), array(
-			'Physical memory : Ram            1K-blocks    67.39% used of 7.51GiB',
-			'Virtual memory  : VirtualMemory  1K-blocks    33.42% used of 15.13GiB',
-			'Memory buffers  : Other          1K-blocks     1.53% used of 7.51GiB',
-			'Cached memory   : Other          1K-blocks   100.00% used of 2.79GiB',
-			'Shared memory   : Other          1K-blocks   100.00% used of 231.63MiB',
-			'Swap space      : VirtualMemory  1K-blocks     0.00% used of 7.63GiB',
-			'/               : FixedDisk      4K-blocks    44.46% used of 22.79GiB',
-			'/sys/fs/cgroup  : FixedDisk      4K-blocks     0.00% used of 4.00KiB',
-			'/run            : FixedDisk      4K-blocks     0.21% used of 768.59MiB',
-			'/run/lock       : FixedDisk      4K-blocks     0.00% used of 5.00MiB',
-			'/run/shm        : FixedDisk      4K-blocks     1.83% used of 3.75GiB',
-			'/run/user       : FixedDisk      4K-blocks     0.02% used of 100.00MiB',
-			'/home           : FixedDisk      4K-blocks    84.28% used of 189.51GiB',
+		        'Physical memory : Ram            1K-blocks    67.39% used of 7.51GiB. 2.45GiB free',
+		        'Virtual memory  : VirtualMemory  1K-blocks    33.42% used of 15.13GiB. 10.08GiB free',
+		        'Memory buffers  : Other          1K-blocks     1.53% used of 7.51GiB. 7.39GiB free',
+		        'Cached memory   : Other          1K-blocks   100.00% used of 2.79GiB. 0.00bytes free',
+		        'Shared memory   : Other          1K-blocks   100.00% used of 231.63MiB. 0.00bytes free',
+		        'Swap space      : VirtualMemory  1K-blocks     0.00% used of 7.63GiB. 7.63GiB free',
+		        '/               : FixedDisk      4K-blocks    44.46% used of 22.79GiB. 12.66GiB free',
+		        '/sys/fs/cgroup  : FixedDisk      4K-blocks     0.00% used of 4.00KiB. 4.00KiB free',
+		        '/run            : FixedDisk      4K-blocks     0.21% used of 768.59MiB. 766.98MiB free',
+		        '/run/lock       : FixedDisk      4K-blocks     0.00% used of 5.00MiB. 5.00MiB free',
+		        '/run/shm        : FixedDisk      4K-blocks     1.83% used of 3.75GiB. 3.68GiB free',
+		        '/run/user       : FixedDisk      4K-blocks     0.02% used of 100.00MiB. 99.98MiB free',
+		        '/home           : FixedDisk      4K-blocks    84.28% used of 189.51GiB. 29.79GiB free',
 		), 0);
 	}
 
@@ -115,7 +115,7 @@ class Check_Snmp_Disk_Test extends test_helper
 	public function test_valid_include_name_option($conn_args) {
 		$this->assertCommand($conn_args, "-i /", array(
 		), array(
-			"OK: 1/1 OK (/: 44.46% used of 22.79GiB)",
+			"OK: 1/1 OK (/: 44.46% used of 22.79GiB, 12.66GiB free)",
 			"|'/_used'=10879410176B;0:;0:;0;24472580096",
 		), 0);
 	}
@@ -126,7 +126,7 @@ class Check_Snmp_Disk_Test extends test_helper
 	public function test_valid_include_regex_option($conn_args) {
 		$this->assertCommand($conn_args, "--include-regex '^/$'", array(
 		), array(
-			"OK: 1/1 OK (/: 44.46% used of 22.79GiB)",
+			"OK: 1/1 OK (/: 44.46% used of 22.79GiB, 12.66GiB free)",
 			"|'/_used'=10879410176B;0:;0:;0;24472580096",
 		), 0);
 	}
@@ -169,7 +169,7 @@ class Check_Snmp_Disk_Test extends test_helper
 	public function test_percent_storage_used_OK($conn_args) {
 		$this->assertCommand($conn_args, "-i / -w50 -c75 -m %", array(
 		), array(
-			"OK: 1/1 OK (/: 44.46% used of 22.79GiB)",
+			"OK: 1/1 OK (/: 44.46% used of 22.79GiB, 12.66GiB free)",
 			"|'/_used'=10879410176B;0:12236290048;0:18354435072;0;24472580096",
 		), 0);
 	}
@@ -180,7 +180,7 @@ class Check_Snmp_Disk_Test extends test_helper
 	public function test_percent_storage_used_WARNING($conn_args) {
 		$this->assertCommand($conn_args, "-i / -m % -w25 -c75", array(
 		), array(
-			"WARNING: 1/1 warning (/: 44.46% used of 22.79GiB)",
+			"WARNING: 1/1 warning (/: 44.46% used of 22.79GiB, 12.66GiB free)",
 			"|'/_used'=10879410176B;0:6118145024;0:18354435072;0;24472580096",
 		), 1);
 	}
@@ -191,7 +191,7 @@ class Check_Snmp_Disk_Test extends test_helper
 	public function test_percent_storage_used_CRITICAL($conn_args) {
 		$this->assertCommand($conn_args, "-i / -w25:26 -c30:31", array(
 		), array(
-			"CRITICAL: 1/1 critical (/: 44.46% used of 22.79GiB)",
+			"CRITICAL: 1/1 critical (/: 44.46% used of 22.79GiB, 12.66GiB free)",
 			"|'/_used'=10879410176B;6118145024:6362870825;7341774029:7586499830;0;24472580096",
 		), 2);
 	}
@@ -202,7 +202,7 @@ class Check_Snmp_Disk_Test extends test_helper
 	public function test_sum_storage_used_CRITICAL($conn_args) {
 		$this->assertCommand($conn_args, "-D -S -w 25:26 -c30:31", array(
 		), array(
-			"CRITICAL: 13 storage units selected. Sum total: 71.08% used of 257.70GiB",
+			"CRITICAL: 13 storage units selected. Sum total: 71.08% used of 257.70GiB, 74.52GiB free",
 			"|'total_used'=196682547200B;69175566336:71942588989;83010679603:85777702257;0;276702265344",
 		), 2);
 	}
@@ -215,7 +215,7 @@ class Check_Snmp_Disk_Test extends test_helper
 	public function test_gb_prefix_OK($conn_args) {
 		$this->assertCommand($conn_args, "-i / -m gib -w30 -c40", array(
 		), array(
-			"OK: 1/1 OK (/: 44.46% used of 22.79GiB)",
+			"OK: 1/1 OK (/: 44.46% used of 22.79GiB, 12.66GiB free)",
 			"|'/_used'=10879410176B;0:32212254720;0:42949672960;0;24472580096",
 		), 0);
 	}
