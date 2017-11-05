@@ -107,6 +107,29 @@ class Check_Snmp_Disk_Test extends test_helper
 	/**
 	 * @dataProvider snmpArgsProvider
 	 */
+	public function test_default_filter($conn_args) {
+		$this->assertCommand($conn_args, "--list --strip-descr :", array(
+		), array(
+			'C               : FixedDisk      4K-blocks    41.69% used of 79.21GiB. 46.19GiB free',
+			'E               : FixedDisk      64K-blocks    92.40% used of 27.28TiB. 2.07TiB free',
+			'F               : FixedDisk      64K-blocks    79.95% used of 27.28TiB. 5.47TiB free',
+		), 0);
+	}
+
+	/**
+	 * @dataProvider snmpArgsProvider
+	 */
+	public function test_less_than($conn_args) {
+		$this->assertCommand($conn_args, "--list --strip-descr : --exclude-size -400GiB", array(
+		), array(
+			'E               : FixedDisk      64K-blocks    92.40% used of 27.28TiB. 2.07TiB free',
+			'F               : FixedDisk      64K-blocks    79.95% used of 27.28TiB. 5.47TiB free',
+		), 0);
+	}
+
+	/**
+	 * @dataProvider snmpArgsProvider
+	 */
 	public function test_windows_data($conn_args) {
 		$this->assertCommand($conn_args,
 			"-m gib --strip-descr : -w 0:50 -c 0:50 --free-bytes-cutoff 150gib --free-bytes-warning 60gib --free-bytes-critical 50gib --print-double-perfdata",
