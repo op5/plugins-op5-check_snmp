@@ -70,6 +70,7 @@ static int discard_default_filters;
 static int sum_all_disks;
 static int include_filters, exclude_filters;
 static char filter_charmap_magic[255];
+static char *strip_descr_from;
 #define num_filters (include_filters + exclude_filters)
 
 struct di_result {
@@ -515,6 +516,9 @@ static void print_help(void)
 
 	printf (" %s\n", " --print-double-perfdata   (no short option available)");
 	printf ("    %s\n", _("Causes the plugin to print performance data in both percent and bytes\n"));
+	printf (" %s\n", _(" --strip-descr-from  (no short option available)"));
+	printf ("    %s\n", _("Strip disk descriptions from the start of the given string.\n"));
+
 	mp_snmp_argument_help();
 	printf ("Notes on filters:\n");
 	printf ("  * The type filter trumps all other filters\n");
@@ -552,6 +556,7 @@ static int process_arguments(mp_snmp_context *ctx, int argc, char **argv)
 		{ "exclude-used", required_argument, 0, 'u' },
 		{ "types", required_argument, 0, 'T' },
 		{ "print-double-perfdata", no_argument, 0, 4 },
+		{ "strip-descr-from", required_argument, 0, 5 },
 		MP_SNMP_LONGOPTS,
 		{NULL, 0, 0, 0},
 	};
@@ -594,6 +599,9 @@ static int process_arguments(mp_snmp_context *ctx, int argc, char **argv)
 		switch (c) {
 			case 4:
 				print_double_perfdata = 1;
+				break;
+			case 5:
+				strip_descr_from = optarg;
 				break;
 			case 'S':
 				sum_all_disks = 1;
@@ -738,6 +746,7 @@ static int store_hrStorageTable(netsnmp_variable_list *v, void *the_tree, void *
 {
 	struct rbtree *t = (struct rbtree *)the_tree;
 	struct disk_info *di, locator;
+	unsigned int len;
 
 	if (v->name[10] == HRSTORAGE_SUBIDX_Index) {
 		/* new disk, so create it and store it */
@@ -764,6 +773,14 @@ static int store_hrStorageTable(netsnmp_variable_list *v, void *the_tree, void *
 		di->Type = oid2storage_type(v->val.objid, v->val_len);
 		break;
 	 case HRSTORAGE_SUBIDX_Descr:
+		len = v->val_len;
+		if (strip_descr_from) {
+			char *substr = strstr((char *)v->val.string, strip_descr_from);
+			if (substr && substr != (char *)v->val.string) {
+				len = (unsigned long long)substr - (unsigned long long)v->val.string;
+			}
+		}
+		di->Descr = strndup((char *)v->val.string, len);
 		di->Descr = strndup((char *)v->val.string, v->val_len);
 		break;
 	 case HRSTORAGE_SUBIDX_AllocationUnits:
