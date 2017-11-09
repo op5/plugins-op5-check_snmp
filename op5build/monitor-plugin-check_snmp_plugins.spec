@@ -14,12 +14,13 @@ Prefix: /opt/plugins
 License: GPLv2+
 Source: %name-%version.tar.gz
 BuildRoot: %{_tmppath}/%{name}-%{version}-%{release}
-BuildArch: i386 x86_64
+BuildArch: x86_64
 BuildRequires: autoconf
 BuildRequires: automake
 BuildRequires: check-devel
-BuildRequires: valgrind
+BuildRequires: gcc
 BuildRequires: net-snmp-devel
+BuildRequires: valgrind
 
 %description
 %{summary}
