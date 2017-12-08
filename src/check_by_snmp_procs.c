@@ -162,7 +162,7 @@ static int proc_info_ret(void *p_, void *discard)
 
 	debug_print_one_proc(2, p);
 
-	if (0 == strcmp(p->Name, name_filter))
+	if (p->Name != NULL && 0 == strcmp(p->Name, name_filter))
 	{
 		counter[0]++;
 		counter[1] = counter[1] + p->Perf.CPU;
