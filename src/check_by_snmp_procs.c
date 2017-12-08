@@ -249,6 +249,10 @@ static int parse_snmp_var(netsnmp_variable_list *v, void *discard1, void *discar
 	}
 
 	p = rbtree_find(all_procs, (struct proc_info *)&pid);
+	if (p == NULL) {
+		/* Couldn't find pid in tree, so don't continue further */
+		return 0;
+	}
 	mp_debug(3, "Found proc_info with id %d\n", p->Index);
 	mp_debug(3, "v->name[7]: %d; v->name[10]: %d\n", (int)v->name[7], (int)v->name[10]);
 	if (v->name[7] == 5) {
